@@ -173,14 +173,12 @@ X = X.append(Zero,ignore_index=True)
 #X = X.append(ZZ,ignore_index=True)
 
 
-
-
-# Create featires and labels (XX = features - all data but no labels, YY = labels only)
+# Create features and labels (XX = features - all data but no labels, YY = labels only)
 
 XX = X.drop(['label'],1)
 YY = X['label']
 
-
+# empty lists to append to
 Naive_Bayes = []
 KKN = []
 SVM_linear = []
@@ -188,11 +186,12 @@ SVM_sigmoid = []
 SVM_poly = []
 SVM_rbf = []
 
+# number of times to run train/test with random sample selection - reported
+# accuracy will be mean accuracy for eacxh run
+
 Num_runs = 10000
 
-
 # Train a range of algorithms and measure accuracy 
-
 for i in range(1,Num_runs,1):
 
     # split data into test and train sets
@@ -200,52 +199,52 @@ for i in range(1,Num_runs,1):
     
     # test different classifers
     
+    # 1. Try Naive Bayes
     clf = GaussianNB()
     clf.fit(X_train,Y_train)
     accuracy = clf.score(X_test,Y_test)
     Naive_Bayes.append(accuracy)
 
     
-    # 1. Try K-nearest neighbours
+    # 2. Try K-nearest neighbours
     clf = neighbors.KNeighborsClassifier()
     clf.fit(X_train,Y_train)
     accuracy = clf.score(X_test,Y_test)
     KKN.append(accuracy)
 
     
-    # 2. Try support Vector Machine (linear kernel)
-    clf = svm.SVC(kernel='linear', C=1000.0)
+    # 3. Try support Vector Machine (linear kernel)
+    clf = svm.SVC(kernel='linear', C=10, gamma = 0.1)
     clf.fit(X_train,Y_train)
     accuracy = clf.score(X_test,Y_test)
     SVM_linear.append(accuracy)
 
 
-
-    # 3. Try support Vector Machine (radial basis function kernel)
-#    clf = svm.SVC(kernel='rbf', C=1000.0, gamma = 0.1)
-#    clf.fit(X_train,Y_train)
-#    accuracy = clf.score(X_test,Y_test)
-#    SVM_rbf.append(accuracy)
+    # 4. Try support Vector Machine (radial basis function kernel)
+    clf = svm.SVC(kernel='rbf', C=1000.0, gamma = 0.1)
+    clf.fit(X_train,Y_train)
+    accuracy = clf.score(X_test,Y_test)
+    SVM_rbf.append(accuracy)
     
-    # 4. Try support Vector Machine (polynomial kernel)
-#    clf = svm.SVC(kernel='poly', C=1000.0)
-#    clf.fit(X_train,Y_train)
-#    accuracy = clf.score(X_test,Y_test)
-#    SVM_poly.append(accuracy)
-#    
-#    # 5. Try support Vector Machine (sigmoid kernel)
-#    clf = svm.SVC(kernel='sigmoid', C=1000.0)
-#    clf.fit(X_train,Y_train)
-#    accuracy = clf.score(X_test,Y_test)
-#    SVM_sigmoid.append(accuracy)
+    # 5. Try support Vector Machine (polynomial kernel)
+    clf = svm.SVC(kernel='poly', C=1000.0)
+    clf.fit(X_train,Y_train)
+    accuracy = clf.score(X_test,Y_test)
+    SVM_poly.append(accuracy)
+   
+#    # 6. Try support Vector Machine (sigmoid kernel)
+    clf = svm.SVC(kernel='sigmoid', C=1000.0)
+    clf.fit(X_train,Y_train)
+    accuracy = clf.score(X_test,Y_test)
+    SVM_sigmoid.append(accuracy)
 
 
 print('KKN ',np.mean(KKN))
 print('Naive Bayes ', np.mean(Naive_Bayes))
 print('SVM_linear ', np.mean(SVM_linear))
-#print('SVM_sigmoid',np.mean(SVM_sigmoid))
-#print('SVM_rbf',np.mean(SVM_rbf))
-#print('SVM_poly',np.mean(SVM_poly))
+print('SVM_sigmoid',np.mean(SVM_sigmoid))
+print('SVM_rbf',np.mean(SVM_rbf))
+print('SVM_poly',np.mean(SVM_poly))
 
 
 ##############################################################################
@@ -261,10 +260,16 @@ print('SVM_linear ', np.mean(SVM_linear))
 #
 #
 #from sklearn.grid_search import GridSearchCV
-#tuned_parameters = [{'kernel': ['linear'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+#tuned_parameters = [
+#        {'kernel': ['linear'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
 #                     'C': [0.1, 1, 10, 100, 1000, 10000]},
-#                    {'kernel': ['rbf'], 'C': [0.1, 1, 10, 100, 1000, 10000]},
-#                    {'kernel':['poly'], 'C':[0.1,1,10,100,1000,10000]}]
+#                    {'kernel': ['rbf'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+#                     'C': [0.1, 1, 10, 100, 1000, 10000]},
+#                    {'kernel':['poly'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+#                     'C':[0.1,1,10,100,1000,10000]},
+#                    {'kernel':['sigmoid'],'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+#                     'C':[0.1,1,10,100,1000,10000]}
+#                    ]
 #
 #
 #clf = GridSearchCV(svm.SVC(C=1), tuned_parameters, cv=5)
@@ -288,6 +293,8 @@ print('SVM_linear ', np.mean(SVM_linear))
 
 jp2s = ['/media/joe/FDB2-2F9B/B02.jp2', '/media/joe/FDB2-2F9B/B03.jp2', '/media/joe/FDB2-2F9B/B04.jp2', '/media/joe/FDB2-2F9B/B08.jp2' ]
 arrs = []
+
+res = 0.1 # Ground resolution of sentinel data in km
 
 for jp2 in jp2s:
     with rasterio.open(jp2) as f:
@@ -342,6 +349,8 @@ predicted = predicted.astype(float)
 predicted = np.reshape(predicted,[lenx,leny])
 predicted = predicted[2000:-1000,6000:-1]
 
+x,y = np.shape(predicted)
+area_of_pixel = (x*res)*(y*res) # area of selected region
 #plot classified surface
 plt.figure(figsize = (30,30)),plt.imshow(predicted),plt.colorbar()
 
@@ -356,8 +365,22 @@ noUNKNOWNS = (predicted !=0).sum()
 
 tot_alg_coverage = (numHA+numLA)/noUNKNOWNS *100
 HA_coverage = (numHA)/noUNKNOWNS * 100
+LA_coverage = (numLA)/noUNKNOWNS * 100
+CI_coverage = (numCI)/noUNKNOWNS * 100
+CC_coverage = (numCC)/noUNKNOWNS * 100
+WAT_coverage = (numWAT)/noUNKNOWNS * 100
 
-print('Total Algal Coverage = ', np.round(tot_alg_coverage,2))
+# Print coverage summary
+
+print('**** SUMMARY ****')
+print('Area of pixel = ', area_of_pixel)
+print('% algal coverage (Hbio + Lbio) = ',np.round(tot_alg_coverage,2))
+print('% Hbio coverage = ',np.round(HA_coverage,2))
+print('% Lbio coverage = ',np.round(LA_coverage,2))
+print('% cryoconite coverage = ',np.round(CC_coverage,2))
+print('% clean ice coverage = ',np.round(CI_coverage,2))
+print('% water coverage = ',np.round(WAT_coverage,2))
+
 ###################################
 
 

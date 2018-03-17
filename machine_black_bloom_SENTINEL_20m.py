@@ -337,6 +337,8 @@ for jp2 in jp2s:
     with rasterio.open(jp2) as f:
         arrs.append(f.read(1))
 
+res = 0.02 # ground resolution
+
 data = np.array(arrs, dtype=arrs[0].dtype)
 
 # set up empty lists to append into
@@ -395,8 +397,10 @@ predicted[predicted == 'HA'] = float(5)
 predicted = predicted.astype(float)
 # reshape 1D array back into original image dimensions
 predicted = np.reshape(predicted,[lenx,leny])
-predicted = predicted[2000:-1000,6000:-1]
+predicted = predicted[:-1000,3000:]
 
+x,y = np.shape(predicted)
+area_of_pixel = (x*res)*(y*res) # area of selected region
 #plot classified surface
 plt.figure(figsize = (30,30)),plt.imshow(predicted),plt.colorbar()
 
@@ -409,12 +413,19 @@ numWAT = (predicted==1).sum()
 numUNKNOWN = (predicted==0).sum()
 noUNKNOWNS = (predicted !=0).sum()
 
-tot_alg_coverage = (numHA+numLA)/noUNKNOWNS *100
 HA_coverage = (numHA)/noUNKNOWNS * 100
+LA_coverage = (numLA)/noUNKNOWNS * 100
+CI_coverage = (numCI)/noUNKNOWNS * 100
+CC_coverage = (numCC)/noUNKNOWNS * 100
+WAT_coverage = (numWAT)/noUNKNOWNS * 100
 
-print('Total Algal Coverage = ', np.round(tot_alg_coverage,2))
-###################################
+# Print coverage summary
 
-
-
-
+print('**** SUMMARY ****')
+print('Area of pixel = ', area_of_pixel, 'km')
+print('% algal coverage (Hbio + Lbio) = ',np.round(tot_alg_coverage,2))
+print('% Hbio coverage = ',np.round(HA_coverage,2))
+print('% Lbio coverage = ',np.round(LA_coverage,2))
+print('% cryoconite coverage = ',np.round(CC_coverage,2))
+print('% clean ice coverage = ',np.round(CI_coverage,2))
+print('% water coverage = ',np.round(WAT_coverage,2))
