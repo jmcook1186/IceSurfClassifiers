@@ -30,15 +30,18 @@ import rasterio
 from sklearn.grid_search import GridSearchCV
 plt.style.use('ggplot')
 
+HCRF_file = '//home//joe//Code//HCRF_master_machine.csv'
+Seninel_jp2s = ['/media/joe/FDB2-2F9B/B02.jp2', '/media/joe/FDB2-2F9B/B03.jp2', '/media/joe/FDB2-2F9B/B04.jp2', '/media/joe/FDB2-2F9B/B08.jp2' ]
+
 
 #######################################################################################
 ############################ DEFINE FUNCTIONS ###################################
 
 
-def create_dataset():
+def create_dataset(HCRF_file):
 # Read in raw HCRF data to DataFrame. This version pulls in HCRF data from 2016 and 2017
 
-    hcrf_master = pd.read_csv('//home//joe//Code//HCRF_master_machine.csv')
+    hcrf_master = pd.read_csv(HCRF_file)
     HA_hcrf = pd.DataFrame()
     LA_hcrf = pd.DataFrame()
     CI_hcrf = pd.DataFrame()
@@ -155,30 +158,14 @@ def create_dataset():
     Q['R490'] = np.array(WAT_hcrf.iloc[490])
     
     Q['label'] = 'WAT'
-    
-    
-    ## Zero option added to avoid the classifier assigning a surface type to clipped
-    # aread of image. Since these areas have zero reflectance values in all bands, 
-    # the classifier correctly identifies them and assigns the to the 'unknown' category
-    
-    
-    Zero = pd.DataFrame()
-    Zero['R140'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    Zero['R210'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    Zero['R315'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    Zero['R490'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    
-    Zero['label'] = 'UNKNOWN'
-    
-    
+        
     # Join dataframes into one continuous DF
     
     X = X.append(Y,ignore_index=True)
     X = X.append(Z,ignore_index=True)
     X = X.append(P,ignore_index=True)
-    X = X.append(Q,ignore_index=True)
-    X = X.append(Zero,ignore_index=True)    
-    
+    X = X.append(Q,ignore_index=True)    
+
     # Create features and labels (XX = features - all data but no labels, YY = labels only)
     
     XX = X.drop(['label'],1)
@@ -269,11 +256,11 @@ def optimise_train_model(X,XX,YY):
     return clf
 
 
-def ImageAnalysis(clf):
+def ImageAnalysis(Sentinel_jp2s,clf):
 
     # Import multispectral imagery from Sentinel 2 and apply ML algorithm to classify surface
     
-    jp2s = ['/media/joe/FDB2-2F9B/B02.jp2', '/media/joe/FDB2-2F9B/B03.jp2', '/media/joe/FDB2-2F9B/B04.jp2', '/media/joe/FDB2-2F9B/B08.jp2' ]
+    jp2s = Seninel_jp2s
     arrs = []
     
     res = 0.01 # Ground resolution of sentinel data in km
@@ -450,10 +437,10 @@ def albedo_report(predicted,albedo_array):
 ############### RUN ENTIRE SEQUENCE ###################
 
 # create dataset
-X,XX,YY = create_dataset()
+X,XX,YY = create_dataset(HCRF_file)
 #optimise and train model
 clf = optimise_train_model(X,XX,YY)
 # apply model to Sentinel2 image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(clf)
+predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(Seninel_jp2s,clf)
 #obtain albedo summary stats
 alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
