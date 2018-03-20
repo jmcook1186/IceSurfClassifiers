@@ -218,10 +218,9 @@ def optimise_train_model(X,XX,YY):
     
     X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = 0.2)
     
-    # Train a range of algorithms and measure accuracy 
+    # Test optimised SVM against simpler Naive Bayes and KNN models over num_runs
+    
     for i in range(1,Num_runs,1): 
-                
-        # test different classifers
         
         # 1. Try Naive Bayes
         clf = GaussianNB()
@@ -241,17 +240,27 @@ def optimise_train_model(X,XX,YY):
         accuracy = clf.score(X_test,Y_test)
         SVM.append(accuracy)
     
-    
+    # report accuracy (mean over num_runs)
     print('KNN ',np.mean(KNN))
     print('Naive Bayes ', np.mean(Naive_Bayes))
     print('SVM ', np.mean(SVM))
     
+    # use whichever is the best performing algorithm for classifying the image
+    # report to the user which model is being used and the param values
+    
     if np.mean(KNN) > np.mean(Naive_Bayes) and np.mean(KNN) > np.mean(SVM):
         clf = clf = neighbors.KNeighborsClassifier()
+        clf.fit(X_train,Y_train)
+        print('KNN model used')
     elif np.mean(Naive_Bayes) > np.mean(KNN) and np.mean(Naive_Bayes) > np.mean(SVM):
         clf = GaussianNB()
-    elif np.mean(SVM) > np.mean(KNN) and np.mean(SVM) > np.mean(Naive_Bayes):
+        clf.fit(X_train,Y_train)
+        print('Naive Bayes model used')
+    else:
         clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
+        clf.fit(X_train,Y_train)
+        print('SVM model used')
+        print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )
 
     return clf
 
@@ -431,7 +440,6 @@ def albedo_report(predicted,albedo_array):
 
 ################################################################################
 ################################################################################
-
 
 
 ############### RUN ENTIRE SEQUENCE ###################

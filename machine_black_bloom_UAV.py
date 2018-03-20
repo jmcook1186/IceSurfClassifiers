@@ -83,7 +83,7 @@ def create_dataset(HCRF_file):
                'DISP9','DISP10','DISP11','DISP12','DISP13','DISP14']
     
     WATsites = ['21_7_SB5','21_7_SB7','21_7_SB8',
-             '25_7_S3', 'WAT_1','WAT_3','WAT_4','WAT_5','WAT_6','WAT_6']
+             '25_7_S3', 'WAT_1','WAT_3','WAT_4','WAT_5','WAT_6']
     
     #REMOVED FROM WATER SITES 'WAT_2'
     
@@ -231,7 +231,7 @@ def optimise_train_model(X,XX,YY):
     
     # number of times to run train/test with random sample selection - reported
     # accuracy will be mean accuracy for eacxh run
-    Num_runs = 1000
+    Num_runs = 100000
     
     X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = 0.2)
     
@@ -266,12 +266,16 @@ def optimise_train_model(X,XX,YY):
     if np.mean(KNN) > np.mean(Naive_Bayes) and np.mean(KNN) > np.mean(SVM):
         clf = clf = neighbors.KNeighborsClassifier()
         clf.fit(X_train,Y_train)
+        print('KNN model used')
     elif np.mean(Naive_Bayes) > np.mean(KNN) and np.mean(Naive_Bayes) > np.mean(SVM):
         clf = GaussianNB()
         clf.fit(X_train,Y_train)
-    elif np.mean(SVM) > np.mean(KNN) and np.mean(SVM) > np.mean(Naive_Bayes):
+        print('Naive Bayes model used')
+    else:
         clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
         clf.fit(X_train,Y_train)
+        print('SVM model used')
+        print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )
 
     return clf
 
@@ -311,7 +315,7 @@ def ImageAnalysis(img_name,clf):
             
     for i in range(0,len(lyr1),1):
         test_array.append([lyr1[i], lyr2[i], lyr3[i], lyr4[i], lyr5[i] ])
-        albedo_array.append(0.726*(lyr2[i]/10000) - 0.322*(lyr2[i]/10000)**2 - 0.015*(lyr5[i]/10000) + 0.581*(lyr5[i]/10000))
+        albedo_array.append(0.726*(lyr2[i]) - 0.322*(lyr2[i])**2 - 0.015*(lyr5[i]) + 0.581*(lyr5[i]))
         
     # apply ML algorithm to 5-value array for each pixel - predict surface type
         
@@ -329,6 +333,7 @@ def ImageAnalysis(img_name,clf):
     predicted = predicted.astype(float)
     # reshape 1D array back into original image dimensions
     predicted = np.reshape(predicted,[lenx,leny])
+    albedo_array = np.reshape(albedo_array,[lenx,leny])
     
     #plot classified surface
     plt.figure(figsize = (30,30)),plt.imshow(predicted),plt.colorbar()
