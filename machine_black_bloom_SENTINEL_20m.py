@@ -270,11 +270,19 @@ def optimise_train_model(X,XX,YY):
     
     if np.mean(KNN) > np.mean(Naive_Bayes) and np.mean(KNN) > np.mean(SVM):
         clf = clf = neighbors.KNeighborsClassifier()
+        clf.fit(X_train,Y_train)
+        print('KNN model used')
     elif np.mean(Naive_Bayes) > np.mean(KNN) and np.mean(Naive_Bayes) > np.mean(SVM):
         clf = GaussianNB()
-    elif np.mean(SVM) > np.mean(KNN) and np.mean(SVM) > np.mean(Naive_Bayes):
+        clf.fit(X_train,Y_train)
+        print('Naive Bayes model used')
+    else:
         clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
-
+        clf.fit(X_train,Y_train)
+        print('SVM model used')
+        print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )
+        
+        
     return clf
 
 
