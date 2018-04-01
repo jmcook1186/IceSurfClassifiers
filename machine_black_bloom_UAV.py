@@ -24,6 +24,8 @@ import numpy as np
 import pandas as pd
 from sklearn.naive_bayes import GaussianNB
 from sklearn import preprocessing, cross_validation, neighbors, svm
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import f1_score
 import matplotlib.pyplot as plt
 import gdal
 import rasterio
@@ -218,38 +220,47 @@ def optimise_train_model(X,XX,YY):
                          'C':[0.1,1,10,100,1000,10000]}
                         ]
     
-    clf = GridSearchCV(svm.SVC(C=1), tuned_parameters, cv=5)
-    clf.fit(X_train, Y_train)
+    clf_svm = GridSearchCV(svm.SVC(C=1), tuned_parameters, cv=5)
+    clf_svm.fit(X_train, Y_train)
     
     print()
     print("Best parameters set found on development set:")
-    print(clf.best_params_)
+    print(clf_svm.best_params_)
     print() #line break
     
-    kernel = clf.best_estimator_.get_params()['kernel']
-    C = clf.best_estimator_.get_params()['C']
-    gamma = clf.best_estimator_.get_params()['gamma']
+    kernel = clf_svm.best_estimator_.get_params()['kernel']
+    C = clf_svm.best_estimator_.get_params()['C']
+    gamma = clf_svm.best_estimator_.get_params()['gamma']
     
 
     # test different classifers
     
     # 1. Try Naive Bayes
-    clf = GaussianNB()
-    clf.fit(X_train,Y_train)
-    accuracy = clf.score(X_test,Y_test)
+    clf_NB = GaussianNB()
+    clf_NB.fit(X_train,Y_train)
+    accuracy = clf_NB.score(X_test,Y_test)
+    Y_predict_NB = clf_NB.predict(X_train)
+    conf_mx_NB = confusion_matrix(Y_train,Y_predict_NB)
+    f1_NB = f1_score(Y_train, Y_predict_NB, average="macro")
     Naive_Bayes.append(accuracy)
     
     # 2. Try K-nearest neighbours
-    clf = neighbors.KNeighborsClassifier()
-    clf.fit(X_train,Y_train)
-    accuracy = clf.score(X_test,Y_test)
-    KNN.append(accuracy)
+    clf_KNN = neighbors.KNeighborsClassifier()
+    clf_KNN.fit(X_train,Y_train)
+    accuracy = clf_KNN.score(X_test,Y_test)
+    Y_predict_KNN = clf_KNN.predict(X_train)
+    conf_mx_KNN = confusion_matrix(Y_train,Y_predict_KNN)
+    f1_KNN = f1_score(Y_train, Y_predict_KNN, average="macro")
+    Naive_Bayes.append(accuracy)
     
     # 3. Try support Vector Machine with best params from optimisation
-    clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
-    clf.fit(X_train,Y_train)
-    accuracy = clf.score(X_test,Y_test)
-    SVM.append(accuracy)
+    clf_svm = svm.SVC(kernel=kernel, C=C, gamma = gamma)
+    clf_svm.fit(X_train,Y_train)
+    accuracy = clf_svm.score(X_test,Y_test)
+    Y_predict_svm = clf_svm.predict(X_train)
+    conf_mx_svm = confusion_matrix(Y_train,Y_predict_svm)
+    f1_svm = f1_score(Y_train, Y_predict_svm, average="macro")
+    Naive_Bayes.append(accuracy)
     
     
     print('KNN ',np.mean(KNN))
@@ -443,6 +454,6 @@ X,XX,YY = create_dataset(HCRF_file)
 #optimise and train model
 clf = optimise_train_model(X,XX,YY)
 # apply model to Sentinel2 image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
+#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
 #obtain albedo summary stats
 #alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
