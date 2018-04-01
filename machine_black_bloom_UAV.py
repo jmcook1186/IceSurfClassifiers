@@ -9,9 +9,9 @@ Created on Thu Mar  8 14:32:24 2018
 # This code provides functions for reading in directional reflectance data obtained
 # via ground spectroscopy, reformatting into a pandas dataframe of features and labels,
 # optimising and training a series of machine learning algorithms on the ground spectra
-# then using the trained model to predict the surface type in each pixel of a Sentinel-2
-# image. The Sentinel-2 image has been preprocesses using ESA Sen2Cor command line
-# algorithm to convert to surface reflectance before being saved as a multiband TIF which
+# then using the trained model to predict the surface type in each pixel of a UAV
+# image. The UAV image has been preprocessed by stitching individual images together and
+# converting to reflectance using panels on the ground before being saved as a multiband TIF which
 # is then loaded here. A narrowband to broadband conversion (Knap 1999) is applied to the
 # data to create an albedo map, and this is then used to create a large dataset of surface 
 # type and associated broadband albedo
@@ -39,7 +39,6 @@ img_name = '/media/joe/FDB2-2F9B/uav_refl.tif'
 
 def create_dataset(HCRF_file):
 # Read in raw HCRF data to DataFrame. This version pulls in HCRF data from 2016 and 2017
-
     hcrf_master = pd.read_csv(HCRF_file)
     HA_hcrf = pd.DataFrame()
     LA_hcrf = pd.DataFrame()
@@ -198,7 +197,10 @@ def optimise_train_model(X,XX,YY):
     KNN = []
     SVM = []
     
-    # split data into test and train sets
+    # split data into test and train sets. Random_state = 42 ensures the ransomly selected values in tets and
+    # training sets are consistent throughout the script (can be set to any aribitrary integer value - 42 chosen
+    # because 42 = meaning of life, the universe and everything)
+    
     X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = 0.2)
 
     # Optimize parameters using GridSearch with cross validation (GridSearchCV) to
@@ -228,35 +230,26 @@ def optimise_train_model(X,XX,YY):
     C = clf.best_estimator_.get_params()['C']
     gamma = clf.best_estimator_.get_params()['gamma']
     
+
+    # test different classifers
     
-    # number of times to run train/test with random sample selection - reported
-    # accuracy will be mean accuracy for eacxh run
-    Num_runs = 100000
+    # 1. Try Naive Bayes
+    clf = GaussianNB()
+    clf.fit(X_train,Y_train)
+    accuracy = clf.score(X_test,Y_test)
+    Naive_Bayes.append(accuracy)
     
-    X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = 0.2)
+    # 2. Try K-nearest neighbours
+    clf = neighbors.KNeighborsClassifier()
+    clf.fit(X_train,Y_train)
+    accuracy = clf.score(X_test,Y_test)
+    KNN.append(accuracy)
     
-    # Train a range of algorithms and measure accuracy 
-    for i in range(1,Num_runs,1): 
-                
-        # test different classifers
-        
-        # 1. Try Naive Bayes
-        clf = GaussianNB()
-        clf.fit(X_train,Y_train)
-        accuracy = clf.score(X_test,Y_test)
-        Naive_Bayes.append(accuracy)
-        
-        # 2. Try K-nearest neighbours
-        clf = neighbors.KNeighborsClassifier()
-        clf.fit(X_train,Y_train)
-        accuracy = clf.score(X_test,Y_test)
-        KNN.append(accuracy)
-        
-        # 3. Try support Vector Machine with best params from optimisation
-        clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
-        clf.fit(X_train,Y_train)
-        accuracy = clf.score(X_test,Y_test)
-        SVM.append(accuracy)
+    # 3. Try support Vector Machine with best params from optimisation
+    clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
+    clf.fit(X_train,Y_train)
+    accuracy = clf.score(X_test,Y_test)
+    SVM.append(accuracy)
     
     
     print('KNN ',np.mean(KNN))
@@ -264,7 +257,7 @@ def optimise_train_model(X,XX,YY):
     print('SVM ', np.mean(SVM))
     
     if np.mean(KNN) > np.mean(Naive_Bayes) and np.mean(KNN) > np.mean(SVM):
-        clf = clf = neighbors.KNeighborsClassifier()
+        clf = neighbors.KNeighborsClassifier()
         clf.fit(X_train,Y_train)
         print('KNN model used')
     elif np.mean(Naive_Bayes) > np.mean(KNN) and np.mean(Naive_Bayes) > np.mean(SVM):
@@ -431,6 +424,11 @@ def albedo_report(predicted,albedo_array):
     print('mean albedo LA = ', mean_LA)
     print('mean albedo HA = ', mean_HA)
 
+    albedo_DF = pd.DataFrame(columns=['albedo','class'])
+    albedo_DF['class'] = predicted
+    albedo_DF['albedo'] = albedo_array
+    albedo_DF.to_csv('UAV_albedo_dataset.csv')
+
     return alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT
 
 ################################################################################
@@ -447,4 +445,4 @@ clf = optimise_train_model(X,XX,YY)
 # apply model to Sentinel2 image
 predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
 #obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
+#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)

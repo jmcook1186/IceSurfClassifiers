@@ -212,34 +212,26 @@ def optimise_train_model(X,XX,YY):
     gamma = clf.best_estimator_.get_params()['gamma']
     
     
-    # number of times to run train/test with random sample selection - reported
-    # accuracy will be mean accuracy for eacxh run
-    Num_runs = 100000
-    
-    X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = 0.2)
-    
     # Test optimised SVM against simpler Naive Bayes and KNN models over num_runs
+
+    # 1. Try Naive Bayes
+    clf = GaussianNB()
+    clf.fit(X_train,Y_train)
+    accuracy = clf.score(X_test,Y_test)
+    Naive_Bayes.append(accuracy)
     
-    for i in range(1,Num_runs,1): 
-        
-        # 1. Try Naive Bayes
-        clf = GaussianNB()
-        clf.fit(X_train,Y_train)
-        accuracy = clf.score(X_test,Y_test)
-        Naive_Bayes.append(accuracy)
-        
-        # 2. Try K-nearest neighbours
-        clf = neighbors.KNeighborsClassifier()
-        clf.fit(X_train,Y_train)
-        accuracy = clf.score(X_test,Y_test)
-        KNN.append(accuracy)
-        
-        # 3. Try support Vector Machine with best params from optimisation
-        clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
-        clf.fit(X_train,Y_train)
-        accuracy = clf.score(X_test,Y_test)
-        SVM.append(accuracy)
+    # 2. Try K-nearest neighbours
+    clf = neighbors.KNeighborsClassifier()
+    clf.fit(X_train,Y_train)
+    accuracy = clf.score(X_test,Y_test)
+    KNN.append(accuracy)
     
+    # 3. Try support Vector Machine with best params from optimisation
+    clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
+    clf.fit(X_train,Y_train)
+    accuracy = clf.score(X_test,Y_test)
+    SVM.append(accuracy)
+
     # report accuracy (mean over num_runs)
     print('KNN ',np.mean(KNN))
     print('Naive Bayes ', np.mean(Naive_Bayes))
@@ -435,6 +427,11 @@ def albedo_report(predicted,albedo_array):
     print('mean albedo CI = ', mean_CI)
     print('mean albedo LA = ', mean_LA)
     print('mean albedo HA = ', mean_HA)
+
+    albedo_DF = pd.DataFrame(columns=['albedo','class'])
+    albedo_DF['class'] = predicted
+    albedo_DF['albedo'] = albedo_array
+    albedo_DF.to_csv('Sentinel_10m_albedo_dataset.csv')
 
     return alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT
 
