@@ -193,7 +193,10 @@ def create_dataset(HCRF_file):
 
 
 
-def optimise_train_model(X,XX,YY):
+def optimise_train_model(X,XX,YY, error_selector):
+    # X, XX, YY are the datasets with and without labels. error selector determines which error metric
+    # the code should use to choose the best classifier, as different models might outperforms others
+    # depending upon the error metric used. The options are strings 'F1', 'accuracy' or 'recall'
     # empty lists to append to
     Naive_Bayes = []
     KNN = []
@@ -232,54 +235,94 @@ def optimise_train_model(X,XX,YY):
     C = clf_svm.best_estimator_.get_params()['C']
     gamma = clf_svm.best_estimator_.get_params()['gamma']
     
-
     # test different classifers
     
     # 1. Try Naive Bayes
     clf_NB = GaussianNB()
     clf_NB.fit(X_train,Y_train)
-    accuracy = clf_NB.score(X_test,Y_test)
-    Y_predict_NB = clf_NB.predict(X_train)
-    conf_mx_NB = confusion_matrix(Y_train,Y_predict_NB)
-    f1_NB = f1_score(Y_train, Y_predict_NB, average="macro")
-    Naive_Bayes.append(accuracy)
+    accuracy_NB = clf_NB.score(X_test,Y_test) #calculate accuracy
+    Y_predict_NB = clf_NB.predict(X_train) # make nre prediction
+    conf_mx_NB = confusion_matrix(Y_train,Y_predict_NB) # calculate confusion matrix
+    recall_NB = recall_score(Y_train,Y_predict_NB,average="macro")
+    f1_NB = f1_score(Y_train, Y_predict_NB, average="macro") # calculate f1 score
     
     # 2. Try K-nearest neighbours
     clf_KNN = neighbors.KNeighborsClassifier()
     clf_KNN.fit(X_train,Y_train)
-    accuracy = clf_KNN.score(X_test,Y_test)
+    accuracy_KNN = clf_KNN.score(X_test,Y_test)
     Y_predict_KNN = clf_KNN.predict(X_train)
     conf_mx_KNN = confusion_matrix(Y_train,Y_predict_KNN)
+    recall_KNN = recall_score(Y_train,Y_predict_KNN,average="macro")
     f1_KNN = f1_score(Y_train, Y_predict_KNN, average="macro")
-    Naive_Bayes.append(accuracy)
     
     # 3. Try support Vector Machine with best params from optimisation
     clf_svm = svm.SVC(kernel=kernel, C=C, gamma = gamma)
     clf_svm.fit(X_train,Y_train)
-    accuracy = clf_svm.score(X_test,Y_test)
+    accuracy_svm = clf_svm.score(X_test,Y_test)
     Y_predict_svm = clf_svm.predict(X_train)
     conf_mx_svm = confusion_matrix(Y_train,Y_predict_svm)
+    recall_svm = recall_score(Y_train,Y_predict_svm,average="macro")
     f1_svm = f1_score(Y_train, Y_predict_svm, average="macro")
-    Naive_Bayes.append(accuracy)
     
     
-    print('KNN ',np.mean(KNN))
-    print('Naive Bayes ', np.mean(Naive_Bayes))
-    print('SVM ', np.mean(SVM))
+    print('KNN accuracy = ',accuracy_KNN, 'KNN_F1_Score = ', f1_KNN)
+    print('Naive Bayes accuracy = ', accuracy_NB, 'Naive_Bayes_F1_Score = ',f1_NB)
+    print('SVM accuracy = ',accuracy_svm, 'SVM_F1_Score = ', f1_svm)
     
-    if np.mean(KNN) > np.mean(Naive_Bayes) and np.mean(KNN) > np.mean(SVM):
-        clf = neighbors.KNeighborsClassifier()
-        clf.fit(X_train,Y_train)
-        print('KNN model used')
-    elif np.mean(Naive_Bayes) > np.mean(KNN) and np.mean(Naive_Bayes) > np.mean(SVM):
-        clf = GaussianNB()
-        clf.fit(X_train,Y_train)
-        print('Naive Bayes model used')
-    else:
-        clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
-        clf.fit(X_train,Y_train)
-        print('SVM model used')
-        print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )
+    if error_selector == 'accuracy':
+        
+        if np.mean(KNN) > np.mean(Naive_Bayes) and np.mean(KNN) > np.mean(SVM):
+            clf = neighbors.KNeighborsClassifier()
+            clf.fit(X_train,Y_train)
+            print('KNN model used')
+        elif np.mean(Naive_Bayes) > np.mean(KNN) and np.mean(Naive_Bayes) > np.mean(SVM):
+            clf = GaussianNB()
+            clf.fit(X_train,Y_train)
+            print('Naive Bayes model used')
+        else:
+            clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
+            clf.fit(X_train,Y_train)
+            print('SVM model used')
+            print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )
+
+    elif error_selector == 'recall':
+        
+        if recall_KNN > recall_NB and recall_KNN > recall_svm:
+            clf = neighbors.KNeighborsClassifier()
+            clf.fit(X_train,Y_train)
+            print('KNN model used')
+        elif recall_NB > recall_KNN and recall_NB > recall_svm:
+            clf = GaussianNB()
+            clf.fit(X_train,Y_train)
+            print('Naive Bayes model used')
+        else:
+            clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
+            clf.fit(X_train,Y_train)
+            print('SVM model used')
+            print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )        
+        
+    elif error_selector == 'F1':
+        if f1_KNN > f1_NB and f1_KNN > f1_svm:
+            clf = neighbors.KNeighborsClassifier()
+            clf.fit(X_train,Y_train)
+            print('KNN model used')
+        elif f1_NB > f1_KNN and f1_NB > f1_svm:
+            clf = GaussianNB()
+            clf.fit(X_train,Y_train)
+            print('Naive Bayes model used')
+        else:
+            clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
+            clf.fit(X_train,Y_train)
+            print('SVM model used')
+            print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )
+        
+        # PLOT CONFUSION MATRICES
+        
+    plt.imshow(conf_mx_NB)
+    plt.figure()
+    plt.imshow(conf_mx_KNN)
+    plt.figure()
+    plt.imshow(conf_mx_svm)
 
     return clf
 
@@ -452,8 +495,8 @@ def albedo_report(predicted,albedo_array):
 # create dataset
 X,XX,YY = create_dataset(HCRF_file)
 #optimise and train model
-clf = optimise_train_model(X,XX,YY)
+clf = optimise_train_model(X,XX,YY, 'recall')
 # apply model to Sentinel2 image
-#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
+# predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
 #obtain albedo summary stats
 #alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
