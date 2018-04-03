@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 from sklearn.naive_bayes import GaussianNB
 from sklearn import preprocessing, cross_validation, neighbors, svm
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, recall_score
 from sklearn.metrics import f1_score
 import matplotlib.pyplot as plt
 import gdal
@@ -194,6 +194,14 @@ def create_dataset(HCRF_file):
 
 
 def optimise_train_model(X,XX,YY, error_selector):
+    
+    # Function to split the dataste into training and test sets, then test the performance of 
+    # a range of models on the training data. The final model selected is then evaluated
+    # using the test set. The function automatically selects the model that performs best on
+    # the training sets, then tests it on the test set. All performance metrics are 
+    # printed to ipython. The error type to use to select the model is determined in the 
+    # function call. Options for error_selector are: 'accuracy', 'F1', 'recall', 'average_all_metric' 
+    
     # X, XX, YY are the datasets with and without labels. error selector determines which error metric
     # the code should use to choose the best classifier, as different models might outperforms others
     # depending upon the error metric used. The options are strings 'F1', 'accuracy' or 'recall'
@@ -208,9 +216,10 @@ def optimise_train_model(X,XX,YY, error_selector):
     
     X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = 0.2)
 
-    # Optimize parameters using GridSearch with cross validation (GridSearchCV) to
-    # find optimal set of values for best model performance. Apply to three kernel types
-    # and wide range of C and gamma values. Print best set of params.  
+    # optimise params for support vector machine using cross validation grid search
+    # (GridSearchCV) to find optimal set of values for best model performance.
+    # Apply to three kernel types and wide range of C and gamma values. 
+    # Print best set of params.  
     
     tuned_parameters = [
             {'kernel': ['linear'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
@@ -235,54 +244,77 @@ def optimise_train_model(X,XX,YY, error_selector):
     C = clf_svm.best_estimator_.get_params()['C']
     gamma = clf_svm.best_estimator_.get_params()['gamma']
     
-    # test different classifers
+    
+    # test different classifers and report performance metrics using traning data only
     
     # 1. Try Naive Bayes
     clf_NB = GaussianNB()
     clf_NB.fit(X_train,Y_train)
-    accuracy_NB = clf_NB.score(X_test,Y_test) #calculate accuracy
+    accuracy_NB = clf_NB.score(X_train,Y_train) #calculate accuracy
     Y_predict_NB = clf_NB.predict(X_train) # make nre prediction
     conf_mx_NB = confusion_matrix(Y_train,Y_predict_NB) # calculate confusion matrix
     recall_NB = recall_score(Y_train,Y_predict_NB,average="macro")
     f1_NB = f1_score(Y_train, Y_predict_NB, average="macro") # calculate f1 score
+    average_metric_NB = (accuracy_NB+recall_NB+f1_NB)/3
     
     # 2. Try K-nearest neighbours
     clf_KNN = neighbors.KNeighborsClassifier()
     clf_KNN.fit(X_train,Y_train)
-    accuracy_KNN = clf_KNN.score(X_test,Y_test)
+    accuracy_KNN = clf_KNN.score(X_train,Y_train)
     Y_predict_KNN = clf_KNN.predict(X_train)
     conf_mx_KNN = confusion_matrix(Y_train,Y_predict_KNN)
     recall_KNN = recall_score(Y_train,Y_predict_KNN,average="macro")
     f1_KNN = f1_score(Y_train, Y_predict_KNN, average="macro")
+    average_metric_KNN = (accuracy_KNN + recall_KNN + f1_KNN)/3
+    
     
     # 3. Try support Vector Machine with best params from optimisation
     clf_svm = svm.SVC(kernel=kernel, C=C, gamma = gamma)
     clf_svm.fit(X_train,Y_train)
-    accuracy_svm = clf_svm.score(X_test,Y_test)
+    accuracy_svm = clf_svm.score(X_train,Y_train)
     Y_predict_svm = clf_svm.predict(X_train)
     conf_mx_svm = confusion_matrix(Y_train,Y_predict_svm)
     recall_svm = recall_score(Y_train,Y_predict_svm,average="macro")
     f1_svm = f1_score(Y_train, Y_predict_svm, average="macro")
+    average_metric_svm = (accuracy_svm + recall_svm + f1_svm)/3
     
-    
+    print('*** MODEL TEST SUMMARY ***')
     print('KNN accuracy = ',accuracy_KNN, 'KNN_F1_Score = ', f1_KNN)
     print('Naive Bayes accuracy = ', accuracy_NB, 'Naive_Bayes_F1_Score = ',f1_NB)
     print('SVM accuracy = ',accuracy_svm, 'SVM_F1_Score = ', f1_svm)
+    
+            # PLOT CONFUSION MATRICES
+    plt.figure()    
+    plt.imshow(conf_mx_NB)
+    plt.title('NB Model Confusion matrix')
+    plt.colorbar()
+    
+    plt.figure()
+    plt.imshow(conf_mx_KNN)
+    plt.title('KNN Model Confusion matrix')
+    plt.colorbar()
+    
+    plt.figure()
+    plt.imshow(conf_mx_svm)
+    plt.title('SVM Model Confusion matrix')
+    plt.colorbar()
+    
+    print() #line break
     
     if error_selector == 'accuracy':
         
         if np.mean(KNN) > np.mean(Naive_Bayes) and np.mean(KNN) > np.mean(SVM):
             clf = neighbors.KNeighborsClassifier()
             clf.fit(X_train,Y_train)
-            print('KNN model used')
+            print('KNN model chosen')
         elif np.mean(Naive_Bayes) > np.mean(KNN) and np.mean(Naive_Bayes) > np.mean(SVM):
             clf = GaussianNB()
             clf.fit(X_train,Y_train)
-            print('Naive Bayes model used')
+            print('Naive Bayes model chosen')
         else:
             clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
             clf.fit(X_train,Y_train)
-            print('SVM model used')
+            print('SVM model chosen')
             print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )
 
     elif error_selector == 'recall':
@@ -290,39 +322,82 @@ def optimise_train_model(X,XX,YY, error_selector):
         if recall_KNN > recall_NB and recall_KNN > recall_svm:
             clf = neighbors.KNeighborsClassifier()
             clf.fit(X_train,Y_train)
-            print('KNN model used')
+            print('KNN model chosen')
         elif recall_NB > recall_KNN and recall_NB > recall_svm:
             clf = GaussianNB()
             clf.fit(X_train,Y_train)
-            print('Naive Bayes model used')
+            print('Naive Bayes model chosen')
         else:
             clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
             clf.fit(X_train,Y_train)
-            print('SVM model used')
+            print('SVM model chosen')
             print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )        
         
     elif error_selector == 'F1':
         if f1_KNN > f1_NB and f1_KNN > f1_svm:
             clf = neighbors.KNeighborsClassifier()
             clf.fit(X_train,Y_train)
-            print('KNN model used')
+            print('KNN model chosen')
         elif f1_NB > f1_KNN and f1_NB > f1_svm:
             clf = GaussianNB()
             clf.fit(X_train,Y_train)
-            print('Naive Bayes model used')
+            print('Naive Bayes model chosen')
         else:
             clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
             clf.fit(X_train,Y_train)
-            print('SVM model used')
+            print('SVM model chosen')
             print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )
-        
-        # PLOT CONFUSION MATRICES
-        
-    plt.imshow(conf_mx_NB)
+
+
+    elif error_selector == 'average_all_metric':
+        if f1_KNN > f1_NB and f1_KNN > f1_svm:
+            clf = neighbors.KNeighborsClassifier()
+            clf.fit(X_train,Y_train)
+            print('KNN model chosen')
+        elif f1_NB > f1_KNN and f1_NB > f1_svm:
+            clf = GaussianNB()
+            clf.fit(X_train,Y_train)
+            print('Naive Bayes model chosen')
+        else:
+            clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
+            clf.fit(X_train,Y_train)
+            print('SVM model chosen')
+            print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )
+
+
+
+# Now that model has been selected using error metrics from training data, the final
+# model can be evaluated on the test set. The code below therefore measures the f1, recall,
+# confusion matrix and accuracy  for the final selected model and prints to ipython.
+            
+    Y_test_predicted = clf.predict(X_test)
+    final_conf_mx = confusion_matrix(Y_test, Y_test_predicted)
+
     plt.figure()
-    plt.imshow(conf_mx_KNN)
+    plt.imshow(final_conf_mx)
+    plt.title('Final Model Confusion Matrix')
+    plt.colorbar()
+    
+    # Normalise confusion matrix to show errors
+    row_sums = final_conf_mx.sum(axis=1, keepdims=True)
+    norm_conf_mx = final_conf_mx / row_sums
+    np.fill_diagonal(norm_conf_mx, 0)
     plt.figure()
-    plt.imshow(conf_mx_svm)
+    plt.matshow(norm_conf_mx, cmap=plt.cm.gray)
+    plt.colorbar()
+
+    final_recall = recall_score(Y_test,Y_test_predicted,average="macro")
+    final_f1 = f1_score(Y_test, Y_test_predicted, average="macro")
+    final_accuracy = clf.score(X_test,Y_test)
+    final_average_metric = (final_recall + final_accuracy + final_f1)/3
+
+    print() #line break
+    print ('*** FINAL MODEL SUMMARY ***')
+    print('Final Model Accuracy = ', final_accuracy)
+    print('Final Model Recall = ', final_recall)
+    print('Final model F1 = ', final_f1)
+    print('Final Model Average metric = ', final_average_metric)
+
 
     return clf
 
@@ -495,7 +570,7 @@ def albedo_report(predicted,albedo_array):
 # create dataset
 X,XX,YY = create_dataset(HCRF_file)
 #optimise and train model
-clf = optimise_train_model(X,XX,YY, 'recall')
+clf = optimise_train_model(X,XX,YY, error_selector = 'F1')
 # apply model to Sentinel2 image
 # predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
 #obtain albedo summary stats
