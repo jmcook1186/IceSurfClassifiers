@@ -226,7 +226,7 @@ def create_dataset(HCRF_file):
 
 
 
-def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
+def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf_mx = True):
     
     # Function splits the data into training and test sets, then tests the 
     # performance of a range of models on the training data. The final model 
@@ -242,7 +242,7 @@ def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
     # X, XX, YY are the datasets with and without labels.
 
     # split data into test and train sets.
-    X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = 0.2)
+    X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = test_size)
     
     # test different classifers and report performance metrics using traning data only
     
@@ -252,9 +252,9 @@ def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
     accuracy_NB = clf_NB.score(X_train,Y_train) #calculate accuracy
     Y_predict_NB = clf_NB.predict(X_train) # make nre prediction
     conf_mx_NB = confusion_matrix(Y_train,Y_predict_NB) # calculate confusion matrix
-    recall_NB = recall_score(Y_train,Y_predict_NB,average="macro")
-    f1_NB = f1_score(Y_train, Y_predict_NB, average="macro") # calculate f1 score
-    precision_NB = precision_score(Y_train,Y_predict_NB, average = 'macro')
+    recall_NB = recall_score(Y_train,Y_predict_NB,average="weighted")
+    f1_NB = f1_score(Y_train, Y_predict_NB, average="weighted") # calculate f1 score
+    precision_NB = precision_score(Y_train,Y_predict_NB, average = 'weighted')
     average_metric_NB = (accuracy_NB+recall_NB+f1_NB)/3
     
     # 2. Try K-nearest neighbours
@@ -263,9 +263,9 @@ def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
     accuracy_KNN = clf_KNN.score(X_train,Y_train)
     Y_predict_KNN = clf_KNN.predict(X_train)
     conf_mx_KNN = confusion_matrix(Y_train,Y_predict_KNN)
-    recall_KNN = recall_score(Y_train,Y_predict_KNN,average="macro")
-    f1_KNN = f1_score(Y_train, Y_predict_KNN, average="macro")
-    precision_KNN = precision_score(Y_train,Y_predict_KNN, average = 'macro')
+    recall_KNN = recall_score(Y_train,Y_predict_KNN,average="weighted")
+    f1_KNN = f1_score(Y_train, Y_predict_KNN, average="weighted")
+    precision_KNN = precision_score(Y_train,Y_predict_KNN, average = 'weighted')
     average_metric_KNN = (accuracy_KNN + recall_KNN + f1_KNN)/3
     
     # 3. Try support Vector Machine with best params calculated using
@@ -298,9 +298,9 @@ def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
     accuracy_svm = clf_svm.score(X_train,Y_train)
     Y_predict_svm = clf_svm.predict(X_train)
     conf_mx_svm = confusion_matrix(Y_train,Y_predict_svm)
-    recall_svm = recall_score(Y_train,Y_predict_svm,average="macro")
-    f1_svm = f1_score(Y_train, Y_predict_svm, average="macro")
-    precision_svm = precision_score(Y_train,Y_predict_svm, average = 'macro')
+    recall_svm = recall_score(Y_train,Y_predict_svm,average="weighted")
+    f1_svm = f1_score(Y_train, Y_predict_svm, average="weighted")
+    precision_svm = precision_score(Y_train,Y_predict_svm, average = 'weighted')
     average_metric_svm = (accuracy_svm + recall_svm + f1_svm)/3
 
     # 4. Try  a random forest classifier
@@ -309,9 +309,9 @@ def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
     accuracy_RF = clf_RF.score(X_train,Y_train)
     Y_predict_RF = clf_RF.predict(X_train)
     conf_mx_RF = confusion_matrix(Y_train,Y_predict_RF)
-    recall_RF = recall_score(Y_train,Y_predict_RF,average="macro")
-    f1_RF = f1_score(Y_train, Y_predict_RF, average="macro")
-    precision_RF = precision_score(Y_train,Y_predict_RF, average = 'macro')
+    recall_RF = recall_score(Y_train,Y_predict_RF,average="weighted")
+    f1_RF = f1_score(Y_train, Y_predict_RF, average="weighted")
+    precision_RF = precision_score(Y_train,Y_predict_RF, average = 'weighted')
     average_metric_RF = (accuracy_RF + recall_RF + f1_RF)/3
 
     # 5. Try an ensemble of all the other classifiers (not RF) using the voting classifier method
@@ -322,9 +322,9 @@ def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
     accuracy_ensemble = ensemble_clf.score(X_train,Y_train)
     Y_predict_ensemble = ensemble_clf.predict(X_train)
     conf_mx_ensemble = confusion_matrix(Y_train,Y_predict_ensemble)
-    recall_ensemble = recall_score(Y_train,Y_predict_ensemble,average="macro")
-    f1_ensemble = f1_score(Y_train, Y_predict_ensemble, average="macro")
-    precision_ensemble = precision_score(Y_train,Y_predict_ensemble, average = 'macro')
+    recall_ensemble = recall_score(Y_train,Y_predict_ensemble,average="weighted")
+    f1_ensemble = f1_score(Y_train, Y_predict_ensemble, average="weighted")
+    precision_ensemble = precision_score(Y_train,Y_predict_ensemble, average = 'weighted')
     average_metric_ensemble = (accuracy_ensemble + recall_ensemble + f1_ensemble)/3
     
     print()
@@ -342,26 +342,46 @@ def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
         plt.imshow(conf_mx_NB)
         plt.title('NB Model Confusion matrix')
         plt.colorbar()
+        classes = clf_NB.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
         
         plt.figure()
         plt.imshow(conf_mx_KNN)
         plt.title('KNN Model Confusion matrix')
         plt.colorbar()
+        classes = clf_KNN.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
         
         plt.figure()
         plt.imshow(conf_mx_svm)
         plt.title('SVM Model Confusion matrix')
         plt.colorbar()
+        classes = clf_svm.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
     
         plt.figure()
         plt.imshow(conf_mx_RF)
         plt.title('Random Forest Model Confusion matrix')
         plt.colorbar()
+        classes = clf_RF.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
 
         plt.figure()
         plt.imshow(conf_mx_ensemble)
         plt.title('Ensemble Model Confusion Matrix')
         plt.colorbar()
+        classes = ensemble_clf.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
         
     print() #line break
     
@@ -524,6 +544,10 @@ def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
     plt.imshow(final_conf_mx)
     plt.title('Final Model Confusion Matrix')
     plt.colorbar()
+    classes = clf.classes_
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
     
     # Normalise confusion matrix to show errors
     row_sums = final_conf_mx.sum(axis=1, keepdims=True)
@@ -533,11 +557,13 @@ def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
     plt.imshow(norm_conf_mx, cmap=plt.cm.gray)
     plt.colorbar()
     plt.title('Normalised Confusion Matrix')
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
 
-    final_recall = recall_score(Y_test,Y_test_predicted,average="macro")
-    final_f1 = f1_score(Y_test, Y_test_predicted, average="macro")
+    final_recall = recall_score(Y_test,Y_test_predicted,average="weighted")
+    final_f1 = f1_score(Y_test, Y_test_predicted, average="weighted")
     final_accuracy = clf.score(X_test,Y_test)
-    final_precision = precision_score(Y_test, Y_test_predicted, average='macro')
+    final_precision = precision_score(Y_test, Y_test_predicted, average='weighted')
     final_average_metric = (final_recall + final_accuracy + final_f1)/3
 
     print() #line break
@@ -609,8 +635,9 @@ def ImageAnalysis(img_name,clf):
     
     #plot classified surface
     plt.figure(figsize = (30,30)),plt.imshow(predicted),plt.colorbar()
+    plt.savefig('Clasified_UAV.png',dpi=300)
     plt.figure(figsize = (30,30)),plt.imshow(albedo_array),plt.colorbar()
-    
+    plt.savefig('Albedo_UAV.png',dpi=300)
     # Calculate coverage stats
     numHA = (predicted==5).sum()
     numLA = (predicted==4).sum()
@@ -720,8 +747,8 @@ def albedo_report(predicted,albedo_array):
 # create dataset
 X,XX,YY = create_dataset(HCRF_file)
 #optimise and train model
-clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', plot_all_conf_mx = False)
+clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.2, plot_all_conf_mx = False)
 # apply model to Sentinel2 image
-# predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
+predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
 #obtain albedo summary stats
-# alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
+#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
