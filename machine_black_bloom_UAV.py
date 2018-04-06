@@ -2,29 +2,71 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Mar  8 14:32:24 2018
+@author: Joseph Cook
 
-@author: joe
 """
+############################# OVERVIEW #######################################
 
-# This code provides functions for reading in directional reflectance data obtained
-# via ground spectroscopy, reformatting into a pandas dataframe of features and labels,
-# optimising and training a series of machine learning algorithms on the ground spectra
-# then using the trained model to predict the surface type in each pixel of a UAV
-# image. The UAV image has been preprocessed by stitching individual images together and
-# converting to reflectance using panels on the ground before being saved as a multiband TIF which
-# is then loaded here. A narrowband to broadband conversion (Knap 1999) is applied to the
-# data to create an albedo map, and this is then used to create a large dataset of surface 
-# type and associated broadband albedo
+# This code trains a range of supevised classification algorithms on multispectral
+# data obtained by reducing hyperspectral data from field spectroscopy down to
+# five key wavelengths matching those measured by the MicaSense Red-Edge camera.
 
+# The best performing model is then applied to multispectral imagery obtained 
+# using the red-edge camera mounted to a UAV. The algorithm classifies each 
+# pixel according to a function of its reflectance in the five wavelengths.
+# These classified pixels are then mapped and the spatial statistics reported.
 
-###########################################################################################
-############################# IMPORT MODULES #########################################
+# A narrowband-broadband coversion function is then used to estimate the albedo
+# of each classified pixel, generating a dataset of surface type and albedo.
+
+############################# DETAIL #########################################
+
+# This code is divided into four functions. The first preprocesses the raw data
+# into a format appropriate for machine learning. The raw hyperspectral data is 
+# first organised into separate pandas dataframes for each surface class.
+# The data is then reduced down to the reflectance at the five key wavelengths 
+# and the remaining data discarded. The dataset is then arranged into columns 
+# with one column per wavelength and a separate column for the surface class.
+# The dataset's features are the reflectance at each wavelength, and the labels
+# are the surface types. The dataframes for each surface type are merged into
+# one large dataframe and then the labels are removed and saved as a separate 
+# dataframe. XX contains all the data features, YY contains the labels only. No
+# scaling of the data is required because the reflectance is already normalised
+# between 0 and 1 by the spectrometer.
+
+# The UAV image has been preprocessed in Agisoft Photoscan, including stitching
+# and conversion of raw DN to reflectance using calibrated reflectance panels
+# on the ground.
+
+# The second function trains a series of supervised classification algorithms.
+# The dataset is first divided into a train set and test set at a ratio defined 
+# by the user (default = 80% train, 20% test). A suite of individual classifiers
+# plus two ensemble models are used:
+# Individual models are SVM (optimised using GridSearchCV with C between 
+# 0.0001 - 100000 and gamma between 0.0001 and 1, rbf, polynomial and 
+# linear kernels), Naive Bayes, K-Nearest Neighbours. Ensemble models are a voting
+# classifier (incorporating all the individual models) and a random forest. 
+
+# Each classifier is trained and the performance on the training set is reported. 
+# The user can define which performance measure is most important, and the 
+# best performing classifier according to the chosen metric is automatically 
+# selected as the final model. That model is then evaluated on the test set 
+# and used to classify each pixel in the UAV image. The classified image is
+# displayed and the spatial statistics calculated.
+
+# The albedo of each classified pixel is then calculated from the reflectance
+# at each individual wavelength using the narrowband-broadband conversion of
+# Knap (1999), creating a final dataframe containing broadband albedo and
+# surface type.
+
+##############################################################################
+####################### IMPORT MODULES #######################################
 
 import numpy as np
 import pandas as pd
 from sklearn.naive_bayes import GaussianNB
 from sklearn import preprocessing, cross_validation, neighbors, svm
-from sklearn.metrics import confusion_matrix, recall_score, f1_score
+from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 import matplotlib.pyplot as plt
 import gdal
@@ -35,12 +77,14 @@ plt.style.use('ggplot')
 HCRF_file = '//home//joe//Code//HCRF_master_machine.csv'
 img_name = '/media/joe/FDB2-2F9B/uav_refl.tif'
 
-#######################################################################################
-############################ DEFINE FUNCTIONS ###################################
+
+###############################################################################
+########################## DEFINE FUNCTIONS ###################################
 
 
 def create_dataset(HCRF_file):
-# Read in raw HCRF data to DataFrame. This version pulls in HCRF data from 2016 and 2017
+# Read in raw HCRF data to DataFrame. Pulls in HCRF data from 2016 and 2017
+    
     hcrf_master = pd.read_csv(HCRF_file)
     HA_hcrf = pd.DataFrame()
     LA_hcrf = pd.DataFrame()
@@ -48,8 +92,7 @@ def create_dataset(HCRF_file):
     CC_hcrf = pd.DataFrame()
     WAT_hcrf = pd.DataFrame()
     
-    # Group site names
-    
+    # Group data according to site names
     HAsites = ['13_7_SB2','13_7_SB4','14_7_S5','14_7_SB1','14_7_SB5','14_7_SB10',
     '15_7_SB3','21_7_SB1','21_7_SB7','22_7_SB4','22_7_SB5','22_7_S3','22_7_S5',
     '23_7_SB3','23_7_SB5','23_7_S3','23_7_SB4','24_7_SB2','HA_1', 'HA_2','HA_3',
@@ -58,8 +101,8 @@ def create_dataset(HCRF_file):
     'HA_25','HA_26','HA_27','HA_28','HA_29','HA_30','HA_31',
     # the following were reclassified from LAsites due to their v low reflectance
     '13_7_S2','14_7_SB9','MA_11','MA_14','MA_15','MA_17','21_7_SB2','22_7_SB1',
-    'MA_4','MA_7','MA_18'
-    ]
+    'MA_4','MA_7','MA_18']
+    
     # These have been removed completely from HAsites: '21_7_S3', '23_7_S5', 'HA_32'
     # '24_7_S1','25_7_S1','HA_9', 'HA_33','13_7_SB1', '13_7_S5', 'HA_23'
     
@@ -68,9 +111,9 @@ def create_dataset(HCRF_file):
     '20_7_SB1','20_7_SB3','21_7_S1','21_7_S5','21_7_SB4','22_7_SB2','22_7_SB3','22_7_S1',
     '23_7_S1','23_7_S2','24_7_S2','MA_1','MA_2','MA_3','MA_5','MA_6','MA_8','MA_9',
     'MA_10','MA_12','MA_13','MA_16','MA_19',
-    #these have been moved from CI
-    '13_7_S1','13_7_S3','14_7_S1','15_7_S1','15_7_SB2','20_7_SB2','21_7_SB5','21_7_SB8','25_7_S3'
-    ]
+    #these have been moved in from CI
+    '13_7_S1','13_7_S3','14_7_S1','15_7_S1','15_7_SB2','20_7_SB2','21_7_SB5',
+    '21_7_SB8','25_7_S3']
     # These have been removed competely from LA sites
     # '13_7_S2','13_7_SB1','14_7_SB9', '15_7_S3' ,'MA_11',' MA_14','MA15','MA_17',
     # '13_7_S5', '25_7_S2','25_7_S4','25_7_S5'
@@ -110,8 +153,6 @@ def create_dataset(HCRF_file):
         WAT_hcrf['{}'.format(v)] = hcrf_WAT  
     
     # Make dataframe with column for label, columns for reflectancxe at key wavelengths
-    # select wavelengths to use - currently set to 8 Sentnel 2 bands
-    
     
     X = pd.DataFrame()
     
@@ -123,7 +164,6 @@ def create_dataset(HCRF_file):
     
     X['label'] = 'HA'
     
-    
     Y = pd.DataFrame()
     Y['R125'] = np.array(LA_hcrf.iloc[125])
     Y['R210'] = np.array(LA_hcrf.iloc[210])
@@ -132,7 +172,6 @@ def create_dataset(HCRF_file):
     Y['R490'] = np.array(LA_hcrf.iloc[490])
     
     Y['label'] = 'LA'
-    
     
     Z = pd.DataFrame()
     
@@ -144,7 +183,6 @@ def create_dataset(HCRF_file):
     
     Z['label'] = 'CI'
     
-    
     P = pd.DataFrame()
     
     P['R125'] = np.array(CC_hcrf.iloc[125])
@@ -155,7 +193,6 @@ def create_dataset(HCRF_file):
     
     P['label'] = 'CC'
     
-    
     Q = pd.DataFrame()
     Q['R125'] = np.array(WAT_hcrf.iloc[125])
     Q['R210'] = np.array(WAT_hcrf.iloc[210])
@@ -165,8 +202,6 @@ def create_dataset(HCRF_file):
     
     Q['label'] = 'WAT'
     
-
-
     Zero = pd.DataFrame()
     Zero['R125'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
     Zero['R210'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
@@ -177,7 +212,6 @@ def create_dataset(HCRF_file):
     Zero['label'] = 'UNKNOWN'
     
     # Join dataframes into one continuous DF
-    
     X = X.append(Y,ignore_index=True)
     X = X.append(Z,ignore_index=True)
     X = X.append(P,ignore_index=True)
@@ -185,7 +219,6 @@ def create_dataset(HCRF_file):
     X = X.append(Zero,ignore_index=True)    
 
     # Create features and labels (XX = features - all data but no labels, YY = labels only)
-    
     XX = X.drop(['label'],1)
     YY = X['label']
     
@@ -193,54 +226,23 @@ def create_dataset(HCRF_file):
 
 
 
-def optimise_train_model(X,XX,YY, error_selector):
+def optimise_train_model(X,XX,YY, error_selector, plot_all_conf_mx = True):
     
-    # Function to split the dataste into training and test sets, then test the performance of 
-    # a range of models on the training data. The final model selected is then evaluated
-    # using the test set. The function automatically selects the model that performs best on
-    # the training sets, then tests it on the test set. All performance metrics are 
-    # printed to ipython. The error type to use to select the model is determined in the 
-    # function call. Options for error_selector are: 'accuracy', 'F1', 'recall', 'average_all_metric' 
-    
-    # X, XX, YY are the datasets with and without labels. error selector determines which error metric
-    # the code should use to choose the best classifier, as different models might outperforms others
-    # depending upon the error metric used. The options are strings 'F1', 'accuracy' or 'recall'
+    # Function splits the data into training and test sets, then tests the 
+    # performance of a range of models on the training data. The final model 
+    # selected is then evaluated using the test set. The function automatically
+    # selects the model that performs best on the training sets. All 
+    # performance metrics are printed to ipython. The performance metric 
+    # to use to select the model is determined in the function call. Options 
+    # for error_selector are: 'accuracy', 'F1', 'recall', 'precision', and 
+    # 'average_all_metric' 
+    # The option 'plot_all_conf_mx' can be se to True or False. If True, the 
+    # train set confusion matrices will be plotted for all models. If False,
+    # only the final model confusion matrix will be plotted.
+    # X, XX, YY are the datasets with and without labels.
 
-    
-    # split data into test and train sets. Random_state = 42 ensures the ransomly selected values in tets and
-    # training sets are consistent throughout the script (can be set to any aribitrary integer value - 42 chosen
-    # because 42 = meaning of life, the universe and everything)
-    
+    # split data into test and train sets.
     X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = 0.2)
-
-    # optimise params for support vector machine using cross validation grid search
-    # (GridSearchCV) to find optimal set of values for best model performance.
-    # Apply to three kernel types and wide range of C and gamma values. 
-    # Print best set of params.  
-    
-    tuned_parameters = [
-            {'kernel': ['linear'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
-                         'C': [0.1, 1, 10, 100, 1000, 10000]},
-                        {'kernel': ['rbf'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
-                         'C': [0.1, 1, 10, 100, 1000, 10000]},
-                        {'kernel':['poly'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
-                         'C':[0.1,1,10,100,1000,10000]},
-                        {'kernel':['sigmoid'],'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
-                         'C':[0.1,1,10,100,1000,10000]}
-                        ]
-    
-    clf_svm = GridSearchCV(svm.SVC(C=1), tuned_parameters, cv=5)
-    clf_svm.fit(X_train, Y_train)
-    
-    print()
-    print("Best parameters set found on development set:")
-    print(clf_svm.best_params_)
-    print() #line break
-    
-    kernel = clf_svm.best_estimator_.get_params()['kernel']
-    C = clf_svm.best_estimator_.get_params()['C']
-    gamma = clf_svm.best_estimator_.get_params()['gamma']
-    
     
     # test different classifers and report performance metrics using traning data only
     
@@ -252,6 +254,7 @@ def optimise_train_model(X,XX,YY, error_selector):
     conf_mx_NB = confusion_matrix(Y_train,Y_predict_NB) # calculate confusion matrix
     recall_NB = recall_score(Y_train,Y_predict_NB,average="macro")
     f1_NB = f1_score(Y_train, Y_predict_NB, average="macro") # calculate f1 score
+    precision_NB = precision_score(Y_train,Y_predict_NB, average = 'macro')
     average_metric_NB = (accuracy_NB+recall_NB+f1_NB)/3
     
     # 2. Try K-nearest neighbours
@@ -262,10 +265,34 @@ def optimise_train_model(X,XX,YY, error_selector):
     conf_mx_KNN = confusion_matrix(Y_train,Y_predict_KNN)
     recall_KNN = recall_score(Y_train,Y_predict_KNN,average="macro")
     f1_KNN = f1_score(Y_train, Y_predict_KNN, average="macro")
+    precision_KNN = precision_score(Y_train,Y_predict_KNN, average = 'macro')
     average_metric_KNN = (accuracy_KNN + recall_KNN + f1_KNN)/3
     
+    # 3. Try support Vector Machine with best params calculated using
+    # GridSearch cross validation optimisation
+    tuned_parameters = [
+        {'kernel': ['linear'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+                     'C': [0.1, 1, 10, 100, 1000, 10000]},
+                    {'kernel': ['rbf'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+                     'C': [0.1, 1, 10, 100, 1000, 10000]},
+                    {'kernel':['poly'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+                     'C':[0.1,1,10,100,1000,10000]},
+                    {'kernel':['sigmoid'],'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+                     'C':[0.1,1,10,100,1000,10000]}
+                    ]
     
-    # 3. Try support Vector Machine with best params from optimisation
+    clf_svm = GridSearchCV(svm.SVC(C=1), tuned_parameters, cv=3)
+    clf_svm.fit(X_train, Y_train)
+    
+    print()
+    print("Best parameters set found on development set:")
+    print(clf_svm.best_params_)
+    print() #line break
+    
+    kernel = clf_svm.best_estimator_.get_params()['kernel']
+    C = clf_svm.best_estimator_.get_params()['C']
+    gamma = clf_svm.best_estimator_.get_params()['gamma']
+    
     clf_svm = svm.SVC(kernel=kernel, C=C, gamma = gamma,probability=True)
     clf_svm.fit(X_train,Y_train)
     accuracy_svm = clf_svm.score(X_train,Y_train)
@@ -273,64 +300,69 @@ def optimise_train_model(X,XX,YY, error_selector):
     conf_mx_svm = confusion_matrix(Y_train,Y_predict_svm)
     recall_svm = recall_score(Y_train,Y_predict_svm,average="macro")
     f1_svm = f1_score(Y_train, Y_predict_svm, average="macro")
+    precision_svm = precision_score(Y_train,Y_predict_svm, average = 'macro')
     average_metric_svm = (accuracy_svm + recall_svm + f1_svm)/3
 
-
-    clf_RF = RandomForestClassifier(n_estimators = 500, max_leaf_nodes = 16)
+    # 4. Try  a random forest classifier
+    clf_RF = RandomForestClassifier(n_estimators = 1000, max_leaf_nodes = 16)
     clf_RF.fit(X_train,Y_train)
     accuracy_RF = clf_RF.score(X_train,Y_train)
     Y_predict_RF = clf_RF.predict(X_train)
     conf_mx_RF = confusion_matrix(Y_train,Y_predict_RF)
     recall_RF = recall_score(Y_train,Y_predict_RF,average="macro")
     f1_RF = f1_score(Y_train, Y_predict_RF, average="macro")
+    precision_RF = precision_score(Y_train,Y_predict_RF, average = 'macro')
     average_metric_RF = (accuracy_RF + recall_RF + f1_RF)/3
 
-    
+    # 5. Try an ensemble of all the other classifiers (not RF) using the voting classifier method
     ensemble_clf = VotingClassifier(
             estimators = [('NB',clf_NB),('KNN',clf_KNN),('svm',clf_svm),('RF',clf_RF)],
-            voting = 'soft'
-            )
+            voting = 'hard')
     ensemble_clf.fit(X_train,Y_train)
     accuracy_ensemble = ensemble_clf.score(X_train,Y_train)
     Y_predict_ensemble = ensemble_clf.predict(X_train)
     conf_mx_ensemble = confusion_matrix(Y_train,Y_predict_ensemble)
     recall_ensemble = recall_score(Y_train,Y_predict_ensemble,average="macro")
     f1_ensemble = f1_score(Y_train, Y_predict_ensemble, average="macro")
+    precision_ensemble = precision_score(Y_train,Y_predict_ensemble, average = 'macro')
     average_metric_ensemble = (accuracy_ensemble + recall_ensemble + f1_ensemble)/3
     
+    print()
     print('*** MODEL TEST SUMMARY ***')
-    print('KNN accuracy = ',accuracy_KNN, 'KNN_F1_Score = ', f1_KNN, 'KNN Recall = ', recall_KNN)
-    print('Naive Bayes accuracy = ', accuracy_NB, 'Naive_Bayes_F1_Score = ',f1_NB, 'Naive Bayes Recall = ',recall_NB)
-    print('SVM accuracy = ',accuracy_svm, 'SVM_F1_Score = ', f1_svm, 'SVM recall = ', recall_svm)
-    print('Random Forest accuracy',accuracy_RF,'Random Forest F1 Score = ', f1_RF, 'Random Forest Recall', recall_RF)    
-    print('Ensemble accuracy',accuracy_ensemble,'Ensemble F1 Score = ', f1_ensemble, 'Ensemble Recall', recall_ensemble)
+    print('KNN accuracy = ',accuracy_KNN, 'KNN_F1_Score = ', f1_KNN, 'KNN Recall = ', recall_KNN, 'KNN precision = ', precision_KNN)
+    print('Naive Bayes accuracy = ', accuracy_NB, 'Naive_Bayes_F1_Score = ',f1_NB, 'Naive Bayes Recall = ',recall_NB, 'Naive Bayes Precision = ', precision_NB)
+    print('SVM accuracy = ',accuracy_svm, 'SVM_F1_Score = ', f1_svm, 'SVM recall = ', recall_svm, 'SVM Precision = ', precision_svm)
+    print('Random Forest accuracy',accuracy_RF,'Random Forest F1 Score = ', f1_RF, 'Random Forest Recall', recall_RF, 'Random Forest Precision = ', precision_RF)    
+    print('Ensemble accuracy',accuracy_ensemble,'Ensemble F1 Score = ', f1_ensemble, 'Ensemble Recall', recall_ensemble, 'Ensemble Precision = ', precision_ensemble)
     
-            # PLOT CONFUSION MATRICES
-    plt.figure()    
-    plt.imshow(conf_mx_NB)
-    plt.title('NB Model Confusion matrix')
-    plt.colorbar()
+    # PLOT CONFUSION MATRICES
+    if plot_all_conf_mx:
+        
+        plt.figure()    
+        plt.imshow(conf_mx_NB)
+        plt.title('NB Model Confusion matrix')
+        plt.colorbar()
+        
+        plt.figure()
+        plt.imshow(conf_mx_KNN)
+        plt.title('KNN Model Confusion matrix')
+        plt.colorbar()
+        
+        plt.figure()
+        plt.imshow(conf_mx_svm)
+        plt.title('SVM Model Confusion matrix')
+        plt.colorbar()
     
-    plt.figure()
-    plt.imshow(conf_mx_KNN)
-    plt.title('KNN Model Confusion matrix')
-    plt.colorbar()
-    
-    plt.figure()
-    plt.imshow(conf_mx_svm)
-    plt.title('SVM Model Confusion matrix')
-    plt.colorbar()
+        plt.figure()
+        plt.imshow(conf_mx_RF)
+        plt.title('Random Forest Model Confusion matrix')
+        plt.colorbar()
 
-    plt.figure()
-    plt.imshow(conf_mx_RF)
-    plt.title('Random Forest Model Confusion matrix')
-    plt.colorbar()
-
-    plt.figure()
-    plt.imshow(conf_mx_ensemble)
-    plt.title('Ensemble Model Confusion Matrix')
-    plt.colorbar()
-    
+        plt.figure()
+        plt.imshow(conf_mx_ensemble)
+        plt.title('Ensemble Model Confusion Matrix')
+        plt.colorbar()
+        
     print() #line break
     
     if error_selector == 'accuracy':
@@ -389,7 +421,7 @@ def optimise_train_model(X,XX,YY, error_selector):
 
         elif recall_ensemble > recall_svm and recall_ensemble > recall_NB and recall_NB > recall_RF and recall_ensemble > recall_KNN:
             clf = VotingClassifier(
-                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'soft')
+                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'hard')
             clf.fit(X_train,Y_train)
             print('Ensemble model chosen')
 
@@ -419,10 +451,39 @@ def optimise_train_model(X,XX,YY, error_selector):
         
         elif f1_ensemble > f1_svm and f1_ensemble > f1_NB and f1_ensemble > f1_RF and f1_ensemble > f1_KNN:
             clf = VotingClassifier(
-                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'soft')
+                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'hard')
             clf.fit(X_train,Y_train)
             print('Ensemble model chosen')
             
+
+    elif error_selector == 'precision':
+        
+        if precision_KNN > precision_svm and precision_KNN > precision_NB and precision_KNN > precision_RF and precision_KNN > precision_ensemble:
+            clf = neighbours.KNeighboursClassifier()
+            clf.fit(X_train,Y_train)
+            print('KNN model chosen')
+        
+        elif precision_NB > precision_KNN and precision_NB > precision_svm and precision_NB > precision_RF and precision_NB > precision_ensemble:
+            clf = GaussianNB()
+            clf.fit(X_train,Y_train)
+            print('Naive Bayes model chosen')
+            
+        elif precision_RF > precision_NB and precision_RF > precision_KNN and precision_RF > precision_ensemble and precision_RF> precision_svm:
+            clf = clf_RF
+            clf.fit(X_train,Y_train)
+            print('RF model chosen')
+            
+        elif precision_svm > precision_NB and precision_svm > precision_KNN and precision_svm > precision_RF and precision_svm > precision_ensemble:
+            clf = svm.SVC(kernel=kernel, C=C, gamma = gamma, probability=True)
+            clf.fit(X_train,Y_train)
+            print('SVM model chosen')
+            print('SVM Params: C = ', C, ' gamma = ', gamma, ' kernel = ', kernel)
+        
+        elif precision_ensemble > precision_svm and precision_ensemble > precision_NB and precision_ensemble > precision_RF and precision_ensemble > precision_KNN:
+            clf = VotingClassifier(
+                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'hard')
+            clf.fit(X_train,Y_train)
+            print('Ensemble model chosen')
 
     elif error_selector == 'average_all_metric':
         
@@ -449,11 +510,9 @@ def optimise_train_model(X,XX,YY, error_selector):
         
         elif average_metric_ensemble > average_metric_svm and average_metric_ensemble > average_metric_NB and average_metric_ensemble > average_metric_RF and average_metric_ensemble > average_metric_KNN:
             clf = VotingClassifier(
-                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'soft')
+                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'hard')
             clf.fit(X_train,Y_train)
             print('Ensemble model chosen')
-
-
 # Now that model has been selected using error metrics from training data, the final
 # model can be evaluated on the test set. The code below therefore measures the f1, recall,
 # confusion matrix and accuracy  for the final selected model and prints to ipython.
@@ -471,19 +530,22 @@ def optimise_train_model(X,XX,YY, error_selector):
     norm_conf_mx = final_conf_mx / row_sums
     np.fill_diagonal(norm_conf_mx, 0)
     plt.figure()
-    plt.matshow(norm_conf_mx, cmap=plt.cm.gray)
+    plt.imshow(norm_conf_mx, cmap=plt.cm.gray)
     plt.colorbar()
+    plt.title('Normalised Confusion Matrix')
 
     final_recall = recall_score(Y_test,Y_test_predicted,average="macro")
     final_f1 = f1_score(Y_test, Y_test_predicted, average="macro")
     final_accuracy = clf.score(X_test,Y_test)
+    final_precision = precision_score(Y_test, Y_test_predicted, average='macro')
     final_average_metric = (final_recall + final_accuracy + final_f1)/3
 
     print() #line break
     print ('*** FINAL MODEL SUMMARY ***')
     print('Final Model Accuracy = ', final_accuracy)
     print('Final Model Recall = ', final_recall)
-    print('Final model F1 = ', final_f1)
+    print('Final Model F1 = ', final_f1)
+    print('Final Model Precision = ',final_precision)
     print('Final Model Average metric = ', final_average_metric)
 
 
@@ -658,8 +720,8 @@ def albedo_report(predicted,albedo_array):
 # create dataset
 X,XX,YY = create_dataset(HCRF_file)
 #optimise and train model
-clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy')
+clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', plot_all_conf_mx = False)
 # apply model to Sentinel2 image
 # predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
 #obtain albedo summary stats
-#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
+# alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
