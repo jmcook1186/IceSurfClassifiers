@@ -506,6 +506,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf
                     estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'hard')
             clf.fit(X_train,Y_train)
             print('Ensemble model chosen')
+            
 # Now that model has been selected using error metrics from training data, the final
 # model can be evaluated on the test set. The code below therefore measures the f1, recall,
 # confusion matrix and accuracy  for the final selected model and prints to ipython.
@@ -529,6 +530,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf
     plt.figure()
     plt.imshow(norm_conf_mx, cmap=plt.cm.gray)
     plt.colorbar()
+    plt.clim(0,1)
     plt.title('Normalised Confusion Matrix')
     plt.xticks(tick_marks, classes, rotation=45)
     plt.yticks(tick_marks, classes)
@@ -538,6 +540,14 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf
     final_accuracy = clf.score(X_test,Y_test)
     final_precision = precision_score(Y_test, Y_test_predicted, average='weighted')
     final_average_metric = (final_recall + final_accuracy + final_f1)/3
+
+    # The Feature importances 
+    print()
+    print('Feature Importances')
+    print('(relative importance of each feature (wavelength) for prediction)')
+    print()
+    for name, score in zip(X.columns,clf.feature_importances_):
+        print (name,score)
 
     print() #line break
     print ('*** FINAL MODEL SUMMARY ***')
@@ -748,6 +758,6 @@ X,XX,YY = create_dataset(HCRF_file)
 #optimise and train model
 clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, plot_all_conf_mx = False)
 # apply model to Sentinel2 image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(Seninel_jp2s,clf)
+#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(Seninel_jp2s,clf)
 #obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,std_LA,max_LA,min_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
+#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,std_LA,max_LA,min_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)

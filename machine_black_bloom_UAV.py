@@ -156,58 +156,58 @@ def create_dataset(HCRF_file):
     
     X = pd.DataFrame()
     
-    X['R125'] = np.array(HA_hcrf.iloc[125])
-    X['R210'] = np.array(HA_hcrf.iloc[210])
-    X['R318'] = np.array(HA_hcrf.iloc[315])
-    X['R367'] = np.array(HA_hcrf.iloc[367])
-    X['R490'] = np.array(HA_hcrf.iloc[490])
+    X['R475'] = np.array(HA_hcrf.iloc[125])
+    X['R560'] = np.array(HA_hcrf.iloc[210])
+    X['R668'] = np.array(HA_hcrf.iloc[318])
+    X['R717'] = np.array(HA_hcrf.iloc[367])
+    X['R840'] = np.array(HA_hcrf.iloc[490])
     
     X['label'] = 'HA'
     
     Y = pd.DataFrame()
-    Y['R125'] = np.array(LA_hcrf.iloc[125])
-    Y['R210'] = np.array(LA_hcrf.iloc[210])
-    Y['R318'] = np.array(LA_hcrf.iloc[318])
-    Y['R367'] = np.array(LA_hcrf.iloc[367])
-    Y['R490'] = np.array(LA_hcrf.iloc[490])
+    Y['R475'] = np.array(LA_hcrf.iloc[125])
+    Y['R560'] = np.array(LA_hcrf.iloc[210])
+    Y['R668'] = np.array(LA_hcrf.iloc[318])
+    Y['R717'] = np.array(LA_hcrf.iloc[367])
+    Y['R840'] = np.array(LA_hcrf.iloc[490])
     
     Y['label'] = 'LA'
     
     Z = pd.DataFrame()
     
-    Z['R125'] = np.array(CI_hcrf.iloc[125])
-    Z['R210'] = np.array(CI_hcrf.iloc[210])
-    Z['R318'] = np.array(CI_hcrf.iloc[318])
-    Z['R367'] = np.array(CI_hcrf.iloc[367])
-    Z['R490'] = np.array(CI_hcrf.iloc[490])
+    Z['R475'] = np.array(CI_hcrf.iloc[125])
+    Z['R560'] = np.array(CI_hcrf.iloc[210])
+    Z['R668'] = np.array(CI_hcrf.iloc[318])
+    Z['R717'] = np.array(CI_hcrf.iloc[367])
+    Z['R840'] = np.array(CI_hcrf.iloc[490])
     
     Z['label'] = 'CI'
     
     P = pd.DataFrame()
     
-    P['R125'] = np.array(CC_hcrf.iloc[125])
-    P['R210'] = np.array(CC_hcrf.iloc[210])
-    P['R318'] = np.array(CC_hcrf.iloc[318])
-    P['R367'] = np.array(CC_hcrf.iloc[367])
-    P['R490'] = np.array(CC_hcrf.iloc[490])
+    P['R475'] = np.array(CC_hcrf.iloc[125])
+    P['R560'] = np.array(CC_hcrf.iloc[210])
+    P['R668'] = np.array(CC_hcrf.iloc[318])
+    P['R717'] = np.array(CC_hcrf.iloc[367])
+    P['R840'] = np.array(CC_hcrf.iloc[490])
     
     P['label'] = 'CC'
     
     Q = pd.DataFrame()
-    Q['R125'] = np.array(WAT_hcrf.iloc[125])
-    Q['R210'] = np.array(WAT_hcrf.iloc[210])
-    Q['R318'] = np.array(WAT_hcrf.iloc[318])
-    Q['R367'] = np.array(WAT_hcrf.iloc[367])
-    Q['R490'] = np.array(WAT_hcrf.iloc[490])
+    Q['R475'] = np.array(WAT_hcrf.iloc[125])
+    Q['R560'] = np.array(WAT_hcrf.iloc[210])
+    Q['R668'] = np.array(WAT_hcrf.iloc[318])
+    Q['R717'] = np.array(WAT_hcrf.iloc[367])
+    Q['R840'] = np.array(WAT_hcrf.iloc[490])
     
     Q['label'] = 'WAT'
     
     Zero = pd.DataFrame()
-    Zero['R125'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    Zero['R210'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    Zero['R318'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    Zero['R367'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    Zero['R490'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+    Zero['R475'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+    Zero['R560'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+    Zero['R668'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+    Zero['R717'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+    Zero['R840'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
     
     Zero['label'] = 'UNKNOWN'
     
@@ -547,7 +547,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf
     classes = clf.classes_
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
+    plt.yticks(tick_marks, classes, rotation=45)
     
     # Normalise confusion matrix to show errors
     row_sums = final_conf_mx.sum(axis=1, keepdims=True)
@@ -556,16 +556,25 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf
     plt.figure()
     plt.imshow(norm_conf_mx, cmap=plt.cm.gray)
     plt.colorbar()
+    plt.clim(0,1)
     plt.title('Normalised Confusion Matrix')
     plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
+    plt.yticks(tick_marks, classes, rotation=45)
 
     final_recall = recall_score(Y_test,Y_test_predicted,average="weighted")
     final_f1 = f1_score(Y_test, Y_test_predicted, average="weighted")
     final_accuracy = clf.score(X_test,Y_test)
     final_precision = precision_score(Y_test, Y_test_predicted, average='weighted')
     final_average_metric = (final_recall + final_accuracy + final_f1)/3
-
+    
+    # The Feature importances 
+    print()
+    print('Feature Importances')
+    print('(relative importance of each feature (wavelength) for prediction)')
+    print()
+    for name, score in zip(X.columns,clf.feature_importances_):
+        print (name,score)
+        
     print() #line break
     print ('*** FINAL MODEL SUMMARY ***')
     print('Final Model Accuracy = ', final_accuracy)
@@ -698,27 +707,27 @@ def albedo_report(predicted,albedo_array):
     
     # Calculate summary stats
     mean_CC = np.mean(alb_CC)
-    std_CC = np.mean(alb_CC)
+    std_CC = np.std(alb_CC)
     max_CC = np.max(alb_CC)
     min_CC = np.min(alb_CC)
 
     mean_CI = np.mean(alb_CI)
-    std_CI = np.mean(alb_CI)
+    std_CI = np.std(alb_CI)
     max_CI = np.max(alb_CI)
     min_CI = np.min(alb_CI)
     
     mean_LA = np.mean(alb_LA)
-    std_LA = np.mean(alb_LA)
+    std_LA = np.std(alb_LA)
     max_LA = np.max(alb_LA)
     min_LA = np.min(alb_LA)
 
     mean_HA = np.mean(alb_HA)
-    std_HA = np.mean(alb_HA)
+    std_HA = np.std(alb_HA)
     max_HA = np.max(alb_HA)
     min_HA = np.min(alb_HA)
 
     mean_WAT = np.mean(alb_WAT)
-    std_WAT = np.mean(alb_WAT)
+    std_WAT = np.std(alb_WAT)
     max_WAT = np.max(alb_WAT)
     min_WAT = np.min(alb_WAT)
         
@@ -735,7 +744,7 @@ def albedo_report(predicted,albedo_array):
     albedo_DF['albedo'] = albedo_array
     albedo_DF.to_csv('UAV_albedo_dataset.csv')
 
-    return alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT
+    return alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,std_LA,min_LA,max_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT
 
 ################################################################################
 ################################################################################
@@ -747,8 +756,8 @@ def albedo_report(predicted,albedo_array):
 # create dataset
 X,XX,YY = create_dataset(HCRF_file)
 #optimise and train model
-clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.2, plot_all_conf_mx = False)
+clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.4, plot_all_conf_mx = False)
 # apply model to Sentinel2 image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
+#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
 #obtain albedo summary stats
-#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
+#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,std_LA,min_LA,max_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
