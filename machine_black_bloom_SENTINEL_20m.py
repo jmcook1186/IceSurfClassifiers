@@ -742,6 +742,7 @@ def albedo_report(predicted,albedo_array):
     albedo_DF = pd.DataFrame(columns=['albedo','class'])
     albedo_DF['class'] = predicted
     albedo_DF['albedo'] = albedo_array
+    albedoDF = albedoDF[albedoDF['albedo'] > 0] # remove any zeros albedo rows
     albedo_DF.to_csv('Sentinel_albedo_20m_dataset.csv')
 
     return alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,std_LA,max_LA,min_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT

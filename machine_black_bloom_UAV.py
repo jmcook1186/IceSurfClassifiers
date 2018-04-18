@@ -622,7 +622,7 @@ def ImageAnalysis(img_name,clf):
             
     for i in range(0,len(lyr1),1):
         test_array.append([lyr1[i], lyr2[i], lyr3[i], lyr4[i], lyr5[i] ])
-        albedo_array.append(0.726*(lyr2[i]) - 0.322*(lyr2[i])**2 - 0.015*(lyr5[i]) + 0.581*(lyr5[i]))
+        albedo_array.append(0.726*(lyr2[i]) - 0.322*(lyr2[i])**2 - 0.015*(lyr5[i]) + 0.581*(lyr5[i]))        
         
     # apply ML algorithm to 5-value array for each pixel - predict surface type
         
@@ -703,33 +703,62 @@ def albedo_report(predicted,albedo_array):
         alb_LA.append(albedo_array[i])
     for i in idx_HA:
         alb_HA.append(albedo_array[i])
+
+# create pandas dataframe containing albedo data (delete rows where albedo <= 0)
+    albedo_DF = pd.DataFrame(columns=['albedo','class'])
+    albedo_DF['class'] = predicted
+    albedo_DF['albedo'] = albedo_array
+    albedoDF = albedoDF[albedoDF['albedo'] > 0] 
+    albedo_DF.to_csv('UAV_albedo_dataset.csv')
     
+# divide albedo dataframe into individual classes for summary stats. include only
+# rows where albeod is between 0.05 and 0.95 percentiles to remove outliers
+    
+    HA_DF = albedoDF[albedoDF['class'] == 5]
+    HA_DF = HA_DF[HA_DF['albedo'] > HA_DF['albedo'].quantile(0.05)]
+    HA_DF = HA_DF[HA_DF['albedo'] < HA_DF['albedo'].quantile(0.95)]
+        
+    LA_DF = albedoDF[albedoDF['class'] == 4]
+    LA_DF = LA_DF[LA_DF['albedo'] > LA_DF['albedo'].quantile(0.05)]
+    LA_DF = LA_DF[LA_DF['albedo'] < LA_DF['albedo'].quantile(0.95)]
+
+    CI_DF = albedoDF[albedoDF['class'] == 3]
+    CI_DF = CI_DF[CI_DF['albedo'] > CI_DF['albedo'].quantile(0.05)]
+    CI_DF = CI_DF[CI_DF['albedo'] < CI_DF['albedo'].quantile(0.95)]
+
+    CC_DF = albedoDF[albedoDF['class'] == 2]
+    CC_DF = CC_DF[CC_DF['albedo'] > CC_DF['albedo'].quantile(0.05)]
+    CC_DF = CC_DF[CC_DF['albedo'] < CC_DF['albedo'].quantile(0.95)]
+
+    WAT_DF = albedoDF[albedoDF['class'] == 1]
+    WAT_DF = WAT_DF[WAT_DF['albedo'] > WAT_DF['albedo'].quantile(0.05)]
+    WAT_DF = WAT_DF[WAT_DF['albedo'] < WAT_DF['albedo'].quantile(0.95)]   
     
     # Calculate summary stats
-    mean_CC = np.mean(alb_CC)
-    std_CC = np.std(alb_CC)
-    max_CC = np.max(alb_CC)
-    min_CC = np.min(alb_CC)
+    mean_CC = CC_DF['albedo'].mean()
+    std_CC = CC_DF['albedo'].std()
+    max_CC = CC_DF['albedo'].max()
+    min_CC = CC_DF['albedo'].max()
 
-    mean_CI = np.mean(alb_CI)
-    std_CI = np.std(alb_CI)
-    max_CI = np.max(alb_CI)
-    min_CI = np.min(alb_CI)
+    mean_CI = CI_DF['albedo'].mean()
+    std_CI = CI_DF['albedo'].std()
+    max_CI = CI_DF['albedo'].max()
+    min_CI = CI_DF['albedo'].max()
     
-    mean_LA = np.mean(alb_LA)
-    std_LA = np.std(alb_LA)
-    max_LA = np.max(alb_LA)
-    min_LA = np.min(alb_LA)
-
-    mean_HA = np.mean(alb_HA)
-    std_HA = np.std(alb_HA)
-    max_HA = np.max(alb_HA)
-    min_HA = np.min(alb_HA)
-
-    mean_WAT = np.mean(alb_WAT)
-    std_WAT = np.std(alb_WAT)
-    max_WAT = np.max(alb_WAT)
-    min_WAT = np.min(alb_WAT)
+    mean_LA = LA_DF['albedo'].mean()
+    std_LA = LA_DF['albedo'].std()
+    max_LA = LA_DF['albedo'].max()
+    min_LA = LA_DF['albedo'].max()
+    
+    mean_HA = HA_DF['albedo'].mean()
+    std_HA = HA_DF['albedo'].std()
+    max_HA = HA_DF['albedo'].max()
+    min_HA = HA_DF['albedo'].max()
+    
+    mean_WAT = WAT_DF['albedo'].mean()
+    std_WAT = WAT_DF['albedo'].std()
+    max_WAT = WAT_DF['albedo'].max()
+    min_WAT = WAT_DF['albedo'].max()
         
     ## FIND IDX WHERE CLASS = Hbio..
     ## BIN ALBEDOS FROM SAME IDXs
@@ -739,10 +768,6 @@ def albedo_report(predicted,albedo_array):
     print('mean albedo LA = ', mean_LA)
     print('mean albedo HA = ', mean_HA)
 
-    albedo_DF = pd.DataFrame(columns=['albedo','class'])
-    albedo_DF['class'] = predicted
-    albedo_DF['albedo'] = albedo_array
-    albedo_DF.to_csv('UAV_albedo_dataset.csv')
 
     return alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,std_LA,min_LA,max_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT
 

@@ -24,6 +24,8 @@ import numpy as np
 import pandas as pd
 from sklearn.naive_bayes import GaussianNB
 from sklearn import preprocessing, cross_validation, neighbors, svm
+from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
+from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 import matplotlib.pyplot as plt
 import gdal
 import rasterio
@@ -174,195 +176,366 @@ def create_dataset(HCRF_file):
     return X, XX, YY
 
 
-
-def optimise_train_model(X,XX,YY):
-    # empty lists to append to
-    Naive_Bayes = []
-    KNN = []
-    SVM = []
+def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf_mx = True):
     
-    # split data into test and train sets
-    X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = 0.2)
+    # Function splits the data into training and test sets, then tests the 
+    # performance of a range of models on the training data. The final model 
+    # selected is then evaluated using the test set. The function automatically
+    # selects the model that performs best on the training sets. All 
+    # performance metrics are printed to ipython. The performance metric 
+    # to use to select the model is determined in the function call. Options 
+    # for error_selector are: 'accuracy', 'F1', 'recall', 'precision', and 
+    # 'average_all_metric' 
+    # The option 'plot_all_conf_mx' can be se to True or False. If True, the 
+    # train set confusion matrices will be plotted for all models. If False,
+    # only the final model confusion matrix will be plotted.
+    # X, XX, YY are the datasets with and without labels.
 
-    # Optimize parameters using GridSearch with cross validation (GridSearchCV) to
-    # find optimal set of values for best model performance. Apply to three kernel types
-    # and wide range of C and gamma values. Print best set of params.  
+    # split data into test and train sets.
+    X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = test_size)
     
+    # test different classifers and report performance metrics using traning data only
+    
+    # 1. Try Naive Bayes
+    clf_NB = GaussianNB()
+    clf_NB.fit(X_train,Y_train)
+    accuracy_NB = clf_NB.score(X_train,Y_train) #calculate accuracy
+    Y_predict_NB = clf_NB.predict(X_train) # make nre prediction
+    conf_mx_NB = confusion_matrix(Y_train,Y_predict_NB) # calculate confusion matrix
+    recall_NB = recall_score(Y_train,Y_predict_NB,average="weighted")
+    f1_NB = f1_score(Y_train, Y_predict_NB, average="weighted") # calculate f1 score
+    precision_NB = precision_score(Y_train,Y_predict_NB, average = 'weighted')
+    average_metric_NB = (accuracy_NB+recall_NB+f1_NB)/3
+    
+    # 2. Try K-nearest neighbours
+    clf_KNN = neighbors.KNeighborsClassifier()
+    clf_KNN.fit(X_train,Y_train)
+    accuracy_KNN = clf_KNN.score(X_train,Y_train)
+    Y_predict_KNN = clf_KNN.predict(X_train)
+    conf_mx_KNN = confusion_matrix(Y_train,Y_predict_KNN)
+    recall_KNN = recall_score(Y_train,Y_predict_KNN,average="weighted")
+    f1_KNN = f1_score(Y_train, Y_predict_KNN, average="weighted")
+    precision_KNN = precision_score(Y_train,Y_predict_KNN, average = 'weighted')
+    average_metric_KNN = (accuracy_KNN + recall_KNN + f1_KNN)/3
+    
+    # 3. Try support Vector Machine with best params calculated using
+    # GridSearch cross validation optimisation
     tuned_parameters = [
-            {'kernel': ['linear'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
-                         'C': [0.1, 1, 10, 100, 1000, 10000]},
-                        {'kernel': ['rbf'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
-                         'C': [0.1, 1, 10, 100, 1000, 10000]},
-                        {'kernel':['poly'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
-                         'C':[0.1,1,10,100,1000,10000]},
-                        {'kernel':['sigmoid'],'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
-                         'C':[0.1,1,10,100,1000,10000]}
-                        ]
+        {'kernel': ['linear'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+                     'C': [0.1, 1, 10, 100, 1000, 10000]},
+                    {'kernel': ['rbf'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+                     'C': [0.1, 1, 10, 100, 1000, 10000]},
+                    {'kernel':['poly'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+                     'C':[0.1,1,10,100,1000,10000]},
+                    {'kernel':['sigmoid'],'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
+                     'C':[0.1,1,10,100,1000,10000]}
+                    ]
     
-    clf = GridSearchCV(svm.SVC(C=1), tuned_parameters, cv=5)
-    clf.fit(X_train, Y_train)
+    clf_svm = GridSearchCV(svm.SVC(C=1), tuned_parameters, cv=3)
+    clf_svm.fit(X_train, Y_train)
     
     print()
     print("Best parameters set found on development set:")
-    print(clf.best_params_)
+    print(clf_svm.best_params_)
     print() #line break
     
-    kernel = clf.best_estimator_.get_params()['kernel']
-    C = clf.best_estimator_.get_params()['C']
-    gamma = clf.best_estimator_.get_params()['gamma']
+    kernel = clf_svm.best_estimator_.get_params()['kernel']
+    C = clf_svm.best_estimator_.get_params()['C']
+    gamma = clf_svm.best_estimator_.get_params()['gamma']
     
-    
-    # Test optimised SVM against simpler Naive Bayes and KNN models over num_runs
+    clf_svm = svm.SVC(kernel=kernel, C=C, gamma = gamma,probability=True)
+    clf_svm.fit(X_train,Y_train)
+    accuracy_svm = clf_svm.score(X_train,Y_train)
+    Y_predict_svm = clf_svm.predict(X_train)
+    conf_mx_svm = confusion_matrix(Y_train,Y_predict_svm)
+    recall_svm = recall_score(Y_train,Y_predict_svm,average="weighted")
+    f1_svm = f1_score(Y_train, Y_predict_svm, average="weighted")
+    precision_svm = precision_score(Y_train,Y_predict_svm, average = 'weighted')
+    average_metric_svm = (accuracy_svm + recall_svm + f1_svm)/3
 
-    # 1. Try Naive Bayes
-    clf = GaussianNB()
-    clf.fit(X_train,Y_train)
-    accuracy = clf.score(X_test,Y_test)
-    Naive_Bayes.append(accuracy)
-    
-    # 2. Try K-nearest neighbours
-    clf = neighbors.KNeighborsClassifier()
-    clf.fit(X_train,Y_train)
-    accuracy = clf.score(X_test,Y_test)
-    KNN.append(accuracy)
-    
-    # 3. Try support Vector Machine with best params from optimisation
-    clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
-    clf.fit(X_train,Y_train)
-    accuracy = clf.score(X_test,Y_test)
-    SVM.append(accuracy)
+    # 4. Try  a random forest classifier
+    clf_RF = RandomForestClassifier(n_estimators = 1000, max_leaf_nodes = 16)
+    clf_RF.fit(X_train,Y_train)
+    accuracy_RF = clf_RF.score(X_train,Y_train)
+    Y_predict_RF = clf_RF.predict(X_train)
+    conf_mx_RF = confusion_matrix(Y_train,Y_predict_RF)
+    recall_RF = recall_score(Y_train,Y_predict_RF,average="weighted")
+    f1_RF = f1_score(Y_train, Y_predict_RF, average="weighted")
+    precision_RF = precision_score(Y_train,Y_predict_RF, average = 'weighted')
+    average_metric_RF = (accuracy_RF + recall_RF + f1_RF)/3
 
-    # report accuracy (mean over num_runs)
-    print('KNN ',np.mean(KNN))
-    print('Naive Bayes ', np.mean(Naive_Bayes))
-    print('SVM ', np.mean(SVM))
+    # 5. Try an ensemble of all the other classifiers (not RF) using the voting classifier method
+    ensemble_clf = VotingClassifier(
+            estimators = [('NB',clf_NB),('KNN',clf_KNN),('svm',clf_svm),('RF',clf_RF)],
+            voting = 'hard')
+    ensemble_clf.fit(X_train,Y_train)
+    accuracy_ensemble = ensemble_clf.score(X_train,Y_train)
+    Y_predict_ensemble = ensemble_clf.predict(X_train)
+    conf_mx_ensemble = confusion_matrix(Y_train,Y_predict_ensemble)
+    recall_ensemble = recall_score(Y_train,Y_predict_ensemble,average="weighted")
+    f1_ensemble = f1_score(Y_train, Y_predict_ensemble, average="weighted")
+    precision_ensemble = precision_score(Y_train,Y_predict_ensemble, average = 'weighted')
+    average_metric_ensemble = (accuracy_ensemble + recall_ensemble + f1_ensemble)/3
     
-    # use whichever is the best performing algorithm for classifying the image
-    # report to the user which model is being used and the param values
+    print()
+    print('*** MODEL TEST SUMMARY ***')
+    print('KNN accuracy = ',accuracy_KNN, 'KNN_F1_Score = ', f1_KNN, 'KNN Recall = ', recall_KNN, 'KNN precision = ', precision_KNN)
+    print('Naive Bayes accuracy = ', accuracy_NB, 'Naive_Bayes_F1_Score = ',f1_NB, 'Naive Bayes Recall = ',recall_NB, 'Naive Bayes Precision = ', precision_NB)
+    print('SVM accuracy = ',accuracy_svm, 'SVM_F1_Score = ', f1_svm, 'SVM recall = ', recall_svm, 'SVM Precision = ', precision_svm)
+    print('Random Forest accuracy',accuracy_RF,'Random Forest F1 Score = ', f1_RF, 'Random Forest Recall', recall_RF, 'Random Forest Precision = ', precision_RF)    
+    print('Ensemble accuracy',accuracy_ensemble,'Ensemble F1 Score = ', f1_ensemble, 'Ensemble Recall', recall_ensemble, 'Ensemble Precision = ', precision_ensemble)
     
-    if np.mean(KNN) > np.mean(Naive_Bayes) and np.mean(KNN) > np.mean(SVM):
-        clf = clf = neighbors.KNeighborsClassifier()
-        clf.fit(X_train,Y_train)
-        print('KNN model used')
-    elif np.mean(Naive_Bayes) > np.mean(KNN) and np.mean(Naive_Bayes) > np.mean(SVM):
-        clf = GaussianNB()
-        clf.fit(X_train,Y_train)
-        print('Naive Bayes model used')
-    else:
-        clf = svm.SVC(kernel=kernel, C=C, gamma = gamma)
-        clf.fit(X_train,Y_train)
-        print('SVM model used')
-        print('SVM Params: C = ',C,' gamma = ',gamma,' kernel = ',kernel )
+    # PLOT CONFUSION MATRICES
+    if plot_all_conf_mx:
+        
+        plt.figure()    
+        plt.imshow(conf_mx_NB)
+        plt.title('NB Model Confusion matrix')
+        plt.colorbar()
+        classes = clf_NB.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
+        
+        plt.figure()
+        plt.imshow(conf_mx_KNN)
+        plt.title('KNN Model Confusion matrix')
+        plt.colorbar()
+        classes = clf_KNN.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
+        
+        plt.figure()
+        plt.imshow(conf_mx_svm)
+        plt.title('SVM Model Confusion matrix')
+        plt.colorbar()
+        classes = clf_svm.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
+    
+        plt.figure()
+        plt.imshow(conf_mx_RF)
+        plt.title('Random Forest Model Confusion matrix')
+        plt.colorbar()
+        classes = clf_RF.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
+
+        plt.figure()
+        plt.imshow(conf_mx_ensemble)
+        plt.title('Ensemble Model Confusion Matrix')
+        plt.colorbar()
+        classes = ensemble_clf.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
+        
+    print() #line break
+    
+    if error_selector == 'accuracy':
+        
+        if accuracy_KNN > accuracy_svm and accuracy_KNN > accuracy_NB and accuracy_KNN > accuracy_RF and accuracy_KNN > accuracy_ensemble:
+            clf = neighbours.KNeighboursClassifier()
+            clf.fit(X_train,Y_train)
+            print('KNN model chosen')
+        
+        elif accuracy_NB > accuracy_KNN and accuracy_NB > accuracy_svm and accuracy_NB > accuracy_RF and accuracy_NB > accuracy_ensemble:
+            clf = clf_NB
+            clf.fit(X_train,Y_train)
+            print('Naive Bayes model chosen')
+            
+        elif accuracy_svm > accuracy_NB and accuracy_svm > accuracy_KNN and accuracy_KNN > accuracy_RF and accuracy_svm > accuracy_ensemble:
+            clf = clf_svm
+            clf.fit(X_train,Y_train)
+            print('SVM model chosen')
+            print('SVM Params: C = ', C, ' gamma = ', gamma, ' kernel = ', kernel)
+
+        elif accuracy_RF > accuracy_NB and accuracy_RF > accuracy_KNN and accuracy_RF > accuracy_ensemble and accuracy_RF> accuracy_svm:
+            clf = clf_RF
+            clf.fit(X_train,Y_train)
+            print('RF model chosen')
+            
+        elif accuracy_ensemble > accuracy_svm and accuracy_ensemble > accuracy_NB and accuracy_ensemble > accuracy_RF and accuracy_ensemble > accuracy_KNN:
+            clf = clf_ensemble
+            clf.fit(X_train,Y_train)
+            print('Ensemble model chosen')
+
+
+    elif error_selector == 'recall':
+
+
+        if recall_KNN > recall_svm and recall_KNN > recall_NB and recall_KNN > recall_RF and recall_KNN > recall_ensemble:
+            clf = neighbours.KNeighboursClassifier()
+            clf.fit(X_train,Y_train)
+            print('KNN model chosen')
+        
+        elif recall_NB > recall_KNN and recall_NB > recall_svm and recall_NB > recall_RF and recall_NB > recall_ensemble:
+            clf = GaussianNB()
+            clf.fit(X_train,Y_train)
+            print('Naive Bayes model chosen')
+            
+        elif recall_svm > recall_NB and recall_svm > recall_KNN and recall_svm > recall_RF and recall_svm > recall_ensemble:
+            clf = svm.SVC(kernel=kernel, C=C, gamma = gamma, probability=True)
+            clf.fit(X_train,Y_train)
+            print('SVM model chosen')
+            print('SVM Params: C = ', C, ' gamma = ', gamma, ' kernel = ', kernel)
+        
+        elif recall_RF > recall_NB and recall_RF > recall_KNN and recall_RF > recall_ensemble and recall_RF> recall_svm:
+            clf = clf_RF
+            clf.fit(X_train,Y_train)
+            print('RF model chosen')
+
+
+        elif recall_ensemble > recall_svm and recall_ensemble > recall_NB and recall_NB > recall_RF and recall_ensemble > recall_KNN:
+            clf = VotingClassifier(
+                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'hard')
+            clf.fit(X_train,Y_train)
+            print('Ensemble model chosen')
+
+        
+    elif error_selector == 'F1':
+        
+        if f1_KNN > f1_svm and f1_KNN > f1_NB and f1_KNN > f1_RF and f1_KNN > f1_ensemble:
+            clf = neighbours.KNeighboursClassifier()
+            clf.fit(X_train,Y_train)
+            print('KNN model chosen')
+        
+        elif f1_NB > f1_KNN and f1_NB > f1_svm and f1_NB > f1_RF and f1_NB > f1_ensemble:
+            clf = GaussianNB()
+            clf.fit(X_train,Y_train)
+            print('Naive Bayes model chosen')
+            
+        elif f1_svm > f1_NB and f1_svm > f1_KNN and f1_svm > f1_RF and f1_svm > f1_ensemble:
+            clf = svm.SVC(kernel=kernel, C=C, gamma = gamma, probability = True)
+            clf.fit(X_train,Y_train)
+            print('SVM model chosen')
+            print('SVM Params: C = ', C, ' gamma = ', gamma, ' kernel = ', kernel)
+            
+        elif f1_RF > f1_NB and f1_RF > f1_KNN and f1_RF > f1_ensemble and f1_RF> f1_svm:
+            clf = clf_RF
+            clf.fit(X_train,Y_train)
+            print('RF model chosen')
+        
+        elif f1_ensemble > f1_svm and f1_ensemble > f1_NB and f1_ensemble > f1_RF and f1_ensemble > f1_KNN:
+            clf = VotingClassifier(
+                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'hard')
+            clf.fit(X_train,Y_train)
+            print('Ensemble model chosen')
+            
+
+    elif error_selector == 'precision':
+        
+        if precision_KNN > precision_svm and precision_KNN > precision_NB and precision_KNN > precision_RF and precision_KNN > precision_ensemble:
+            clf = neighbours.KNeighboursClassifier()
+            clf.fit(X_train,Y_train)
+            print('KNN model chosen')
+        
+        elif precision_NB > precision_KNN and precision_NB > precision_svm and precision_NB > precision_RF and precision_NB > precision_ensemble:
+            clf = GaussianNB()
+            clf.fit(X_train,Y_train)
+            print('Naive Bayes model chosen')
+            
+        elif precision_RF > precision_NB and precision_RF > precision_KNN and precision_RF > precision_ensemble and precision_RF> precision_svm:
+            clf = clf_RF
+            clf.fit(X_train,Y_train)
+            print('RF model chosen')
+            
+        elif precision_svm > precision_NB and precision_svm > precision_KNN and precision_svm > precision_RF and precision_svm > precision_ensemble:
+            clf = svm.SVC(kernel=kernel, C=C, gamma = gamma, probability=True)
+            clf.fit(X_train,Y_train)
+            print('SVM model chosen')
+            print('SVM Params: C = ', C, ' gamma = ', gamma, ' kernel = ', kernel)
+        
+        elif precision_ensemble > precision_svm and precision_ensemble > precision_NB and precision_ensemble > precision_RF and precision_ensemble > precision_KNN:
+            clf = VotingClassifier(
+                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'hard')
+            clf.fit(X_train,Y_train)
+            print('Ensemble model chosen')
+
+    elif error_selector == 'average_all_metric':
+        
+        if average_metric_KNN > average_metric_svm and average_metric_KNN > average_metric_NB and average_metric_KNN > average_metric_RF and average_metric_KNN > average_metric_ensemble:
+            clf = neighbours.KNeighboursClassifier()
+            clf.fit(X_train,Y_train)
+            print('KNN model chosen')
+        
+        elif average_metric_NB > average_metric_KNN and average_metric_NB > average_metric_svm and average_metric_NB > average_metric_RF and average_metric_NB > average_metric_ensemble:
+            clf = GaussianNB()
+            clf.fit(X_train,Y_train)
+            print('Naive Bayes model chosen')
+            
+        elif average_metric_RF > average_metric_NB and average_metric_RF > average_metric_KNN and average_metric_RF > average_metric_ensemble and average_metric_RF> average_metric_svm:
+            clf = clf_RF
+            clf.fit(X_train,Y_train)
+            print('RF model chosen')
+            
+        elif average_metric_svm > average_metric_NB and average_metric_svm > average_metric_KNN and average_metric_svm > average_metric_RF and average_metric_svm > average_metric_ensemble:
+            clf = svm.SVC(kernel=kernel, C=C, gamma = gamma, probability=True)
+            clf.fit(X_train,Y_train)
+            print('SVM model chosen')
+            print('SVM Params: C = ', C, ' gamma = ', gamma, ' kernel = ', kernel)
+        
+        elif average_metric_ensemble > average_metric_svm and average_metric_ensemble > average_metric_NB and average_metric_ensemble > average_metric_RF and average_metric_ensemble > average_metric_KNN:
+            clf = VotingClassifier(
+                    estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'hard')
+            clf.fit(X_train,Y_train)
+            print('Ensemble model chosen')
+            
+# Now that model has been selected using error metrics from training data, the final
+# model can be evaluated on the test set. The code below therefore measures the f1, recall,
+# confusion matrix and accuracy  for the final selected model and prints to ipython.
+            
+    Y_test_predicted = clf.predict(X_test)
+    final_conf_mx = confusion_matrix(Y_test, Y_test_predicted)
+
+    plt.figure()
+    plt.imshow(final_conf_mx)
+    plt.title('Final Model Confusion Matrix')
+    plt.colorbar()
+    classes = clf.classes_
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+    
+    # Normalise confusion matrix to show errors
+    row_sums = final_conf_mx.sum(axis=1, keepdims=True)
+    norm_conf_mx = final_conf_mx / row_sums
+    np.fill_diagonal(norm_conf_mx, 0)
+    plt.figure()
+    plt.imshow(norm_conf_mx, cmap=plt.cm.gray)
+    plt.colorbar()
+    plt.clim(0,1)
+    plt.title('Normalised Confusion Matrix')
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    final_recall = recall_score(Y_test,Y_test_predicted,average="weighted")
+    final_f1 = f1_score(Y_test, Y_test_predicted, average="weighted")
+    final_accuracy = clf.score(X_test,Y_test)
+    final_precision = precision_score(Y_test, Y_test_predicted, average='weighted')
+    final_average_metric = (final_recall + final_accuracy + final_f1)/3
+
+    # The Feature importances 
+    print()
+    print('Feature Importances')
+    print('(relative importance of each feature (wavelength) for prediction)')
+    print()
+    for name, score in zip(X.columns,clf.feature_importances_):
+        print (name,score)
+
+    print() #line break
+    print ('*** FINAL MODEL SUMMARY ***')
+    print('Final Model Accuracy = ', final_accuracy)
+    print('Final Model Recall = ', final_recall)
+    print('Final Model F1 = ', final_f1)
+    print('Final Model Precision = ',final_precision)
+    print('Final Model Average metric = ', final_average_metric)
+
 
     return clf
-
-
-def ImageAnalysis(Sentinel_jp2s,clf):
-
-    # Import multispectral imagery from Sentinel 2 and apply ML algorithm to classify surface
-    
-    jp2s = Seninel_jp2s
-    arrs = []
-    
-    res = 0.01 # Ground resolution of sentinel data in km
-    
-    for jp2 in jp2s:
-        with rasterio.open(jp2) as f:
-            arrs.append(f.read(1))
-    
-    data = np.array(arrs, dtype=arrs[0].dtype)
-    
-    # set up empty lists to append into
-    B2 = []
-    B3 = []
-    B4 = []
-    B8 =[]
-    
-    predicted = []
-    test_array = []
-    albedo_array = []
-    
-    # get dimensions of each band layer
-    lenx, leny = np.shape(data[0])
-    
-    # Loop through each pixel and append the pixel value from each layer to a 1D list
-    for i in range(0,lenx,1):
-        for j in range(0,leny,1):
-            B2.append(data[0][i,j])
-            B3.append(data[1][i,j])
-            B4.append(data[2][i,j])
-            B8.append(data[3][i,j])
-    
-    # create new array of arrays. Each subarray contains reflectance value for each layer
-    # Sen2Cor provides data * 10000, so divide by 10000 to get reflectance between 0-1
-    
-    # for each pixel, use the B3 and B8 values to apply Knap's narrowband-broadband 
-    # conversion to estimate albedo
-            
-    for i in range(0,len(B2),1):
-        test_array.append([ B2[i]/10000, B3[i]/10000, B4[i]/10000, B8[i]/10000 ])
-        albedo_array.append(0.726*(B3[i]/10000) - 0.322*(B3[i]/10000)**2 - 0.015*(B8[i]/10000) + 0.581*(B8[i]/10000))
-    
-    
-    # apply ML algorithm to 4-value array for each pixel - predict surface type    
-    predicted = clf.predict(test_array)
-    
-    # convert surface class (string) to a numeric value for plotting
-    predicted[predicted == 'UNKNOWN'] = float(0)
-    predicted[predicted == 'WAT'] = float(1)
-    predicted[predicted == 'CC'] = float(2)
-    predicted[predicted == 'CI'] = float(3)
-    predicted[predicted == 'LA'] = float(4)
-    predicted[predicted == 'HA'] = float(5)
-    
-    # ensure array data type is float (required for imshow)
-    predicted = predicted.astype(float)
-    
-    # reshape 1D arrays back into original image dimensions
-    predicted = np.reshape(predicted,[lenx,leny])
-    albedo_array = np.reshape(albedo_array,[lenx,leny])
-    
-    # Trim classified image and albedo image to same size, removing non-ice area
-    predicted = predicted[2000:-1000,6000:-1]
-    albedo_array = albedo_array[2000:-1000,6000:-1]
-    
-    x,y = np.shape(predicted)
-    area_of_pixel = (x*res)*(y*res) # area of selected region
-    
-    #plot classified surface and albedo
-    plt.figure(figsize = (30,30)),plt.imshow(predicted),plt.colorbar()
-    plt.savefig('Sentinel2_10m_classified.jpg',dpi=300)
-    plt.figure(figsize = (30,30)),plt.imshow(albedo_array),plt.colorbar()
-    plt.savefig('Sentinel2_10m_albedo.jpg',dpi=300)
-    
-    # Calculate coverage stats
-    numHA = (predicted==5).sum()
-    numLA = (predicted==4).sum()
-    numCI = (predicted==3).sum()
-    numCC = (predicted==2).sum()
-    numWAT = (predicted==1).sum()
-    numUNKNOWN = (predicted==0).sum()
-    noUNKNOWNS = (predicted !=0).sum()
-    
-    tot_alg_coverage = (numHA+numLA)/noUNKNOWNS *100
-    HA_coverage = (numHA)/noUNKNOWNS * 100
-    LA_coverage = (numLA)/noUNKNOWNS * 100
-    CI_coverage = (numCI)/noUNKNOWNS * 100
-    CC_coverage = (numCC)/noUNKNOWNS * 100
-    WAT_coverage = (numWAT)/noUNKNOWNS * 100
-    
-    # Print coverage summary
-    
-    print('**** SUMMARY ****')
-    print('Area of pixel = ', area_of_pixel)
-    print('% algal coverage (Hbio + Lbio) = ',np.round(tot_alg_coverage,2))
-    print('% Hbio coverage = ',np.round(HA_coverage,2))
-    print('% Lbio coverage = ',np.round(LA_coverage,2))
-    print('% cryoconite coverage = ',np.round(CC_coverage,2))
-    print('% clean ice coverage = ',np.round(CI_coverage,2))
-    print('% water coverage = ',np.round(WAT_coverage,2))
-
-    return predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage
 
 
 def albedo_report(predicted,albedo_array):
@@ -431,6 +604,7 @@ def albedo_report(predicted,albedo_array):
     albedo_DF = pd.DataFrame(columns=['albedo','class'])
     albedo_DF['class'] = predicted
     albedo_DF['albedo'] = albedo_array
+    albedoDF = albedoDF[albedoDF['albedo'] > 0] # remove any zeros albedo rows
     albedo_DF.to_csv('Sentinel_10m_albedo_dataset.csv')
 
     return alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT
@@ -444,8 +618,8 @@ def albedo_report(predicted,albedo_array):
 # create dataset
 X,XX,YY = create_dataset(HCRF_file)
 #optimise and train model
-clf = optimise_train_model(X,XX,YY)
+clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy',test_size = 0.2, plot_all_conf_mx = False)
 # apply model to Sentinel2 image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(Seninel_jp2s,clf)
-#obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
+#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(Seninel_jp2s,clf)
+##obtain albedo summary stats
+#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
