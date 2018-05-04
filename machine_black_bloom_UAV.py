@@ -75,7 +75,7 @@ from sklearn.grid_search import GridSearchCV
 plt.style.use('ggplot')
 
 HCRF_file = '//home//joe//Code//HCRF_master_machine_snicar.csv'
-img_name = '/media/joe/FDB2-2F9B/uav_5cm_commongrid.tif'
+img_name = '//home//joe//Desktop//Machine_Learn_Tutorial//UAV_21_7_17//uav_21_7_5cm_commongrid.tif'
 
 
 ###############################################################################
@@ -842,8 +842,8 @@ X,XX,YY = create_dataset(HCRF_file)
 #optimise and train model
 clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.4, plot_all_conf_mx = False)
 # apply model to Sentinel2 image
-#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf)
+predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf)
 #obtain albedo summary stats
-#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
+alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
 # chack albedo against ground control points
-#GCP1_class,GCP2_class,GCP3_class,GCP4_class,GCP5_class, GCP1_alb,GCP2_alb,GCP3_alb,GCP4_alb,GCP5_alb = ground_control(predicted,albedo_array)
+GCP1_class,GCP2_class,GCP3_class,GCP4_class,GCP5_class, GCP1_alb,GCP2_alb,GCP3_alb,GCP4_alb,GCP5_alb = ground_control(predicted,albedo_array)
