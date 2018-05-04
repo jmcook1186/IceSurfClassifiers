@@ -596,18 +596,15 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf
     return clf
 
 
-def ImageAnalysis(Sentinel_jp2s,clf):
-
+def ClassifyImages(Sentinel_jp2s,clf):
     # Import multispectral imagery from Sentinel 2 and apply ML algorithm to classify surface
     
     jp2s = Seninel_jp2s
-    arrs = []
-    
+    arrs = []   
     for jp2 in jp2s:
         with rasterio.open(jp2) as f:
             arrs.append(f.read(1))
     
-    res = 0.02 # Ground resolution of sentinel data in km
     data = np.array(arrs, dtype=arrs[0].dtype)
 
     # set up empty lists to append into
@@ -640,9 +637,6 @@ def ImageAnalysis(Sentinel_jp2s,clf):
             B11.append(data[7][i,j])
             B12.append(data[8][i,j])
     
-    # crop image to eliminate non-ice areas
-    
-    
     # create new array of arrays. Each subarray contains reflectance value for each layer
     # Sen2Cor provides data * 10000, so divide by 10000 to get reflectance between 0-1
     # Apply Liang et al (2002) narrowband to broadband conversion 
@@ -653,13 +647,12 @@ def ImageAnalysis(Sentinel_jp2s,clf):
         albedo_array.append(0.356*(B2[i]/10000)+0.130*(B4[i]/10000)+0.373*(B8[i]/10000)+0.085*(B11[i]/10000)+0.072*(B12[i]/10000)-0.0018)
                 
     
-    # apply ML algorithm to 4-value array for each pixel - predict surface type
-        
+    # apply ML algorithm to 4-value array for each pixel - predict surface type    
     predicted = clf.predict(test_array)
     
     # convert surface class (string) to a numeric value for plotting
     predicted[predicted == 'UNKNOWN'] = float(0)
-    predicted[predicted == 'SN'] == float(1)
+    predicted[predicted == 'SN'] = float(1)
     predicted[predicted == 'WAT'] = float(2)
     predicted[predicted == 'CC'] = float(3)
     predicted[predicted == 'CI'] = float(4)
@@ -673,176 +666,391 @@ def ImageAnalysis(Sentinel_jp2s,clf):
     # reshape 1D array back into original image dimensions
     predicted = np.reshape(predicted,[lenx,leny])
     albedo_array = np.reshape(albedo_array,[lenx,leny])
-    predicted = predicted[1000:-1000,3000:]
-    albedo_array = albedo_array[1000:-1000,3000:]
-    
-    x,y = np.shape(predicted)
-    area_of_pixel = (x*res)*(y*res) # area of selected region
+
+    #split image into 3 ice-covered areas that together represent majority of glaciated land in image  
+          
+    predicted1 = predicted[2170:2975,2130:4350]
+    predicted2 = predicted[1400:2160,2630:4740]
+    predicted3 = predicted[0:1405,2800:5075]
+    albedo_array1 = albedo_array[2170:2975,2130:4350] 
+    albedo_array2 = albedo_array[1400:2160,2630:4740]
+    albedo_array3 = albedo_array[0:1405,2800:5075]
+
     #plot classified surface
-    plt.figure(figsize = (30,30)),plt.imshow(predicted),plt.colorbar()
-    plt.savefig('Sentinel2_20m_classified.jpg',dpi=300)
-    plt.figure(figsize = (30,30)),plt.imshow(albedo_array),plt.colorbar()
-    plt.savefig('Sentinel2_20m_albedo.jpg',dpi=300)
-    # Calculate coverage stats
-    numHA = (predicted==6).sum()
-    numLA = (predicted==5).sum()
-    numCI = (predicted==4).sum()
-    numCC = (predicted==3).sum()
-    numWAT = (predicted==2).sum()
-    numSN = (predicted==1).sum()
-    numUNKNOWN = (predicted==0).sum()
-    noUNKNOWNS = (predicted !=0).sum()
+    plt.figure(figsize = (30,10)),plt.imshow(predicted1),plt.colorbar()
+    plt.savefig('Clasified_Sentinel_20m_Area1.png',dpi=300)
     
-    tot_alg_coverage = (numHA+numLA)/noUNKNOWNS*100
-    HA_coverage = (numHA)/noUNKNOWNS * 100
-    LA_coverage = (numLA)/noUNKNOWNS * 100
-    CI_coverage = (numCI)/noUNKNOWNS * 100
-    CC_coverage = (numCC)/noUNKNOWNS * 100
-    WAT_coverage = (numWAT)/noUNKNOWNS * 100
+    plt.figure(figsize = (30,10)),plt.imshow(predicted2),plt.colorbar()
+    plt.savefig('Clasified_Sentinel_20m_Area2.png',dpi=300)
     
-    # Print coverage summary
+    plt.figure(figsize = (30,10)),plt.imshow(predicted3),plt.colorbar()
+    plt.savefig('Clasified_Sentinel_20m_Area3.png',dpi=300)
     
-    print('**** SUMMARY ****')
-    print('Area of pixel = ', area_of_pixel, 'km')
-    print('% algal coverage (Hbio + Lbio) = ',np.round(tot_alg_coverage,2))
-    print('% Hbio coverage = ',np.round(HA_coverage,2))
-    print('% Lbio coverage = ',np.round(LA_coverage,2))
-    print('% cryoconite coverage = ',np.round(CC_coverage,2))
-    print('% clean ice coverage = ',np.round(CI_coverage,2))
-    print('% water coverage = ',np.round(WAT_coverage,2))
-    print('% snow coverage = ',np.round(SN_coverage,2))
+    plt.figure(figsize = (30,10)),plt.imshow(truemap)
+    plt.savefig('TrueColourMap.png',dpi=300)
 
-    return predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage
-
-
-def albedo_report(predicted,albedo_array):
-
-    alb_WAT = []
-    alb_CC = []
-    alb_CI = []
-    alb_LA = []
-    alb_HA = []
-    alb_SN = []
+    plt.figure(figsize = (30,10)),plt.imshow(albedo_array1),plt.colorbar()
+    plt.savefig('Albedo_Sentinel_20m_Area1.png',dpi=300)
     
-    predicted = predicted.ravel()
-    albedo_array = albedo_array.ravel()
-
-    idx_SN = np.where(predicted== 1)[0]    
-    idx_WAT = np.where(predicted ==2)[0]
-    idx_CC = np.where(predicted ==3)[0]
-    idx_CI = np.where(predicted ==4)[0]
-    idx_LA = np.where(predicted ==5)[0]
-    idx_HA = np.where(predicted ==6)[0]
+    plt.figure(figsize = (30,10)),plt.imshow(albedo_array2),plt.colorbar()
+    plt.savefig('Albedo_Sentinel_20m_Area2.png',dpi=300)
+    
+    plt.figure(figsize = (30,10)),plt.imshow(albedo_array3),plt.colorbar()
+    plt.savefig('Albedo_Sentinel_20m_Area3.png',dpi=300)
+    
+    
+    return predicted1, predicted2, predicted3,albedo_array1,albedo_array2,albedo_array3
 
     
-    for i in idx_WAT:
-        alb_WAT.append(albedo_array[i])
-    for i in idx_CC:
-        alb_CC.append(albedo_array[i])
-    for i in idx_CI:
-        alb_CI.append(albedo_array[i])
-    for i in idx_LA:
-        alb_LA.append(albedo_array[i])
-    for i in idx_HA:
-        alb_HA.append(albedo_array[i])
-    for i in idx_SN:
-        alb_SN.append(albedo_array[i])
-
-# create pandas dataframe containing albedo data (delete rows where albedo <= 0)
-    albedo_DF = pd.DataFrame(columns=['albedo','class'])
-    albedo_DF['class'] = predicted
-    albedo_DF['albedo'] = albedo_array
-    albedo_DF = albedo_DF[albedo_DF['albedo'] > 0] 
-    albedo_DF.to_csv('Sentinel_20m_albedo_dataset.csv')
+def CoverageStats (predicted1, predicted2, predicted3):
+    res = 0.02 # Ground resolution of sentinel data in km
+    counter = 0
     
-# divide albedo dataframe into individual classes for summary stats. include only
-# rows where albedo is between 0.05 and 0.95 percentiles to remove outliers
-    
-    HA_DF = albedo_DF[albedo_DF['class'] == 6]
-    HA_DF = HA_DF[HA_DF['albedo'] > HA_DF['albedo'].quantile(0.05)]
-    HA_DF = HA_DF[HA_DF['albedo'] < HA_DF['albedo'].quantile(0.95)]
+    for i in predicted1,predicted2,predicted3:
         
-    LA_DF = albedo_DF[albedo_DF['class'] == 5]
-    LA_DF = LA_DF[LA_DF['albedo'] > LA_DF['albedo'].quantile(0.05)]
-    LA_DF = LA_DF[LA_DF['albedo'] < LA_DF['albedo'].quantile(0.95)]
+        counter +=1
 
-    CI_DF = albedo_DF[albedo_DF['class'] == 4]
-    CI_DF = CI_DF[CI_DF['albedo'] > CI_DF['albedo'].quantile(0.05)]
-    CI_DF = CI_DF[CI_DF['albedo'] < CI_DF['albedo'].quantile(0.95)]
+        x,y = np.shape(i)
+        area_of_image = (x*res)*(y*res) # area of selected region
 
-    CC_DF = albedo_DF[albedo_DF['class'] == 3]
-    CC_DF = CC_DF[CC_DF['albedo'] > CC_DF['albedo'].quantile(0.05)]
-    CC_DF = CC_DF[CC_DF['albedo'] < CC_DF['albedo'].quantile(0.95)]
-
-    WAT_DF = albedo_DF[albedo_DF['class'] == 2]
-    WAT_DF = WAT_DF[WAT_DF['albedo'] > WAT_DF['albedo'].quantile(0.05)]
-    WAT_DF = WAT_DF[WAT_DF['albedo'] < WAT_DF['albedo'].quantile(0.95)]   
-
-    SN_DF = albedo_DF[albedo_DF['class'] ==1]
-    SN_DF = SN_DF[SN_DF['albedo'] > SN_DF['albedo'].quantile(0.05)]
-    SN_DF = SN_DF[SN_DF['albedo'] < SN_DF['albedo'].quantile(0.95)]      
-
-    # Calculate summary stats
-    mean_CC = CC_DF['albedo'].mean()
-    std_CC = CC_DF['albedo'].std()
-    max_CC = CC_DF['albedo'].max()
-    min_CC = CC_DF['albedo'].min()
-
-    mean_CI = CI_DF['albedo'].mean()
-    std_CI = CI_DF['albedo'].std()
-    max_CI = CI_DF['albedo'].max()
-    min_CI = CI_DF['albedo'].min()
-    
-    mean_LA = LA_DF['albedo'].mean()
-    std_LA = LA_DF['albedo'].std()
-    max_LA = LA_DF['albedo'].max()
-    min_LA = LA_DF['albedo'].min()
-    
-    mean_HA = HA_DF['albedo'].mean()
-    std_HA = HA_DF['albedo'].std()
-    max_HA = HA_DF['albedo'].max()
-    min_HA = HA_DF['albedo'].min()
-    
-    mean_WAT = WAT_DF['albedo'].mean()
-    std_WAT = WAT_DF['albedo'].std()
-    max_WAT = WAT_DF['albedo'].max()
-    min_WAT = WAT_DF['albedo'].min()
+        # Calculate coverage stats
+        numHA = (i==6).sum()
+        numLA = (i==5).sum()
+        numCI = (i==4).sum()
+        numCC = (i==3).sum()
+        numWAT = (i==2).sum()
+        numSN = (i==1).sum()
+        numUNKNOWN = (i==0).sum()
+        noUNKNOWNS = (i !=0).sum()
         
-    mean_SN = SN_DF['albedo'].mean()
-    std_SN = SN_DF['albedo'].std()
-    max_SN = SN_DF['albedo'].max()
-    min_SN = SN_DF['albedo'].min()
+        tot_alg_coverage = (numHA+numLA)/noUNKNOWNS*100
+        HA_coverage = (numHA)/noUNKNOWNS * 100
+        LA_coverage = (numLA)/noUNKNOWNS * 100
+        CI_coverage = (numCI)/noUNKNOWNS * 100
+        CC_coverage = (numCC)/noUNKNOWNS * 100
+        WAT_coverage = (numWAT)/noUNKNOWNS * 100
+        SN_coverage = (numSN)/noUNKNOWNS *100
+        # Print coverage summary
+        
+        print()
+        print('**** SUMMARY ****')
+        print('{} Area of image = '.format(counter), area_of_image, 'km')
+        print('{}  % algal coverage (Hbio + Lbio) = '.format(counter),np.round(tot_alg_coverage,2))
+        print('{}  % Hbio coverage = '.format(counter),np.round(HA_coverage,2))
+        print('{}  % Lbio coverage = '.format(counter),np.round(LA_coverage,2))
+        print('{}  % cryoconite coverage = '.format(counter),np.round(CC_coverage,2))
+        print('{}  % clean ice coverage = '.format(counter),np.round(CI_coverage,2))
+        print('{}  % water coverage = '.format(counter),np.round(WAT_coverage,2))
+        print('{}  % snow coverage = '.format(counter),np.round(SN_coverage,2))
+        print()
+        print()
+        
+    return
 
 
-    ## FIND IDX WHERE CLASS = Hbio..
-    ## BIN ALBEDOS FROM SAME IDXs
-    print('mean albedo WAT = ', mean_WAT)
-    print('mean albedo CC = ', mean_CC)
-    print('mean albedo CI = ', mean_CI)
-    print('mean albedo LA = ', mean_LA)
-    print('mean albedo HA = ', mean_HA)
-    print('mean_albedo_SN = ', mean_SN)
-    print('n HA = ',len(HA_DF))
-    print('n LA = ',len(LA_DF))
-    print('n CI = ',len(CI_DF))
-    print('n CC = ',len(CC_DF))
-    print('n WAT = ',len(WAT_DF))
-    print('n_SN = ',len(SN_DF))
+def albedo_report(predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3):
+        
+    counter = 0
+    
+    albedo_DF1 = pd.DataFrame()
+    albedo_DF2 = pd.DataFrame()
+    albedo_DF3 = pd.DataFrame()
+    HA_DF1 = pd.DataFrame()
+    LA_DF1 = pd.DataFrame()
+    WAT_DF1 = pd.DataFrame()
+    CI_DF1 = pd.DataFrame()
+    CC_DF1 = pd.DataFrame()
+    SN_DF1 = pd.DataFrame()
+    HA_DF2 = pd.DataFrame()
+    LA_DF2 = pd.DataFrame()
+    WAT_DF2 = pd.DataFrame()
+    CI_DF2 = pd.DataFrame()
+    CC_DF2 = pd.DataFrame()
+    SN_DF2 = pd.DataFrame()
+    HA_DF3 = pd.DataFrame()
+    LA_DF3 = pd.DataFrame()
+    WAT_DF3 = pd.DataFrame()
+    CI_DF3 = pd.DataFrame()
+    CC_DF3 = pd.DataFrame()
+    SN_DF3 = pd.DataFrame()
+    
+    for i in predicted1,predicted2,predicted3:
+        
+        counter +=1
+        
+        PP = i.ravel()
+        print(len(PP))
+        
+        if counter == 1:
+           
+            AA = albedo_array1.ravel()
+            albedo_DF1['class'] = PP
+            albedo_DF1['albedo'] = AA
+             
+    # divide albedo dataframe into individual classes for summary stats. include only
+    # rows where albedo is between 0.05 and 0.95 percentiles to remove outliers
+        
+            HA_DF1 = albedo_DF1[albedo_DF1['class'] == 6]
+            HA_DF1 = HA_DF1[HA_DF1['albedo'] > HA_DF1['albedo'].quantile(0.05)]
+            HA_DF1 = HA_DF1[HA_DF1['albedo'] < HA_DF1['albedo'].quantile(0.95)]
+                        
+            LA_DF1 = albedo_DF1[albedo_DF1['class'] == 5]
+            LA_DF1 = LA_DF1[LA_DF1['albedo'] > LA_DF1['albedo'].quantile(0.05)]
+            LA_DF1 = LA_DF1[LA_DF1['albedo'] < LA_DF1['albedo'].quantile(0.95)]
+            
+            
+            CI_DF1 = albedo_DF1[albedo_DF1['class'] == 4]
+            CI_DF1 = CI_DF1[CI_DF1['albedo'] > CI_DF1['albedo'].quantile(0.05)]
+            CI_DF1 = CI_DF1[CI_DF1['albedo'] < CI_DF1['albedo'].quantile(0.95)]
+            
+        
+            CC_DF1 = albedo_DF1[albedo_DF1['class'] == 3]
+            CC_DF1 = CC_DF1[CC_DF1['albedo'] > CC_DF1['albedo'].quantile(0.05)]
+            CC_DF1 = CC_DF1[CC_DF1['albedo'] < CC_DF1['albedo'].quantile(0.95)]
+            
+        
+            WAT_DF1 = albedo_DF1[albedo_DF1['class'] == 2]
+            WAT_DF1 = WAT_DF1[WAT_DF1['albedo'] > WAT_DF1['albedo'].quantile(0.05)]
+            WAT_DF1 = WAT_DF1[WAT_DF1['albedo'] < WAT_DF1['albedo'].quantile(0.95)]   
+            
+            
+            SN_DF1 = albedo_DF1[albedo_DF1['class'] ==1]
+            SN_DF1 = SN_DF1[SN_DF1['albedo'] > SN_DF1['albedo'].quantile(0.05)]
+            SN_DF1 = SN_DF1[SN_DF1['albedo'] < SN_DF1['albedo'].quantile(0.95)]      
+            
+           
+            # Calculate summary stats
+            mean_CC1 = CC_DF1['albedo'].mean()
+            std_CC1 = CC_DF1['albedo'].std()
+            max_CC1 = CC_DF1['albedo'].max()
+            min_CC1 = CC_DF1['albedo'].min()
+        
+            mean_CI1 = CI_DF1['albedo'].mean()
+            std_CI1 = CI_DF1['albedo'].std()
+            max_CI1 = CI_DF1['albedo'].max()
+            min_CI1 = CI_DF1['albedo'].min()
+            
+            mean_LA1 = LA_DF1['albedo'].mean()
+            std_LA1 = LA_DF1['albedo'].std()
+            max_LA1 = LA_DF1['albedo'].max()
+            min_LA1 = LA_DF1['albedo'].min()
+            
+            mean_HA1 = HA_DF1['albedo'].mean()
+            std_HA1 = HA_DF1['albedo'].std()
+            max_HA1 = HA_DF1['albedo'].max()
+            min_HA1 = HA_DF1['albedo'].min()
+            
+            mean_WAT1 = WAT_DF1['albedo'].mean()
+            std_WAT1 = WAT_DF1['albedo'].std()
+            max_WAT1 = WAT_DF1['albedo'].max()
+            min_WAT1 = WAT_DF1['albedo'].min()
+                
+            mean_SN1 = SN_DF1['albedo'].mean()
+            std_SN1 = SN_DF1['albedo'].std()
+            max_SN1 = SN_DF1['albedo'].max()
+            min_SN1 = SN_DF1['albedo'].min()
+    
+            print()
+            print('*** Albedo Stats 1 ***')
+            print()
+            print('mean albedo WAT 1 = ', mean_WAT1)
+            print('mean albedo CC 1 = ', mean_CC1)
+            print('mean albedo CI 1 = ', mean_CI1)
+            print('mean albedo LA 1 = ', mean_LA1)
+            print('mean albedo HA 1 = ', mean_HA1)
+            print('mean_albedo_SN 1 = ', mean_SN1)
+            print('n HA 1 = ',len(HA_DF1))
+            print('n LA 1 = ',len(LA_DF1))
+            print('n CI 1 = ',len(CI_DF1))
+            print('n CC 1 = ',len(CC_DF1))
+            print('n WAT 1 = ',len(WAT_DF1))
+            print('n_SN 1 = ',len(SN_DF1))
 
-    return alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA, max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN
+        elif counter == 2:
+            
+            AA = albedo_array2.ravel()
+            albedo_DF2['class'] = PP
+            albedo_DF2['albedo'] = AA
+            
+            HA_DF2 = albedo_DF2[albedo_DF2['class'] == 6]
+            HA_DF2 = HA_DF2[HA_DF2['albedo'] > HA_DF2['albedo'].quantile(0.05)]
+            HA_DF2 = HA_DF2[HA_DF2['albedo'] < HA_DF2['albedo'].quantile(0.95)]
+                        
+            LA_DF2 = albedo_DF2[albedo_DF2['class'] == 5]
+            LA_DF2 = LA_DF2[LA_DF2['albedo'] > LA_DF2['albedo'].quantile(0.05)]
+            LA_DF2 = LA_DF2[LA_DF2['albedo'] < LA_DF2['albedo'].quantile(0.95)]
+            
+            
+            CI_DF2 = albedo_DF2[albedo_DF2['class'] == 4]
+            CI_DF2 = CI_DF2[CI_DF2['albedo'] > CI_DF2['albedo'].quantile(0.05)]
+            CI_DF2 = CI_DF2[CI_DF2['albedo'] < CI_DF2['albedo'].quantile(0.95)]
+            
+        
+            CC_DF2 = albedo_DF2[albedo_DF2['class'] == 3]
+            CC_DF2 = CC_DF2[CC_DF2['albedo'] > CC_DF2['albedo'].quantile(0.05)]
+            CC_DF2 = CC_DF2[CC_DF2['albedo'] < CC_DF2['albedo'].quantile(0.95)]
+            
+        
+            WAT_DF2 = albedo_DF2[albedo_DF2['class'] == 2]
+            WAT_DF2 = WAT_DF2[WAT_DF2['albedo'] > WAT_DF2['albedo'].quantile(0.05)]
+            WAT_DF2 = WAT_DF2[WAT_DF2['albedo'] < WAT_DF2['albedo'].quantile(0.95)]   
+            
+            
+            SN_DF2 = albedo_DF2[albedo_DF2['class'] ==1]
+            SN_DF2 = SN_DF2[SN_DF2['albedo'] > SN_DF2['albedo'].quantile(0.05)]
+            SN_DF2 = SN_DF2[SN_DF2['albedo'] < SN_DF2['albedo'].quantile(0.95)]      
+            
+           
+            # Calculate summary stats
+            mean_CC2 = CC_DF2['albedo'].mean()
+            std_CC2 = CC_DF2['albedo'].std()
+            max_CC2 = CC_DF2['albedo'].max()
+            min_CC2 = CC_DF2['albedo'].min()
+        
+            mean_CI2 = CI_DF2['albedo'].mean()
+            std_CI2 = CI_DF2['albedo'].std()
+            max_CI2 = CI_DF2['albedo'].max()
+            min_CI2 = CI_DF2['albedo'].min()
+            
+            mean_LA2 = LA_DF2['albedo'].mean()
+            std_LA2 = LA_DF2['albedo'].std()
+            max_LA2 = LA_DF2['albedo'].max()
+            min_LA2 = LA_DF2['albedo'].min()
+            
+            mean_HA2 = HA_DF2['albedo'].mean()
+            std_HA2 = HA_DF2['albedo'].std()
+            max_HA2 = HA_DF2['albedo'].max()
+            min_HA2 = HA_DF2['albedo'].min()
+            
+            mean_WAT2 = WAT_DF2['albedo'].mean()
+            std_WAT2 = WAT_DF2['albedo'].std()
+            max_WAT2 = WAT_DF2['albedo'].max()
+            min_WAT2 = WAT_DF2['albedo'].min()
+                
+            mean_SN2 = SN_DF2['albedo'].mean()
+            std_SN2 = SN_DF2['albedo'].std()
+            max_SN2 = SN_DF2['albedo'].max()
+            min_SN2 = SN_DF2['albedo'].min()
+            
+            print()
+            print('*** Albedo Stats 2 ***')
+            print()
+            print('mean albedo WAT 2 = ', mean_WAT2)
+            print('mean albedo CC 2 = ', mean_CC2)
+            print('mean albedo CI 2 = ', mean_CI2)
+            print('mean albedo LA 2 = ', mean_LA2)
+            print('mean albedo HA 2 = ', mean_HA2)
+            print('mean_albedo_SN 2 = ', mean_SN2)
+            print('n HA 2 = ',len(HA_DF2))
+            print('n LA 2 = ',len(LA_DF2))
+            print('n CI 2 = ',len(CI_DF2))
+            print('n CC 2 = ',len(CC_DF2))
+            print('n WAT 2 = ',len(WAT_DF2))
+            print('n_SN 2 = ',len(SN_DF2))
+                
+        elif counter == 3:
+            
+            AA = albedo_array3.ravel()
+            albedo_DF3['class'] = PP
+            albedo_DF3['albedo'] = AA    
+            
+            HA_DF3 = albedo_DF3[albedo_DF3['class'] == 6]
+            HA_DF3 = HA_DF3[HA_DF3['albedo'] > HA_DF3['albedo'].quantile(0.05)]
+            HA_DF3 = HA_DF3[HA_DF3['albedo'] < HA_DF3['albedo'].quantile(0.95)]
+                        
+            LA_DF3 = albedo_DF3[albedo_DF3['class'] == 5]
+            LA_DF3 = LA_DF3[LA_DF3['albedo'] > LA_DF3['albedo'].quantile(0.05)]
+            LA_DF3 = LA_DF3[LA_DF3['albedo'] < LA_DF3['albedo'].quantile(0.95)]
+            
+            CI_DF3 = albedo_DF3[albedo_DF3['class'] == 4]
+            CI_DF3 = CI_DF3[CI_DF3['albedo'] > CI_DF3['albedo'].quantile(0.05)]
+            CI_DF3 = CI_DF3[CI_DF3['albedo'] < CI_DF3['albedo'].quantile(0.95)]
+            
+            CC_DF3 = albedo_DF3[albedo_DF3['class'] == 3]
+            CC_DF3 = CC_DF3[CC_DF3['albedo'] > CC_DF3['albedo'].quantile(0.05)]
+            CC_DF3 = CC_DF3[CC_DF3['albedo'] < CC_DF3['albedo'].quantile(0.95)]
+            
+            WAT_DF3 = albedo_DF3[albedo_DF3['class'] == 2]
+            WAT_DF3 = WAT_DF3[WAT_DF3['albedo'] > WAT_DF3['albedo'].quantile(0.05)]
+            WAT_DF3 = WAT_DF3[WAT_DF3['albedo'] < WAT_DF3['albedo'].quantile(0.95)]   
+            
+            
+            SN_DF3 = albedo_DF3[albedo_DF3['class'] ==1]
+            SN_DF3 = SN_DF3[SN_DF3['albedo'] > SN_DF3['albedo'].quantile(0.05)]
+            SN_DF3 = SN_DF3[SN_DF3['albedo'] < SN_DF3['albedo'].quantile(0.95)]      
+            
+           
+            # Calculate summary stats
+            mean_CC3 = CC_DF3['albedo'].mean()
+            std_CC3 = CC_DF3['albedo'].std()
+            max_CC3 = CC_DF3['albedo'].max()
+            min_CC3 = CC_DF3['albedo'].min()
+        
+            mean_CI3 = CI_DF3['albedo'].mean()
+            std_CI3 = CI_DF3['albedo'].std()
+            max_CI3 = CI_DF3['albedo'].max()
+            min_CI3 = CI_DF3['albedo'].min()
+            
+            mean_LA3 = LA_DF3['albedo'].mean()
+            std_LA3 = LA_DF3['albedo'].std()
+            max_LA3 = LA_DF3['albedo'].max()
+            min_LA3 = LA_DF3['albedo'].min()
+            
+            mean_HA3 = HA_DF3['albedo'].mean()
+            std_HA3 = HA_DF3['albedo'].std()
+            max_HA3 = HA_DF3['albedo'].max()
+            min_HA3 = HA_DF3['albedo'].min()
+            
+            mean_WAT3 = WAT_DF3['albedo'].mean()
+            std_WAT3 = WAT_DF3['albedo'].std()
+            max_WAT3 = WAT_DF3['albedo'].max()
+            min_WAT3 = WAT_DF3['albedo'].min()
+                
+            mean_SN3 = SN_DF3['albedo'].mean()
+            std_SN3 = SN_DF3['albedo'].std()
+            max_SN3 = SN_DF3['albedo'].max()
+            min_SN3 = SN_DF3['albedo'].min()
+        
+            print()
+            print('*** Albedo Stats 3 ***')
+            print()
+            print('mean albedo WAT 3 = ', mean_WAT3)
+            print('mean albedo CC 3 = ', mean_CC3)
+            print('mean albedo CI 3 = ', mean_CI3)
+            print('mean albedo LA 3 = ', mean_LA3)
+            print('mean albedo HA 3 = ', mean_HA3)
+            print('mean_albedo_SN 3 = ', mean_SN3)
+            print('n HA 3 = ',len(HA_DF3))
+            print('n LA 3 = ',len(LA_DF3))
+            print('n CI 3 = ',len(CI_DF3))
+            print('n CC 3 = ',len(CC_DF3))
+            print('n WAT 3 = ',len(WAT_DF3))
+            print('n_SN 3 = ',len(SN_DF3))
+        
+        #albedo_DF1.to_csv('Sentinel_20m_albedo_dataset_Area1.csv')    
+        #albedo_DF2.to_csv('Sentinel_20m_albedo_dataset_Area2.csv')
+        #albedo_DF3.to_csv('Sentinel_20m_albedo_dataset_Area3.csv')
+        
+    return albedo_DF1,albedo_DF2,albedo_DF3,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3
 
+    
 ################################################################################
 ################################################################################
-
 
 
 ############### RUN ENTIRE SEQUENCE ###################
 
 # create dataset
 X,XX,YY = create_dataset(HCRF_file)
+
 #optimise and train model
 clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, plot_all_conf_mx = False)
+
 # apply model to Sentinel2 image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(Seninel_jp2s,clf)
+predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Seninel_jp2s,clf)
+
+#calculate coverage stats for each sub-area
+HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = CoverageStats(predicted1,predicted2,predicted3)
+
 #obtain albedo summary stats
-#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA, max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
+albedo_DF1,albedo_DF2,albedo_DF3,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3 = albedo_report(predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3)
