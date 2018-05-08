@@ -15,6 +15,40 @@ Created on Thu Mar  8 14:32:24 2018
 # is then loaded here. Three individual sub-areas within the main image are selected
 # for analysis, maximising the glaciated area included in the study.
 
+# This script is divided into several functions. The first preprocesses the raw data
+# into a format appropriate for machine learning. The raw hyperspectral data is 
+# first organised into separate pandas dataframes for each surface class.
+# The data is then reduced down to the reflectance at the nine key wavelengths 
+# and the remaining data discarded. The dataset is then arranged into columns 
+# with one column per wavelength and a separate column for the surface class.
+# The dataset's features are the reflectance at each wavelength, and the labels
+# are the surface types. The dataframes for each surface type are merged into
+# one large dataframe and then the labels are removed and saved as a separate 
+# dataframe. XX contains all the data features, YY contains the labels only. No
+# scaling of the data is required because the reflectance is already normalised
+# between 0 and 1 by the spectrometer.
+
+# Each classifier is trained and the performance on the training set is reported. 
+# The user can define which performance measure is most important, and the 
+# best performing classifier according to the chosen metric is automatically 
+# selected as the final model. That model is then evaluated on the test set 
+# and used to classify each pixel in the UAV image. The classified image is
+# displayed and the spatial statistics calculated.
+# 
+# NB The classifier can also be loaded in from a joblib save file - in this case
+# omit the call to the optimise_train_model() function and simply load the
+# trained classifier into the workspace with the variable name 'clf'. Run the other
+# functions as normal.
+
+# The trained classifier can also be exported to a joblib savefile by running the
+# save_classifier() function,enabling the trained model to be replicated in other 
+# scripts.
+
+# The albedo of each classified pixel is then calculated from the reflectance
+# at each individual wavelength using the narrowband-broadband conversion of
+# Knap (1999), creating a final dataframe containing broadband albedo and
+# surface type.
+
 # A narrowband to broadband conversion (Knap 1999) is applied to the
 # data to create an albedo map, and this is then used to create a large dataset of surface 
 # type and associated broadband albedo
@@ -1048,7 +1082,6 @@ X,XX,YY = create_dataset(HCRF_file)
 clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.2, plot_all_conf_mx = False)
 
 #pickle classifier and save to working directory
-
 save_classifier(clf)
 
 # apply model to Sentinel2 image
