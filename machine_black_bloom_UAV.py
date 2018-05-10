@@ -219,14 +219,14 @@ def create_dataset(HCRF_file):
     
     Q['label'] = 'WAT'
 
-#    R = pd.DataFrame()
-#    R['R475'] = np.array(SN_hcrf.iloc[125])
-#    R['R560'] = np.array(SN_hcrf.iloc[210])
-#    R['R668'] = np.array(SN_hcrf.iloc[318])
-#    R['R717'] = np.array(SN_hcrf.iloc[367])
-#    R['R840'] = np.array(SN_hcrf.iloc[490])
-#    
-#    R['label'] = 'SN'
+    R = pd.DataFrame()
+    R['R475'] = np.array(SN_hcrf.iloc[125])
+    R['R560'] = np.array(SN_hcrf.iloc[210])
+    R['R668'] = np.array(SN_hcrf.iloc[318])
+    R['R717'] = np.array(SN_hcrf.iloc[367])
+    R['R840'] = np.array(SN_hcrf.iloc[490])
+    
+    R['label'] = 'SN'
     
     Zero = pd.DataFrame()
     Zero['R475'] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
@@ -242,7 +242,7 @@ def create_dataset(HCRF_file):
     X = X.append(Z,ignore_index=True)
     X = X.append(P,ignore_index=True)
     X = X.append(Q,ignore_index=True)
-#    X = X.append(R,ignore_index=True)
+    X = X.append(R,ignore_index=True)
     X = X.append(Zero,ignore_index=True)    
 
     # Create features and labels (XX = features - all data but no labels, YY = labels only)
@@ -616,7 +616,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf
 def save_classifer(clf):
     
     # pickle the classifier model for archiving or for reusing in another code
-    joblibfile = 'Sentinel2_classifier.pkl'
+    joblibfile = 'UAV_classifier.pkl'
     joblib.dump(clf,joblibfile)
     
     # to load this classifier into another code use the following syntax:
@@ -671,12 +671,12 @@ def ImageAnalysis(img_name,clf):
     
     # convert surface class (string) to a numeric value for plotting
     predicted[predicted == 'UNKNOWN'] = float(0)
-    predicted[predicted == 'WAT'] = float(1)
-    predicted[predicted == 'CC'] = float(2)
-    predicted[predicted == 'CI'] = float(3)
-    predicted[predicted == 'LA'] = float(4)
-    predicted[predicted == 'HA'] = float(5)
-#    predicted[predicted == 'SN'] = float(6)
+    predicted[predicted == 'SN'] = float(1)
+    predicted[predicted == 'WAT'] = float(2)
+    predicted[predicted == 'CC'] = float(3)
+    predicted[predicted == 'CI'] = float(4)
+    predicted[predicted == 'LA'] = float(5)
+    predicted[predicted == 'HA'] = float(6)
     
     # ensure array data type is float (required for imshow)
     predicted = predicted.astype(float)
@@ -684,18 +684,22 @@ def ImageAnalysis(img_name,clf):
     predicted = np.reshape(predicted,[lenx,leny])
     albedo_array = np.reshape(albedo_array,[lenx,leny])
     
+    cmap1 = mpl.colors.ListedColormap(['gray82','white','slategray','black','lightsteelblue','gold','orangered'])
+    cmap2 = 'Greys_r'
+    
     #plot classified surface
-    plt.figure(figsize = (30,30)),plt.imshow(predicted),plt.colorbar()
+    plt.figure(figsize = (30,30)),plt.imshow(predicted,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
     plt.savefig('Clasified_UAV.png',dpi=300)
-    plt.figure(figsize = (30,30)),plt.imshow(albedo_array),plt.colorbar()
+    
+    plt.figure(figsize = (30,30)),plt.imshow(albedo_array,cmap=cmap2,vmin=0,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
     plt.savefig('Albedo_UAV.png',dpi=300)
     # Calculate coverage stats
-#    numSN = (predicted==6).sum()
-    numHA = (predicted==5).sum()
-    numLA = (predicted==4).sum()
-    numCI = (predicted==3).sum()
-    numCC = (predicted==2).sum()
-    numWAT = (predicted==1).sum()
+    numHA = (predicted==6).sum()
+    numLA = (predicted==5).sum()
+    numCI = (predicted==4).sum()
+    numCC = (predicted==3).sum()
+    numWAT = (predicted==2).sum()
+    numSN = (predicted==1).sum()
     numUNKNOWN = (predicted==0).sum()
     noUNKNOWNS = (predicted !=0).sum()
     
@@ -705,7 +709,7 @@ def ImageAnalysis(img_name,clf):
     CI_coverage = (numCI)/noUNKNOWNS * 100
     CC_coverage = (numCC)/noUNKNOWNS * 100
     WAT_coverage = (numWAT)/noUNKNOWNS * 100
-#    SN_coverage = (numSN)/noUNKNOWNS * 100
+    SN_coverage = (numSN)/noUNKNOWNS * 100
     # Print coverage summary
     
     print('**** SUMMARY ****')
@@ -717,7 +721,7 @@ def ImageAnalysis(img_name,clf):
     print('% water coverage = ',np.round(WAT_coverage,2))
 #    print('% snow coverage',np.round(SN_coverage,2))
 
-    return predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage
+    return predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage
 
 
 def albedo_report(predicted,albedo_array):
@@ -727,7 +731,7 @@ def albedo_report(predicted,albedo_array):
     alb_CI = []
     alb_LA = []
     alb_HA = []
-#    alb_SN = []
+    alb_SN = []
     
     predicted = predicted.ravel()
     albedo_array = albedo_array.ravel()
@@ -737,7 +741,7 @@ def albedo_report(predicted,albedo_array):
     idx_CI = np.where(predicted ==3)[0]
     idx_LA = np.where(predicted ==4)[0]
     idx_HA = np.where(predicted ==5)[0]
-#    idx_SN = np.where(predicted==6)[0]
+    idx_SN = np.where(predicted==6)[0]
     
     for i in idx_WAT:
         alb_WAT.append(albedo_array[i])
@@ -749,8 +753,8 @@ def albedo_report(predicted,albedo_array):
         alb_LA.append(albedo_array[i])
     for i in idx_HA:
         alb_HA.append(albedo_array[i])
-#    for i in idx_SN:
-#        alb_SN.append(albedo_array[i])
+    for i in idx_SN:
+        alb_SN.append(albedo_array[i])
 
 # create pandas dataframe containing albedo data (delete rows where albedo <= 0)
     albedo_DF = pd.DataFrame(columns=['albedo','class'])
@@ -782,9 +786,9 @@ def albedo_report(predicted,albedo_array):
     WAT_DF = WAT_DF[WAT_DF['albedo'] > WAT_DF['albedo'].quantile(0.05)]
     WAT_DF = WAT_DF[WAT_DF['albedo'] < WAT_DF['albedo'].quantile(0.95)]  
     
-#    SN_DF = albedo_DF[albedo_DF['class']==6]
-#    SN_DF = SN_DF[SN_DF['albedo']>SN_DF['albedo'].quantile(0.05)]
-#    SN_DF = SN_DF[SN_DF['albedo']>SN_DF['albedo'].quantile(0.95)]
+    SN_DF = albedo_DF[albedo_DF['class']==6]
+    SN_DF = SN_DF[SN_DF['albedo']>SN_DF['albedo'].quantile(0.05)]
+    SN_DF = SN_DF[SN_DF['albedo']>SN_DF['albedo'].quantile(0.95)]
     
     # Calculate summary stats
     mean_CC = CC_DF['albedo'].mean()
@@ -812,10 +816,10 @@ def albedo_report(predicted,albedo_array):
     max_WAT = WAT_DF['albedo'].max()
     min_WAT = WAT_DF['albedo'].min()
 
-#    mean_SN = SN_DF['albedo'].mean()
-#    std_SN = SN_DF['albedo'].std()
-#    max_SN = SN_DF['albedo'].max()
-#    min_SN = SN_DF['albedo'].min()
+    mean_SN = SN_DF['albedo'].mean()
+    std_SN = SN_DF['albedo'].std()
+    max_SN = SN_DF['albedo'].max()
+    min_SN = SN_DF['albedo'].min()
         
     ## FIND IDX WHERE CLASS = Hbio..
     ## BIN ALBEDOS FROM SAME IDXs
@@ -832,7 +836,7 @@ def albedo_report(predicted,albedo_array):
     print('n WAT = ',len(WAT_DF))
 #    print('n SN = ',len(SN_DF))
 
-    return alb_WAT,alb_CC,alb_CI,alb_LA,alb_HA,alb_SN,mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,#mean_SN,std_SN,max_SN,min_SN
+    return alb_WAT,alb_CC,alb_CI,alb_LA,alb_HA,alb_SN,mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN
 
 
 
@@ -851,10 +855,10 @@ X,XX,YY = create_dataset(HCRF_file)
 clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, plot_all_conf_mx = False)
 
 # export trained model to file for archiving or re-use in other scripts
-save_classifier(clf) 
+#save_classifier(clf) 
 
 # apply model to Sentinel2 image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage = ImageAnalysis(img_name,clf)
+#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf)
 
 #obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT = albedo_report(predicted,albedo_array)
+#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,min_SN,max_SN = albedo_report(predicted,albedo_array)
