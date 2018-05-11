@@ -79,6 +79,7 @@ from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 from sklearn.externals import joblib
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import gdal
 import rasterio
 from sklearn.grid_search import GridSearchCV
@@ -92,7 +93,7 @@ img_name = '//home//joe//Desktop//Machine_Learn_Tutorial//UAV_21_7_17//uav_21_7_
 ########################## DEFINE FUNCTIONS ###################################
 
 
-def create_dataset(HCRF_file):
+def create_dataset(HCRF_file,plot_spectra=True):
 # Read in raw HCRF data to DataFrame. Pulls in HCRF data from 2016 and 2017
     
     hcrf_master = pd.read_csv(HCRF_file)
@@ -170,6 +171,15 @@ def create_dataset(HCRF_file):
         hcrf_SN = np.array(hcrf_master[vi])
         SN_hcrf['{}'.format(vi)] = hcrf_SN    
     # Make dataframe with column for label, columns for reflectancxe at key wavelengths
+    
+    if plot_spectra:
+        WL = np.arange(350,2500,1)
+        HA_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('HA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        LA_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        CI_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('CI'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        CC_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('CC'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        WAT_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('WAT'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        SN_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('SN'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
     
     X = pd.DataFrame()
     
@@ -684,15 +694,18 @@ def ImageAnalysis(img_name,clf):
     predicted = np.reshape(predicted,[lenx,leny])
     albedo_array = np.reshape(albedo_array,[lenx,leny])
     
-    cmap1 = mpl.colors.ListedColormap(['gray82','white','slategray','black','lightsteelblue','gold','orangered'])
-    cmap2 = 'Greys_r'
     
-    #plot classified surface
+    cmap1 = mpl.colors.ListedColormap(['white','white','slategray','black','lightsteelblue','gold','orangered'])
+    cmap1.set_under(color='white')
+    cmap2 = plt.get_cmap('Greys_r')
+    cmap2.set_under(color='white')
+   
     plt.figure(figsize = (30,30)),plt.imshow(predicted,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
     plt.savefig('Clasified_UAV.png',dpi=300)
     
-    plt.figure(figsize = (30,30)),plt.imshow(albedo_array,cmap=cmap2,vmin=0,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
+    plt.figure(figsize = (30,30)),plt.imshow(albedo_array,cmap=cmap2,vmin=0.0000001,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
     plt.savefig('Albedo_UAV.png',dpi=300)
+    
     # Calculate coverage stats
     numHA = (predicted==6).sum()
     numLA = (predicted==5).sum()
@@ -849,16 +862,16 @@ def albedo_report(predicted,albedo_array):
 ############### RUN ENTIRE SEQUENCE ###################
 
 # create dataset
-X,XX,YY = create_dataset(HCRF_file)
+#X,XX,YY = create_dataset(HCRF_file,plot_spectra=False)
 
 #optimise and train model
-clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, plot_all_conf_mx = False)
+#clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, plot_all_conf_mx = False)
 
 # export trained model to file for archiving or re-use in other scripts
 #save_classifier(clf) 
 
 # apply model to Sentinel2 image
-#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf)
+predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf)
 
 #obtain albedo summary stats
-#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,min_SN,max_SN = albedo_report(predicted,albedo_array)
+alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,min_SN,max_SN = albedo_report(predicted,albedo_array)
