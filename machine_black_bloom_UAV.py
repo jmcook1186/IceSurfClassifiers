@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Mar  8 14:32:24 2018
-@author: Joseph Cook
+Created on Sat May 12 17:50:35 2018
 
+@author: joe
 """
+
 ############################# OVERVIEW #######################################
 
 # This code trains a range of supevised classification algorithms on multispectral
@@ -83,6 +84,7 @@ import matplotlib as mpl
 import gdal
 import rasterio
 from sklearn.grid_search import GridSearchCV
+import timeit 
 plt.style.use('ggplot')
 
 HCRF_file = '//home//joe//Code//HCRF_master_machine_snicar.csv'
@@ -656,27 +658,14 @@ def ImageAnalysis(img_name,clf):
     # get the length and width of the image from numpy.shape
     lenx, leny = np.shape(arrays[0])
     
-    # Loop through each pixel and append the pixel value from each layer to a 1D list
-    for i in range(0,lenx,1):
-        for j in range(0,leny,1):
-            lyr1.append(arrays[0][i,j])
-            lyr2.append(arrays[1][i,j])
-            lyr3.append(arrays[2][i,j])
-            lyr4.append(arrays[3][i,j])
-            lyr5.append(arrays[4][i,j])        
-    
-    # create an array of arrays. 1st order array has an array per pixel. The sub-arrays
-    # contain reflectance value for each band - result is 5 reflectance values per pixel
-    # these are corrected with an empirically-derived value specific to each band 
-    # based upon comparison between UAV rfelectance and ground-truth data using 
-    # the ASD Field Spec
-        
-    for i in range(0,len(lyr1),1):
-        test_array.append([lyr1[i]-0.17, lyr2[i]-0.18, lyr3[i]-0.15, lyr4[i]-0.05, lyr5[i]-0.2 ])
-        albedo_array.append(0.726*(lyr2[i]-0.18) - 0.322*(lyr2[i]-0.18)**2 - 0.015*(lyr5[i]-0.2) + 0.581*(lyr5[i]-0.2))        
-        
-    # apply ML algorithm to 5-value array for each pixel - predict surface type
-        
+    #convert image bands into single 5-dimensional numpy array
+    test_array = np.array([arrays[0]-0.17, arrays[1]-0.18,arrays[2]-0.15, arrays[3]-0.05,arrays[4]-0.2])       
+    test_array = test_array.reshape(5,lenx*leny) #reshape into 5 x 1D arrays
+    test_array = test_array.transpose() # transpose sot hat bands are read as features
+    # create albedo array by applying Knap (1999) narrowband - broadband conversion
+    albedo_array = np.array([0.726*(arrays[1]-0.18) - 0.322*(arrays[1]-0.18)**2 - 0.015*(arrays[4]-0.2) + 0.581*(arrays[4]-0.2)])
+
+    #apply classifier to each pixel in multispectral image with bands as features   
     predicted = clf.predict(test_array)
     
     # convert surface class (string) to a numeric value for plotting
@@ -688,11 +677,10 @@ def ImageAnalysis(img_name,clf):
     predicted[predicted == 'LA'] = float(5)
     predicted[predicted == 'HA'] = float(6)
     
-    # ensure array data type is float (required for imshow)
     predicted = predicted.astype(float)
     # reshape 1D array back into original image dimensions
     predicted = np.reshape(predicted,[lenx,leny])
-    albedo_array = np.reshape(albedo_array,[lenx,leny])
+    albedo_array = albedo_array.reshape(lenx,leny)
     
     
     cmap1 = mpl.colors.ListedColormap(['white','white','slategray','black','lightsteelblue','gold','orangered'])
@@ -701,10 +689,10 @@ def ImageAnalysis(img_name,clf):
     cmap2.set_under(color='white')
    
     plt.figure(figsize = (30,30)),plt.imshow(predicted,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
-    plt.savefig('Clasified_UAV.png',dpi=300)
+   # plt.savefig('Clasified_UAV.png',dpi=300)
     
     plt.figure(figsize = (30,30)),plt.imshow(albedo_array,cmap=cmap2,vmin=0.0000001,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
-    plt.savefig('Albedo_UAV.png',dpi=300)
+   # plt.savefig('Albedo_UAV.png',dpi=300)
     
     # Calculate coverage stats
     numHA = (predicted==6).sum()
@@ -732,7 +720,7 @@ def ImageAnalysis(img_name,clf):
     print('% cryoconite coverage = ',np.round(CC_coverage,2))
     print('% clean ice coverage = ',np.round(CI_coverage,2))
     print('% water coverage = ',np.round(WAT_coverage,2))
-#    print('% snow coverage',np.round(SN_coverage,2))
+    print('% snow coverage',np.round(SN_coverage,2))
 
     return predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage
 
@@ -746,8 +734,8 @@ def albedo_report(predicted,albedo_array):
     alb_HA = []
     alb_SN = []
     
-    predicted = predicted.ravel()
-    albedo_array = albedo_array.ravel()
+    predicted = np.array(predicted).ravel()
+    albedo_array = np.array(albedo_array).ravel()
     
     idx_WAT = np.where(predicted ==1)[0]
     idx_CC = np.where(predicted ==2)[0]
@@ -862,15 +850,15 @@ def albedo_report(predicted,albedo_array):
 ############### RUN ENTIRE SEQUENCE ###################
 
 # create dataset
-#X,XX,YY = create_dataset(HCRF_file,plot_spectra=False)
+X,XX,YY = create_dataset(HCRF_file,plot_spectra=False)
 
 #optimise and train model
-#clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, plot_all_conf_mx = False)
+clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, plot_all_conf_mx = False)
 
 # export trained model to file for archiving or re-use in other scripts
-#save_classifier(clf) 
+save_classifier(clf) 
 
-# apply model to Sentinel2 image
+# apply model to UAV image
 predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf)
 
 #obtain albedo summary stats
