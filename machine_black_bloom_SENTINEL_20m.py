@@ -254,15 +254,15 @@ def create_dataset(HCRF_file,plot_spectra=True):
     Q['label'] = 'WAT'
     
     R = pd.DataFrame()
-    R['R140'] = np.array(WAT_hcrf.iloc[140])
-    R['R210'] = np.array(WAT_hcrf.iloc[210])
-    R['R315'] = np.array(WAT_hcrf.iloc[315])
-    R['R355'] = np.array(WAT_hcrf.iloc[355])
-    R['R390'] = np.array(WAT_hcrf.iloc[390])
-    R['R433'] = np.array(WAT_hcrf.iloc[433])
-    R['R515'] = np.array(WAT_hcrf.iloc[515])
-    R['R1260'] = np.array(WAT_hcrf.iloc[1260])
-    R['R1840'] = np.array(WAT_hcrf.iloc[1840])
+    R['R140'] = np.array(SN_hcrf.iloc[140])
+    R['R210'] = np.array(SN_hcrf.iloc[210])
+    R['R315'] = np.array(SN_hcrf.iloc[315])
+    R['R355'] = np.array(SN_hcrf.iloc[355])
+    R['R390'] = np.array(SN_hcrf.iloc[390])
+    R['R433'] = np.array(SN_hcrf.iloc[433])
+    R['R515'] = np.array(SN_hcrf.iloc[515])
+    R['R1260'] = np.array(SN_hcrf.iloc[1260])
+    R['R1840'] = np.array(SN_hcrf.iloc[1840])
     
     R['label'] = 'SN'
 
@@ -642,7 +642,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf
     return clf
 
 
-def ClassifyImages(Sentinel_jp2s,clf):
+def ClassifyImages(Sentinel_jp2s,clf, savefigs=False):
     # Import multispectral imagery from Sentinel 2 and apply ML algorithm to classify surface
     
     jp2s = Seninel_jp2s
@@ -670,29 +670,17 @@ def ClassifyImages(Sentinel_jp2s,clf):
     # get dimensions of each band layer
     lenx, leny = np.shape(data[0])
     
-    # Loop through each pixel and append the pixel value from each layer to a 1D list
-    for i in range(0,lenx,1):
-        for j in range(0,leny,1):
-            B2.append(data[0][i,j])
-            B3.append(data[1][i,j])
-            B4.append(data[2][i,j])
-            B5.append(data[3][i,j])
-            B6.append(data[4][i,j])
-            B7.append(data[5][i,j])
-            B8.append(data[6][i,j])
-            B11.append(data[7][i,j])
-            B12.append(data[8][i,j])
-    
-    # create new array of arrays. Each subarray contains reflectance value for each layer
-    # Sen2Cor provides data * 10000, so divide by 10000 to get reflectance between 0-1
-    # Apply Liang et al (2002) narrowband to broadband conversion 
-            
-    for i in range(0,len(B2),1):
-        test_array.append([ B2[i]/10000, B3[i]/10000, B4[i]/10000, B5[i]/10000, B6[i]/10000,
-                           B7[i]/10000,B8[i]/10000,B11[i]/10000,B12[i]/10000],)
-        albedo_array.append(0.356*(B2[i]/10000)+0.130*(B4[i]/10000)+0.373*(B8[i]/10000)+0.085*(B11[i]/10000)+0.072*(B12[i]/10000)-0.0018)
-                
-    
+    #convert image bands into single 5-dimensional numpy array
+    test_array = np.array([data[0]/10000, data[1]/10000,data[2]/10000,data[3]/10000,data[4]/10000,
+                          data[5]/10000,data[6]/10000,data[7]/10000,data[8]/10000])       
+    test_array = test_array.reshape(9,lenx*leny) #reshape into 5 x 1D arrays
+    test_array = test_array.transpose() # transpose sot hat bands are read as features
+    # create albedo array by applying Knap (1999) narrowband - broadband conversion
+    albedo_array = np.array([0.356*(data[0]/10000)+0.13*(data[2]/10000)+0.373*(data[6]/10000)+0.085*(data[7]/10000)+0.072*(data[8]/10000)-0.0018])
+
+    #apply classifier to each pixel in multispectral image with bands as features   
+    predicted = clf.predict(test_array)
+
     # apply ML algorithm to 4-value array for each pixel - predict surface type    
     predicted = clf.predict(test_array)
     
@@ -703,7 +691,6 @@ def ClassifyImages(Sentinel_jp2s,clf):
     predicted[predicted == 'CI'] = float(4)
     predicted[predicted == 'LA'] = float(5)
     predicted[predicted == 'HA'] = float(6)
-    
     
     # ensure array data type is float (required for imshow)
     predicted = predicted.astype(float)
@@ -726,22 +713,28 @@ def ClassifyImages(Sentinel_jp2s,clf):
 
     #plot classified surface
     plt.figure(figsize = (30,9)),plt.imshow(predicted1,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
-    plt.savefig('2017Clasified_Sentinel_20m_Area1.png',dpi=300)
+    if savefigs:
+        plt.savefig('2017Clasified_Sentinel_20m_Area1.png',dpi=300)
     
     plt.figure(figsize = (30,8)),plt.imshow(predicted2,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
-    plt.savefig('2017Clasified_Sentinel_20m_Area2.png',dpi=300)
+    if savefigs:
+        plt.savefig('2017Clasified_Sentinel_20m_Area2.png',dpi=300)
     
     plt.figure(figsize = (30,8)),plt.imshow(predicted3,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
-    plt.savefig('2017Clasified_Sentinel_20m_Area3.png',dpi=300)
+    if savefigs:
+        plt.savefig('2017Clasified_Sentinel_20m_Area3.png',dpi=300)
 
     plt.figure(figsize = (30,9)),plt.imshow(albedo_array1,cmap=cmap2,vmin=0,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
-    plt.savefig('2017Albedo_Sentinel_20m_Area1.png',dpi=300)
+    if savefigs:
+        plt.savefig('2017Albedo_Sentinel_20m_Area1.png',dpi=300)
     
     plt.figure(figsize = (30,8)),plt.imshow(albedo_array2,cmap=cmap2,vmin=0,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
-    plt.savefig('2017Albedo_Sentinel_20m_Area2.png',dpi=300)
+    if savefigs:
+        plt.savefig('2017Albedo_Sentinel_20m_Area2.png',dpi=300)
     
     plt.figure(figsize = (30,8)),plt.imshow(albedo_array3,cmap=cmap2,vmin=0,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
-    plt.savefig('2017Albedo_Sentinel_20m_Area3.png',dpi=300)
+    if savefigs:
+        plt.savefig('2017Albedo_Sentinel_20m_Area3.png',dpi=300)
     
     
     return predicted1, predicted2, predicted3,albedo_array1,albedo_array2,albedo_array3
@@ -1137,16 +1130,16 @@ def albedo_report_all_sites(albedo_DFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_
 ############### RUN ENTIRE SEQUENCE ###################
 
 # create dataset
-#X,XX,YY = create_dataset(HCRF_file,plot_spectra=False)
+X,XX,YY = create_dataset(HCRF_file,plot_spectra=True)
 
 #optimise and train model
-#clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, plot_all_conf_mx = False)
+clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, plot_all_conf_mx = False)
 
 #pickle classifier and save to working directory
-#save_classifier(clf)
+save_classifier(clf)
 
 # apply model to Sentinel2 image
-predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Seninel_jp2s,clf)
+predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Seninel_jp2s,clf,savefigs=False)
 
 #calculate coverage stats for each sub-area
 CoverageStats(predicted1,predicted2,predicted3)
