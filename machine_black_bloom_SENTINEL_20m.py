@@ -358,7 +358,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf
     average_metric_svm = (accuracy_svm + recall_svm + f1_svm)/3
 
     # 4. Try  a random forest classifier
-    clf_RF = RandomForestClassifier(n_estimators = 1000, max_leaf_nodes = 16)
+    clf_RF = RandomForestClassifier(n_estimators = 1000, max_leaf_nodes = 16,n_jobs=-1)
     clf_RF.fit(X_train,Y_train)
     accuracy_RF = clf_RF.score(X_train,Y_train)
     Y_predict_RF = clf_RF.predict(X_train)

@@ -84,7 +84,9 @@ import matplotlib as mpl
 import gdal
 import rasterio
 from sklearn.grid_search import GridSearchCV
-import timeit 
+from datetime import datetime
+
+
 plt.style.use('ggplot')
 
 HCRF_file = '//home//joe//Code//HCRF_master_machine_snicar.csv'
@@ -343,7 +345,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf
     average_metric_svm = (accuracy_svm + recall_svm + f1_svm)/3
 
     # 4. Try  a random forest classifier
-    clf_RF = RandomForestClassifier(n_estimators = 1000, max_leaf_nodes = 16)
+    clf_RF = RandomForestClassifier(n_estimators = 1000, max_leaf_nodes = 16, n_jobs = -1)
     clf_RF.fit(X_train,Y_train)
     accuracy_RF = clf_RF.score(X_train,Y_train)
     Y_predict_RF = clf_RF.predict(X_train)
@@ -637,14 +639,9 @@ def save_classifer(clf):
     return None
 
 
-def ImageAnalysis(img_name,clf):
-
+def ImageAnalysis(img_name,clf,savefigs=True):
+    startTime = datetime.now()
     # set up empty lists to append into
-    lyr1 = []
-    lyr2 = []
-    lyr3 = []
-    lyr4 = []
-    lyr5 = []
     predicted = []
     test_array = []
     arrays = []
@@ -682,17 +679,20 @@ def ImageAnalysis(img_name,clf):
     predicted = np.reshape(predicted,[lenx,leny])
     albedo_array = albedo_array.reshape(lenx,leny)
     
-    
+    # set color scheme for plots - custom for predicted
     cmap1 = mpl.colors.ListedColormap(['white','white','slategray','black','lightsteelblue','gold','orangered'])
-    cmap1.set_under(color='white')
-    cmap2 = plt.get_cmap('Greys_r')
-    cmap2.set_under(color='white')
+    cmap1.set_under(color='white') # make sure background is white
+    cmap2 = plt.get_cmap('Greys_r') # reverse greyscale for albedo
+    cmap2.set_under(color='white') # make sure background is white
    
+    #plots
     plt.figure(figsize = (30,30)),plt.imshow(predicted,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
-   # plt.savefig('Clasified_UAV.png',dpi=300)
+    if savefigs:
+        plt.savefig('Clasified_UAV.png',dpi=300)
     
     plt.figure(figsize = (30,30)),plt.imshow(albedo_array,cmap=cmap2,vmin=0.0000001,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
-   # plt.savefig('Albedo_UAV.png',dpi=300)
+    if savefigs:
+        plt.savefig('Albedo_UAV.png',dpi=300)
     
     # Calculate coverage stats
     numHA = (predicted==6).sum()
@@ -721,6 +721,7 @@ def ImageAnalysis(img_name,clf):
     print('% clean ice coverage = ',np.round(CI_coverage,2))
     print('% water coverage = ',np.round(WAT_coverage,2))
     print('% snow coverage',np.round(SN_coverage,2))
+    print('Time taken to classify image = ',datetime.now() - startTime)
 
     return predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage
 
@@ -829,13 +830,14 @@ def albedo_report(predicted,albedo_array):
     print('mean albedo CI = ', mean_CI)
     print('mean albedo LA = ', mean_LA)
     print('mean albedo HA = ', mean_HA)
-#    print('mean albedo SN = ', mean_SN)
+    print('mean albedo SN = ', mean_SN)
     print('n HA = ',len(HA_DF))
     print('n LA = ',len(LA_DF))
     print('n CI = ',len(CI_DF))
     print('n CC = ',len(CC_DF))
     print('n WAT = ',len(WAT_DF))
-#    print('n SN = ',len(SN_DF))
+    print('n SN = ',len(SN_DF))
+
 
     return alb_WAT,alb_CC,alb_CI,alb_LA,alb_HA,alb_SN,mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN
 
@@ -856,10 +858,10 @@ X,XX,YY = create_dataset(HCRF_file,plot_spectra=False)
 clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, plot_all_conf_mx = False)
 
 # export trained model to file for archiving or re-use in other scripts
-save_classifier(clf) 
+#save_classifier(clf) 
 
 # apply model to UAV image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf)
+predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
 
 #obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,min_SN,max_SN = albedo_report(predicted,albedo_array)
+#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,min_SN,max_SN = albedo_report(predicted,albedo_array)
