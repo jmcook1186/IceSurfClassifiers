@@ -117,8 +117,8 @@ def create_dataset(HCRF_file,plot_spectra=True):
     'HA_25','HA_26','HA_27','HA_28','HA_29','HA_30','HA_31',
     # the following were reclassified from LAsites due to their v low reflectance
     '13_7_S2','14_7_SB9','MA_11','MA_14','MA_15','MA_17','21_7_SB2','22_7_SB1',
-    'MA_4','MA_7','MA_18']
-    
+    'MA_4','MA_7','MA_18'
+    ]
     # These have been removed completely from HAsites: '21_7_S3', '23_7_S5', 'HA_32'
     # '24_7_S1','25_7_S1','HA_9', 'HA_33','13_7_SB1', '13_7_S5', 'HA_23'
     
@@ -127,25 +127,25 @@ def create_dataset(HCRF_file,plot_spectra=True):
     '20_7_SB1','20_7_SB3','21_7_S1','21_7_S5','21_7_SB4','22_7_SB2','22_7_SB3','22_7_S1',
     '23_7_S1','23_7_S2','24_7_S2','MA_1','MA_2','MA_3','MA_5','MA_6','MA_8','MA_9',
     'MA_10','MA_12','MA_13','MA_16','MA_19',
-    #these have been moved in from CI
-    '13_7_S1','13_7_S3','14_7_S1','15_7_S1','15_7_SB2','20_7_SB2','21_7_SB5',
-    '21_7_SB8','25_7_S3']
-    # These have been removed competely from LA sites
+    #these have been moved from CI
+    '13_7_S1','13_7_S3','14_7_S1','15_7_S1','15_7_SB2','20_7_SB2','21_7_SB5','21_7_SB8','25_7_S3'
+    ]
+    # ambiguous spectra removed
     # '13_7_S2','13_7_SB1','14_7_SB9', '15_7_S3' ,'MA_11',' MA_14','MA15','MA_17',
     # '13_7_S5', '25_7_S2','25_7_S4','25_7_S5'
     
-    CIsites =['13_7_SB3','13_7_SB5','15_7_S4','15_7_SB1','15_7_SB5','21_7_S2',
-    '21_7_S4','21_7_SB3','22_7_S2','22_7_S4','23_7_SB1','23_7_SB2','23_7_S4',
-    'WI_1','WI_2','WI_3','WI_4','WI_5','WI_6','WI_7','WI_8','WI_9','WI_10','WI_11',
-    'WI_12','WI_13']
+    CIsites =['21_7_S4','13_7_SB3','15_7_S4','15_7_SB1','15_7_SB5','21_7_S2',
+    '21_7_SB3','22_7_S2','22_7_S4','23_7_SB1','23_7_SB2','23_7_S4',
+    'WI_1','WI_2','WI_4','WI_5','WI_6','WI_7','WI_9','WI_10','WI_11',
+    'WI_12','WI_13'] # ambiguous spectra removed: '13_7_SB5', WI_3, WI_8
     
     CCsites = ['DISP1','DISP2','DISP3','DISP4','DISP5','DISP6','DISP7','DISP8',
                'DISP9','DISP10','DISP11','DISP12','DISP13','DISP14']
     
-    WATsites = ['21_7_SB5','21_7_SB7','21_7_SB8',
-              'WAT_1','WAT_3','WAT_4','WAT_5','WAT_6']
+    WATsites = ['21_7_SB5','21_7_SB8','WAT_1','WAT_3','WAT_6']
+    #REMOVED FROM WATER SITES 'WAT_2','WAT_4','WAT_5'
     
-    SNsites = ['14_7_S4','14_7_SB6','14_7_SB8','17_7_SB1','17_7_SB2','SNICAR100','SNICAR200',
+    SNsites = ['14_7_S4','14_7_SB6','14_7_SB8','17_7_SB2','SNICAR100','SNICAR200',
                'SNICAR300','SNICAR400','SNICAR500','SNICAR600','SNICAR700','SNICAR800','SNICAR900','SNICAR1000']
     
     #REMOVED FROM WATER SITES 'WAT_2'
@@ -265,9 +265,7 @@ def create_dataset(HCRF_file,plot_spectra=True):
     
     return X, XX, YY
 
-
-
-def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf_mx = True):
+def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf_mx = True):
     
     # Function splits the data into training and test sets, then tests the 
     # performance of a range of models on the training data. The final model 
@@ -574,6 +572,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.2, plot_all_conf
                     estimators = [('NB',clf_NB),('SVM',clf_svm),('KNN',clf_KNN)], voting = 'hard')
             clf.fit(X_train,Y_train)
             print('Ensemble model chosen')
+            
 # Now that model has been selected using error metrics from training data, the final
 # model can be evaluated on the test set. The code below therefore measures the f1, recall,
 # confusion matrix and accuracy  for the final selected model and prints to ipython.
@@ -658,9 +657,9 @@ def ImageAnalysis(img_name,clf,savefigs=True):
     #convert image bands into single 5-dimensional numpy array
     test_array = np.array([arrays[0]-0.17, arrays[1]-0.18,arrays[2]-0.15, arrays[3]-0.05,arrays[4]-0.2])       
     test_array = test_array.reshape(5,lenx*leny) #reshape into 5 x 1D arrays
-    test_array = test_array.transpose() # transpose sot hat bands are read as features
+    test_array = test_array.transpose() # transpose so that bands are read as features
     # create albedo array by applying Knap (1999) narrowband - broadband conversion
-    albedo_array = np.array([0.726*(arrays[1]-0.18) - 0.322*(arrays[1]-0.18)**2 - 0.015*(arrays[4]-0.2) + 0.581*(arrays[4]-0.2)])
+    albedo_array = np.array([0.726*(arrays[1]-0.18) - 0.322*(arrays[1]-0.18)**2 - 0.015*(arrays[3]-0.2) + 0.581*(arrays[3]-0.2)])
 
     #apply classifier to each pixel in multispectral image with bands as features   
     predicted = clf.predict(test_array)
@@ -701,7 +700,6 @@ def ImageAnalysis(img_name,clf,savefigs=True):
     numCC = (predicted==3).sum()
     numWAT = (predicted==2).sum()
     numSN = (predicted==1).sum()
-    numUNKNOWN = (predicted==0).sum()
     noUNKNOWNS = (predicted !=0).sum()
     
     tot_alg_coverage = (numHA+numLA)/noUNKNOWNS *100
@@ -738,12 +736,12 @@ def albedo_report(predicted,albedo_array):
     predicted = np.array(predicted).ravel()
     albedo_array = np.array(albedo_array).ravel()
     
-    idx_WAT = np.where(predicted ==1)[0]
-    idx_CC = np.where(predicted ==2)[0]
-    idx_CI = np.where(predicted ==3)[0]
-    idx_LA = np.where(predicted ==4)[0]
-    idx_HA = np.where(predicted ==5)[0]
-    idx_SN = np.where(predicted==6)[0]
+    idx_SN = np.where(predicted ==1)[0]
+    idx_WAT = np.where(predicted ==2)[0]
+    idx_CC = np.where(predicted ==3)[0]
+    idx_CI = np.where(predicted ==4)[0]
+    idx_LA = np.where(predicted ==5)[0]
+    idx_HA = np.where(predicted==6)[0]
     
     for i in idx_WAT:
         alb_WAT.append(albedo_array[i])
@@ -768,27 +766,27 @@ def albedo_report(predicted,albedo_array):
 # divide albedo dataframe into individual classes for summary stats. include only
 # rows where albedo is between 0.05 and 0.95 percentiles to remove outliers
     
-    HA_DF = albedo_DF[albedo_DF['class'] == 5]
+    HA_DF = albedo_DF[albedo_DF['class'] == 6]
     HA_DF = HA_DF[HA_DF['albedo'] > HA_DF['albedo'].quantile(0.05)]
     HA_DF = HA_DF[HA_DF['albedo'] < HA_DF['albedo'].quantile(0.95)]
         
-    LA_DF = albedo_DF[albedo_DF['class'] == 4]
+    LA_DF = albedo_DF[albedo_DF['class'] == 5]
     LA_DF = LA_DF[LA_DF['albedo'] > LA_DF['albedo'].quantile(0.05)]
     LA_DF = LA_DF[LA_DF['albedo'] < LA_DF['albedo'].quantile(0.95)]
 
-    CI_DF = albedo_DF[albedo_DF['class'] == 3]
+    CI_DF = albedo_DF[albedo_DF['class'] == 4]
     CI_DF = CI_DF[CI_DF['albedo'] > CI_DF['albedo'].quantile(0.05)]
     CI_DF = CI_DF[CI_DF['albedo'] < CI_DF['albedo'].quantile(0.95)]
 
-    CC_DF = albedo_DF[albedo_DF['class'] == 2]
+    CC_DF = albedo_DF[albedo_DF['class'] == 3]
     CC_DF = CC_DF[CC_DF['albedo'] > CC_DF['albedo'].quantile(0.05)]
     CC_DF = CC_DF[CC_DF['albedo'] < CC_DF['albedo'].quantile(0.95)]
 
-    WAT_DF = albedo_DF[albedo_DF['class'] == 1]
+    WAT_DF = albedo_DF[albedo_DF['class'] == 2]
     WAT_DF = WAT_DF[WAT_DF['albedo'] > WAT_DF['albedo'].quantile(0.05)]
     WAT_DF = WAT_DF[WAT_DF['albedo'] < WAT_DF['albedo'].quantile(0.95)]  
     
-    SN_DF = albedo_DF[albedo_DF['class']==6]
+    SN_DF = albedo_DF[albedo_DF['class']==1]
     SN_DF = SN_DF[SN_DF['albedo']>SN_DF['albedo'].quantile(0.05)]
     SN_DF = SN_DF[SN_DF['albedo']>SN_DF['albedo'].quantile(0.95)]
     
@@ -858,10 +856,10 @@ X,XX,YY = create_dataset(HCRF_file,plot_spectra=False)
 clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, plot_all_conf_mx = False)
 
 # export trained model to file for archiving or re-use in other scripts
-#save_classifier(clf) 
+save_classifier(clf) 
 
 # apply model to UAV image
 predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
 
 #obtain albedo summary stats
-#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,min_SN,max_SN = albedo_report(predicted,albedo_array)
+alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,min_SN,max_SN = albedo_report(predicted,albedo_array)
