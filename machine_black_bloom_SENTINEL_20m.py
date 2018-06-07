@@ -68,6 +68,7 @@ import matplotlib.pyplot as plt
 import gdal
 import rasterio
 from sklearn.grid_search import GridSearchCV
+from datetime import datetime
 plt.style.use('ggplot')
 
 #########################################################################################
@@ -78,14 +79,14 @@ HCRF_file = '//home//joe//Code//HCRF_master_machine_snicar.csv'
 ## Options for file paths (external USB for 23_7_2016 and 23_7_2017 or HDD for 21_7_2017)
 
 # 21/7/2016
-#Seninel_jp2s = ['/media/joe/FDB2-2F9B/2016_Sentinel/B02_20m.jp2', '/media/joe/FDB2-2F9B/2016_Sentinel/B03_20m.jp2', '/media/joe/FDB2-2F9B/2016_Sentinel/B04_20m.jp2', '/media/joe/FDB2-2F9B/2016_Sentinel/B05_20m.jp2',
-#        '/media/joe/FDB2-2F9B/2016_Sentinel/B06_20m.jp2','/media/joe/FDB2-2F9B/2016_Sentinel/B07_20m.jp2','/media/joe/FDB2-2F9B/2016_Sentinel/B8A_20m.jp2',
-#        '/media/joe/FDB2-2F9B/2016_Sentinel/B11_20m.jp2','/media/joe/FDB2-2F9B/2016_Sentinel/B12_20m.jp2']
+Seninel_jp2s = ['/media/joe/FDB2-2F9B/2016_Sentinel/B02_20m.jp2', '/media/joe/FDB2-2F9B/2016_Sentinel/B03_20m.jp2', '/media/joe/FDB2-2F9B/2016_Sentinel/B04_20m.jp2', '/media/joe/FDB2-2F9B/2016_Sentinel/B05_20m.jp2',
+        '/media/joe/FDB2-2F9B/2016_Sentinel/B06_20m.jp2','/media/joe/FDB2-2F9B/2016_Sentinel/B07_20m.jp2','/media/joe/FDB2-2F9B/2016_Sentinel/B8A_20m.jp2',
+        '/media/joe/FDB2-2F9B/2016_Sentinel/B11_20m.jp2','/media/joe/FDB2-2F9B/2016_Sentinel/B12_20m.jp2']
 
 # 21/7/2017
-Seninel_jp2s = ['/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B02_20m.jp2', '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B03_20m.jp2', '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B04_20m.jp2', '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B05_20m.jp2',
-        '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B06_20m.jp2','/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B07_20m.jp2','/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B8A_20m.jp2',
-        '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B11_20m.jp2','/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B12_20m.jp2']
+#Seninel_jp2s = ['/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B02_20m.jp2', '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B03_20m.jp2', '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B04_20m.jp2', '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B05_20m.jp2',
+#        '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B06_20m.jp2','/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B07_20m.jp2','/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B8A_20m.jp2',
+#        '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B11_20m.jp2','/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B12_20m.jp2']
 
 
 #######################################################################################
@@ -643,6 +644,8 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf
 
 
 def ClassifyImages(Sentinel_jp2s,clf, savefigs=False):
+    startTime = datetime.now()
+    
     # Import multispectral imagery from Sentinel 2 and apply ML algorithm to classify surface
     
     jp2s = Seninel_jp2s
@@ -710,33 +713,35 @@ def ClassifyImages(Sentinel_jp2s,clf, savefigs=False):
 
     cmap1 = mpl.colors.ListedColormap(['white','slategray','black','lightsteelblue','gold','orangered'])
     cmap2 = 'Greys_r'
-
+    
     #plot classified surface
     plt.figure(figsize = (30,9)),plt.imshow(predicted1,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
     if savefigs:
-        plt.savefig('2017Clasified_Sentinel_20m_Area1.png',dpi=300)
+        plt.savefig('2016Clasified_Sentinel_20m_Area1.png',dpi=300)
     
     plt.figure(figsize = (30,8)),plt.imshow(predicted2,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
     if savefigs:
-        plt.savefig('2017Clasified_Sentinel_20m_Area2.png',dpi=300)
+        plt.savefig('2016Clasified_Sentinel_20m_Area2.png',dpi=300)
     
     plt.figure(figsize = (30,8)),plt.imshow(predicted3,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
     if savefigs:
-        plt.savefig('2017Clasified_Sentinel_20m_Area3.png',dpi=300)
+        plt.savefig('2016Clasified_Sentinel_20m_Area3.png',dpi=300)
 
     plt.figure(figsize = (30,9)),plt.imshow(albedo_array1,cmap=cmap2,vmin=0,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
     if savefigs:
-        plt.savefig('2017Albedo_Sentinel_20m_Area1.png',dpi=300)
+        plt.savefig('2016Albedo_Sentinel_20m_Area1.png',dpi=300)
     
     plt.figure(figsize = (30,8)),plt.imshow(albedo_array2,cmap=cmap2,vmin=0,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
     if savefigs:
-        plt.savefig('2017Albedo_Sentinel_20m_Area2.png',dpi=300)
+        plt.savefig('2016Albedo_Sentinel_20m_Area2.png',dpi=300)
     
     plt.figure(figsize = (30,8)),plt.imshow(albedo_array3,cmap=cmap2,vmin=0,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
     if savefigs:
-        plt.savefig('2017Albedo_Sentinel_20m_Area3.png',dpi=300)
+        plt.savefig('2016Albedo_Sentinel_20m_Area3.png',dpi=300)
     
-    
+    print()
+    print('Time taken to classify image = ',datetime.now() - startTime)
+
     return predicted1, predicted2, predicted3,albedo_array1,albedo_array2,albedo_array3
 
 def save_classifier(clf):
@@ -788,6 +793,7 @@ def CoverageStats(predicted1, predicted2, predicted3):
         print('{}  % cryoconite coverage = '.format(counter),np.round(CC_coverage,2))
         print('{}  % clean ice coverage = '.format(counter),np.round(CI_coverage,2))
         print('{}  % water coverage = '.format(counter),np.round(WAT_coverage,2))
+        print('{}  % snow coverage = '.format(counter),np.round(SN_coverage,2))
         print()
         print()
         
@@ -1065,11 +1071,11 @@ def albedo_report_by_site(predicted1,predicted2,predicted3,albedo_array1,albedo_
             print('n WAT 3 = ',len(WAT_DF3))
             print('n SN 3 = ',len(SN_DF3))
             
-        albedo_DF1.to_csv('2017Sentinel_20m_albedo_dataset_Area1.csv')    
-        albedo_DF2.to_csv('2017Sentinel_20m_albedo_dataset_Area2.csv')
-        albedo_DF3.to_csv('2017Sentinel_20m_albedo_dataset_Area3.csv')
+        albedo_DF1.to_csv('2016Sentinel_20m_albedo_dataset_Area1.csv')    
+        albedo_DF2.to_csv('2016Sentinel_20m_albedo_dataset_Area2.csv')
+        albedo_DF3.to_csv('2016Sentinel_20m_albedo_dataset_Area3.csv')
         albedo_DFall = pd.concat([albedo_DF1,albedo_DF2,albedo_DF3])
-        albedo_DFall.to_csv('2017Sentinel_20m_albedo_dataset_allsites.csv')
+        albedo_DFall.to_csv('2016Sentinel_20m_albedo_dataset_allsites.csv')
         
     return albedo_DF1,albedo_DF2,albedo_DF3,albedo_DFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3
 
@@ -1130,16 +1136,16 @@ def albedo_report_all_sites(albedo_DFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_
 ############### RUN ENTIRE SEQUENCE ###################
 
 # create dataset
-X,XX,YY = create_dataset(HCRF_file,plot_spectra=True)
-
-#optimise and train model
-clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, plot_all_conf_mx = False)
-
-#pickle classifier and save to working directory
-save_classifier(clf)
+#X,XX,YY = create_dataset(HCRF_file,plot_spectra=True)
+#
+##optimise and train model
+#clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, plot_all_conf_mx = False)
+#
+##pickle classifier and save to working directory
+#save_classifier(clf)
 
 # apply model to Sentinel2 image
-predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Seninel_jp2s,clf,savefigs=False)
+predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Seninel_jp2s,clf,savefigs=True)
 
 #calculate coverage stats for each sub-area
 CoverageStats(predicted1,predicted2,predicted3)

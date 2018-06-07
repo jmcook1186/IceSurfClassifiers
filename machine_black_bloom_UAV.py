@@ -626,7 +626,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf
 
     return clf
 
-def save_classifer(clf):
+def save_classifier(clf):
     
     # pickle the classifier model for archiving or for reusing in another code
     joblibfile = 'UAV_classifier.pkl'
@@ -655,11 +655,11 @@ def ImageAnalysis(img_name,clf,savefigs=True):
     lenx, leny = np.shape(arrays[0])
     
     #convert image bands into single 5-dimensional numpy array
-    test_array = np.array([arrays[0]-0.17, arrays[1]-0.18,arrays[2]-0.15, arrays[3]-0.05,arrays[4]-0.2])       
+    test_array = np.array([arrays[0]-0.17, arrays[1]-0.18,arrays[2]-0.15, arrays[3]-0.16,arrays[4]-0.1])       
     test_array = test_array.reshape(5,lenx*leny) #reshape into 5 x 1D arrays
     test_array = test_array.transpose() # transpose so that bands are read as features
     # create albedo array by applying Knap (1999) narrowband - broadband conversion
-    albedo_array = np.array([0.726*(arrays[1]-0.18) - 0.322*(arrays[1]-0.18)**2 - 0.015*(arrays[3]-0.2) + 0.581*(arrays[3]-0.2)])
+    albedo_array = np.array([0.726*(arrays[1]-0.18) - 0.322*(arrays[1]-0.18)**2 - 0.015*(arrays[3]-0.16) + 0.581*(arrays[3]-0.16)])
 
     #apply classifier to each pixel in multispectral image with bands as features   
     predicted = clf.predict(test_array)
@@ -687,7 +687,7 @@ def ImageAnalysis(img_name,clf,savefigs=True):
     #plots
     plt.figure(figsize = (30,30)),plt.imshow(predicted,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
     if savefigs:
-        plt.savefig('Clasified_UAV.png',dpi=300)
+        plt.savefig('Classified_UAV.png',dpi=300)
     
     plt.figure(figsize = (30,30)),plt.imshow(albedo_array,cmap=cmap2,vmin=0.0000001,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
     if savefigs:
@@ -862,4 +862,4 @@ save_classifier(clf)
 predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
 
 #obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,min_SN,max_SN = albedo_report(predicted,albedo_array)
+alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
