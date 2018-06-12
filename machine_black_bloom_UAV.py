@@ -96,7 +96,7 @@ img_name = '//home//joe//Desktop//Machine_Learn_Tutorial//UAV_21_7_17//uav_21_7_
 ###############################################################################
 ########################## DEFINE FUNCTIONS ###################################
 
-
+ 
 def create_dataset(HCRF_file,plot_spectra=True):
 # Read in raw HCRF data to DataFrame. Pulls in HCRF data from 2016 and 2017
     
@@ -117,7 +117,12 @@ def create_dataset(HCRF_file,plot_spectra=True):
     'HA_25','HA_26','HA_27','HA_28','HA_29','HA_30','HA_31',
     # the following were reclassified from LAsites due to their v low reflectance
     '13_7_S2','14_7_SB9','MA_11','MA_14','MA_15','MA_17','21_7_SB2','22_7_SB1',
-    'MA_4','MA_7','MA_18'
+    'MA_4','MA_7','MA_18',
+    '27_7_16_SITE3_WMELON1', '27_7_16_SITE3_WMELON3','27_7_16_SITE2_ALG1',
+    '27_7_16_SITE2_ALG2', '27_7_16_SITE2_ALG3', '27_7_16_SITE2_ICE3','27_7_16_SITE2_ICE5',
+    '27_7_16_SITE3_ALG4','5_8_16_site2_ice7','5_8_16_site3_ice2', '5_8_16_site3_ice3',
+    '5_8_16_site3_ice5', '5_8_16_site3_ice6', '5_8_16_site3_ice7',
+    '5_8_16_site3_ice8', '5_8_16_site3_ice9'
     ]
     # These have been removed completely from HAsites: '21_7_S3', '23_7_S5', 'HA_32'
     # '24_7_S1','25_7_S1','HA_9', 'HA_33','13_7_SB1', '13_7_S5', 'HA_23'
@@ -128,7 +133,8 @@ def create_dataset(HCRF_file,plot_spectra=True):
     '23_7_S1','23_7_S2','24_7_S2','MA_1','MA_2','MA_3','MA_5','MA_6','MA_8','MA_9',
     'MA_10','MA_12','MA_13','MA_16','MA_19',
     #these have been moved from CI
-    '13_7_S1','13_7_S3','14_7_S1','15_7_S1','15_7_SB2','20_7_SB2','21_7_SB5','21_7_SB8','25_7_S3'
+    '13_7_S1','13_7_S3','14_7_S1','15_7_S1','15_7_SB2','20_7_SB2','21_7_SB5','21_7_SB8','25_7_S3',
+    '5_8_16_site2_ice10','5_8_16_site2_ice5','5_8_16_site2_ice9','27_7_16_SITE3_WHITE3'
     ]
     # ambiguous spectra removed
     # '13_7_S2','13_7_SB1','14_7_SB9', '15_7_S3' ,'MA_11',' MA_14','MA15','MA_17',
@@ -137,16 +143,24 @@ def create_dataset(HCRF_file,plot_spectra=True):
     CIsites =['21_7_S4','13_7_SB3','15_7_S4','15_7_SB1','15_7_SB5','21_7_S2',
     '21_7_SB3','22_7_S2','22_7_S4','23_7_SB1','23_7_SB2','23_7_S4',
     'WI_1','WI_2','WI_4','WI_5','WI_6','WI_7','WI_9','WI_10','WI_11',
-    'WI_12','WI_13'] # ambiguous spectra removed: '13_7_SB5', WI_3, WI_8
+    'WI_12','WI_13','27_7_16_SITE3_WHITE1', '27_7_16_SITE3_WHITE2', 
+    '27_7_16_SITE2_ICE2','27_7_16_SITE2_ICE4','27_7_16_SITE2_ICE6',
+    '5_8_16_site2_ice1',  '5_8_16_site2_ice2', '5_8_16_site2_ice3', '5_8_16_site2_ice4',
+    '5_8_16_site2_ice6','5_8_16_site2_ice8','5_8_16_site3_ice1','5_8_16_site3_ice4'
+    ] # ambiguous spectra removed: '13_7_SB5', WI_3, WI_8
     
     CCsites = ['DISP1','DISP2','DISP3','DISP4','DISP5','DISP6','DISP7','DISP8',
-               'DISP9','DISP10','DISP11','DISP12','DISP13','DISP14']
+               'DISP9','DISP10','DISP11','DISP12','DISP13','DISP14','27_7_16_SITE3_DISP1', '27_7_16_SITE3_DISP3',
+               ]
     
     WATsites = ['21_7_SB5','21_7_SB8','WAT_1','WAT_3','WAT_6']
     #REMOVED FROM WATER SITES 'WAT_2','WAT_4','WAT_5'
     
     SNsites = ['14_7_S4','14_7_SB6','14_7_SB8','17_7_SB2','SNICAR100','SNICAR200',
-               'SNICAR300','SNICAR400','SNICAR500','SNICAR600','SNICAR700','SNICAR800','SNICAR900','SNICAR1000']
+               'SNICAR300','SNICAR400','SNICAR500','SNICAR600','SNICAR700','SNICAR800','SNICAR900','SNICAR1000',
+               '27_7_16_KANU_','27_7_16_SITE2_1','5_8_16_site1_snow10', '5_8_16_site1_snow2', '5_8_16_site1_snow3',
+               '5_8_16_site1_snow4', '5_8_16_site1_snow6',
+               '5_8_16_site1_snow7', '5_8_16_site1_snow9']
     
     #REMOVED FROM WATER SITES 'WAT_2'
     
@@ -177,7 +191,7 @@ def create_dataset(HCRF_file,plot_spectra=True):
     # Make dataframe with column for label, columns for reflectancxe at key wavelengths
     
     if plot_spectra:
-        WL = np.arange(350,2500,1)
+        WL = np.arange(350,2501,1)
         HA_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('HA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
         LA_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
         CI_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('CI'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
@@ -850,16 +864,16 @@ def albedo_report(predicted,albedo_array):
 ############### RUN ENTIRE SEQUENCE ###################
 
 # create dataset
-X,XX,YY = create_dataset(HCRF_file,plot_spectra=False)
+X,XX,YY = create_dataset(HCRF_file,plot_spectra=True)
 
 #optimise and train model
 clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, plot_all_conf_mx = False)
 
 # export trained model to file for archiving or re-use in other scripts
-save_classifier(clf) 
+#save_classifier(clf) 
 
 # apply model to UAV image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
+#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
 
 #obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
+#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
