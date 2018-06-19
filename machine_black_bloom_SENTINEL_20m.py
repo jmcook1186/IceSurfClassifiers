@@ -80,18 +80,6 @@ from datetime import datetime
 plt.style.use('ggplot')
 
 
-
-
-#########################################################################################
-#######################  DEFINE PATHS TO IMAGE FILES ##################################
-
-    
-    
-    
-
-    
-    
-
 #######################################################################################
 ############################ DEFINE FUNCTIONS ###################################
 
@@ -235,6 +223,7 @@ def create_dataset(year=2016,plot_spectra=True):
     X['R433'] = np.array(HA_hcrf.iloc[433])
     X['R515'] = np.array(HA_hcrf.iloc[515])
     X['R1260'] = np.array(HA_hcrf.iloc[1260])
+    X['R1840'] = np.array(HA_hcrf.iloc[1840])
     
     X['label'] = 'HA'
     
@@ -248,6 +237,7 @@ def create_dataset(year=2016,plot_spectra=True):
     Y['R433'] = np.array(LA_hcrf.iloc[433])
     Y['R515'] = np.array(LA_hcrf.iloc[515])
     Y['R1260'] = np.array(LA_hcrf.iloc[1260])
+    Y['R1840'] = np.array(LA_hcrf.iloc[1840])
     
     Y['label'] = 'LA'
     
@@ -262,6 +252,7 @@ def create_dataset(year=2016,plot_spectra=True):
     Z['R433'] = np.array(CI_hcrf.iloc[433])
     Z['R515'] = np.array(CI_hcrf.iloc[515])
     Z['R1260'] = np.array(CI_hcrf.iloc[1260])
+    Z['R1840'] = np.array(CI_hcrf.iloc[1840])
     
     Z['label'] = 'CI'
     
@@ -276,6 +267,7 @@ def create_dataset(year=2016,plot_spectra=True):
     P['R433'] = np.array(CC_hcrf.iloc[433])
     P['R515'] = np.array(CC_hcrf.iloc[515])
     P['R1260'] = np.array(CC_hcrf.iloc[1260])
+    P['R1840'] = np.array(CC_hcrf.iloc[1840])
     
     P['label'] = 'CC'
     
@@ -289,6 +281,7 @@ def create_dataset(year=2016,plot_spectra=True):
     Q['R433'] = np.array(WAT_hcrf.iloc[433])
     Q['R515'] = np.array(WAT_hcrf.iloc[515])
     Q['R1260'] = np.array(WAT_hcrf.iloc[1260])
+    Q['R1840'] = np.array(WAT_hcrf.iloc[1840])
     
     Q['label'] = 'WAT'
     
@@ -301,9 +294,10 @@ def create_dataset(year=2016,plot_spectra=True):
     R['R433'] = np.array(SN_hcrf.iloc[433])
     R['R515'] = np.array(SN_hcrf.iloc[515])
     R['R1260'] = np.array(SN_hcrf.iloc[1260])
+    R['R1840'] = np.array(SN_hcrf.iloc[1840])
     
     R['label'] = 'SN'
-
+    
     X = X.append(Y,ignore_index=True)
     X = X.append(Z,ignore_index=True)
     X = X.append(P,ignore_index=True)
