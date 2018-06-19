@@ -6,6 +6,10 @@ Created on Thu Mar  8 14:32:24 2018
 @author: joe
 """
 
+# The requisite datafiles are HRCF_master_machone_snicar.csv (the training data)
+# and the individual Sentinel-2 band images (B02_20m.jp2, B03_20m.jp2 etc). These
+# are availabe to download at github.com/jmcook1186/IceSurfClassifiers/
+
 # This code provides functions for reading in directional reflectance data obtained
 # via ground spectroscopy, reformatting into a pandas dataframe of features and labels,
 # optimising and training a series of machine learning algorithms on the ground spectra
@@ -54,8 +58,12 @@ Created on Thu Mar  8 14:32:24 2018
 # type and associated broadband albedo
 
 
+
+
 ###########################################################################################
 ############################# IMPORT MODULES #########################################
+
+
 
 import numpy as np
 import pandas as pd
@@ -71,29 +79,56 @@ from sklearn.grid_search import GridSearchCV
 from datetime import datetime
 plt.style.use('ggplot')
 
+
+
+
 #########################################################################################
 #######################  DEFINE PATHS TO IMAGE FILES ##################################
 
-HCRF_file = '//home//joe//Code//HCRF_master_machine_snicar.csv'
+    
+    
+    
 
-## Options for file paths (external USB for 23_7_2016 and 23_7_2017 or HDD for 21_7_2017)
-
-# 21/7/2016
-Seninel_jp2s = ['/media/joe/FDB2-2F9B/2016_Sentinel/B02_20m.jp2', '/media/joe/FDB2-2F9B/2016_Sentinel/B03_20m.jp2', '/media/joe/FDB2-2F9B/2016_Sentinel/B04_20m.jp2', '/media/joe/FDB2-2F9B/2016_Sentinel/B05_20m.jp2',
-        '/media/joe/FDB2-2F9B/2016_Sentinel/B06_20m.jp2','/media/joe/FDB2-2F9B/2016_Sentinel/B07_20m.jp2','/media/joe/FDB2-2F9B/2016_Sentinel/B8A_20m.jp2',
-        '/media/joe/FDB2-2F9B/2016_Sentinel/B11_20m.jp2','/media/joe/FDB2-2F9B/2016_Sentinel/B12_20m.jp2']
-
-# 21/7/2017
-#Seninel_jp2s = ['/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B02_20m.jp2', '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B03_20m.jp2', '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B04_20m.jp2', '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B05_20m.jp2',
-#        '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B06_20m.jp2','/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B07_20m.jp2','/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B8A_20m.jp2',
-#        '/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B11_20m.jp2','/home/joe/Desktop/Machine_Learn_Tutorial/S2_21_7_17/B12_20m.jp2']
-
+    
+    
 
 #######################################################################################
 ############################ DEFINE FUNCTIONS ###################################
 
 
-def create_dataset(HCRF_file,plot_spectra=True):
+def create_dataset(year=2016,plot_spectra=True):
+
+    HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+   
+    # Two options for filepaths depending on whether the code is run for Sentinel2
+    # images from 2016 or 2017
+    
+    if year == 2016:
+        
+
+        Sentinel_jp2s = ['/home/joe/Code/IceSurfClassifiers/2016_Sentinel/B02_20m.jp2', 
+                        '/home/joe/Code/IceSurfClassifiers/2016_Sentinel/B03_20m.jp2', 
+                        '/home/joe/Code/IceSurfClassifiers/2016_Sentinel/B04_20m.jp2', 
+                        '/home/joe/Code/IceSurfClassifiers/2016_Sentinel/B05_20m.jp2',
+                        '/home/joe/Code/IceSurfClassifiers/2016_Sentinel/B06_20m.jp2',
+                        '/home/joe/Code/IceSurfClassifiers/2016_Sentinel/B07_20m.jp2',
+                        '/home/joe/Code/IceSurfClassifiers/2016_Sentinel/B8A_20m.jp2',
+                        '/home/joe/Code/IceSurfClassifiers/2016_Sentinel/B11_20m.jp2',
+                        '/home/joe/Code/IceSurfClassifiers/2016_Sentinel/B12_20m.jp2']
+    elif year == 2017:
+
+        Sentinel_jp2s = ['/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B02_20m.jp2', 
+                        '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B03_20m.jp2', 
+                        '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B04_20m.jp2', 
+                        '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B05_20m.jp2',
+                        '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B06_20m.jp2',
+                        '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B07_20m.jp2',
+                        '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B8A_20m.jp2',
+                        '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B11_20m.jp2',
+                        '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B12_20m.jp2']
+    else:
+        print('ERROR: PLEASE CHOOSE TO USE IMAGERY FROM EITHER 2016 or 2017')
+    
 
     # Read in raw HCRF data to DataFrame. This version pulls in HCRF data from 2016 and 2017
     hcrf_master = pd.read_csv(HCRF_file)
@@ -104,59 +139,52 @@ def create_dataset(HCRF_file,plot_spectra=True):
     WAT_hcrf = pd.DataFrame()
     SN_hcrf = pd.DataFrame()
     
-    # Group site names
+    # Group site namesaccording to surface class
+    
     HAsites = ['13_7_SB2','13_7_SB4','14_7_S5','14_7_SB1','14_7_SB5','14_7_SB10',
     '15_7_SB3','21_7_SB1','21_7_SB7','22_7_SB4','22_7_SB5','22_7_S3','22_7_S5',
     '23_7_SB3','23_7_SB5','23_7_S3','23_7_SB4','24_7_SB2','HA_1', 'HA_2','HA_3',
     'HA_4','HA_5','HA_6','HA_7','HA_8','HA_10','HA_11','HA_12','HA_13','HA_14',
     'HA_15','HA_16','HA_17','HA_18','HA_19','HA_20','HA_21','HA_22','HA_24',
-    'HA_25','HA_26','HA_27','HA_28','HA_29','HA_30','HA_31',
-    # the following were reclassified from LAsites due to their v low reflectance
-    '13_7_S2','14_7_SB9','MA_11','MA_14','MA_15','MA_17','21_7_SB2','22_7_SB1',
-    'MA_4','MA_7','MA_18',
+    'HA_25','HA_26','HA_27','HA_28','HA_29','HA_30','HA_31','13_7_S2','14_7_SB9',
+    'MA_11','MA_14','MA_15','MA_17','21_7_SB2','22_7_SB1','MA_4','MA_7','MA_18',
     '27_7_16_SITE3_WMELON1', '27_7_16_SITE3_WMELON3','27_7_16_SITE2_ALG1',
     '27_7_16_SITE2_ALG2', '27_7_16_SITE2_ALG3', '27_7_16_SITE2_ICE3','27_7_16_SITE2_ICE5',
     '27_7_16_SITE3_ALG4','5_8_16_site2_ice7','5_8_16_site3_ice2', '5_8_16_site3_ice3',
-    '5_8_16_site3_ice5', '5_8_16_site3_ice6', '5_8_16_site3_ice7',
-    '5_8_16_site3_ice8', '5_8_16_site3_ice9'
-    ]
-    # These have been removed completely from HAsites: '21_7_S3', '23_7_S5', 'HA_32'
-    # '24_7_S1','25_7_S1','HA_9', 'HA_33','13_7_SB1', '13_7_S5', 'HA_23'
+    '5_8_16_site3_ice5', '5_8_16_site3_ice6', '5_8_16_site3_ice7','5_8_16_site3_ice8',
+    '5_8_16_site3_ice9']
     
-    LAsites = [
-    '14_7_S2','14_7_S3','14_7_SB2','14_7_SB3','14_7_SB7','15_7_S2','15_7_SB4',
-    '20_7_SB1','20_7_SB3','21_7_S1','21_7_S5','21_7_SB4','22_7_SB2','22_7_SB3','22_7_S1',
-    '23_7_S1','23_7_S2','24_7_S2','MA_1','MA_2','MA_3','MA_5','MA_6','MA_8','MA_9',
-    'MA_10','MA_12','MA_13','MA_16','MA_19',
-    #these have been moved from CI
-    '13_7_S1','13_7_S3','14_7_S1','15_7_S1','15_7_SB2','20_7_SB2','21_7_SB5','21_7_SB8','25_7_S3',
-    '5_8_16_site2_ice10','5_8_16_site2_ice5','5_8_16_site2_ice9','27_7_16_SITE3_WHITE3'
-    ]
-    # ambiguous spectra removed
-    # '13_7_S2','13_7_SB1','14_7_SB9', '15_7_S3' ,'MA_11',' MA_14','MA15','MA_17',
-    # '13_7_S5', '25_7_S2','25_7_S4','25_7_S5'
+    LAsites = ['14_7_S2','14_7_S3','14_7_SB2','14_7_SB3','14_7_SB7','15_7_S2',
+    '15_7_SB4','20_7_SB1','20_7_SB3','21_7_S1','21_7_S5','21_7_SB4','22_7_SB2',
+    '22_7_SB3','22_7_S1','23_7_S1','23_7_S2','24_7_S2','MA_1','MA_2','MA_3',
+    'MA_5','MA_6','MA_8','MA_9','MA_10','MA_12','MA_13','MA_16','MA_19',
+    '13_7_S1','13_7_S3','14_7_S1','15_7_S1','15_7_SB2','20_7_SB2','21_7_SB5',
+    '21_7_SB8','25_7_S3','5_8_16_site2_ice10','5_8_16_site2_ice5',
+    '5_8_16_site2_ice9','27_7_16_SITE3_WHITE3']
     
     CIsites =['21_7_S4','13_7_SB3','15_7_S4','15_7_SB1','15_7_SB5','21_7_S2',
     '21_7_SB3','22_7_S2','22_7_S4','23_7_SB1','23_7_SB2','23_7_S4',
     'WI_1','WI_2','WI_4','WI_5','WI_6','WI_7','WI_9','WI_10','WI_11',
     'WI_12','WI_13','27_7_16_SITE3_WHITE1', '27_7_16_SITE3_WHITE2', 
     '27_7_16_SITE2_ICE2','27_7_16_SITE2_ICE4','27_7_16_SITE2_ICE6',
-    '5_8_16_site2_ice1',  '5_8_16_site2_ice2', '5_8_16_site2_ice3', '5_8_16_site2_ice4',
-    '5_8_16_site2_ice6','5_8_16_site2_ice8','5_8_16_site3_ice1','5_8_16_site3_ice4'
-    ] # ambiguous spectra removed: '13_7_SB5', WI_3, WI_8
+    '5_8_16_site2_ice1',  '5_8_16_site2_ice2', '5_8_16_site2_ice3', 
+    '5_8_16_site2_ice4','5_8_16_site2_ice6','5_8_16_site2_ice8',
+    '5_8_16_site3_ice1','5_8_16_site3_ice4']
     
     CCsites = ['DISP1','DISP2','DISP3','DISP4','DISP5','DISP6','DISP7','DISP8',
-               'DISP9','DISP10','DISP11','DISP12','DISP13','DISP14','27_7_16_SITE3_DISP1', '27_7_16_SITE3_DISP3',
-               ]
+    'DISP9','DISP10','DISP11','DISP12','DISP13','DISP14','27_7_16_SITE3_DISP1', 
+    '27_7_16_SITE3_DISP3']
     
     WATsites = ['21_7_SB5','21_7_SB8','WAT_1','WAT_3','WAT_6']
-    #REMOVED FROM WATER SITES 'WAT_2','WAT_4','WAT_5'
     
     SNsites = ['14_7_S4','14_7_SB6','14_7_SB8','17_7_SB2','SNICAR100','SNICAR200',
-               'SNICAR300','SNICAR400','SNICAR500','SNICAR600','SNICAR700','SNICAR800','SNICAR900','SNICAR1000',
-               '27_7_16_KANU_','27_7_16_SITE2_1','5_8_16_site1_snow10', '5_8_16_site1_snow2', '5_8_16_site1_snow3',
-               '5_8_16_site1_snow4', '5_8_16_site1_snow6',
-               '5_8_16_site1_snow7', '5_8_16_site1_snow9']
+    'SNICAR300','SNICAR400','SNICAR500','SNICAR600','SNICAR700','SNICAR800',
+    'SNICAR900','SNICAR1000','27_7_16_KANU_','27_7_16_SITE2_1',
+    '5_8_16_site1_snow10', '5_8_16_site1_snow2', '5_8_16_site1_snow3',
+    '5_8_16_site1_snow4', '5_8_16_site1_snow6','5_8_16_site1_snow7',
+    '5_8_16_site1_snow9']
+    
+    
     # Create dataframes for ML algorithm
     
     for i in HAsites:
@@ -183,6 +211,7 @@ def create_dataset(HCRF_file,plot_spectra=True):
         hcrf_SN = np.array(hcrf_master[vi])
         SN_hcrf['{}'.format(vi)] = hcrf_SN 
     
+    # plot spectra
     
     if plot_spectra:
         WL = np.arange(350,2501,1)
@@ -192,6 +221,7 @@ def create_dataset(HCRF_file,plot_spectra=True):
         CC_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('CC'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
         WAT_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('WAT'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
         SN_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('SN'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+    
     # Make dataframe with column for label, columns for reflectancxe at key wavelengths
     # select wavelengths to use - currently set to 8 Sentnel 2 bands
     
@@ -205,7 +235,6 @@ def create_dataset(HCRF_file,plot_spectra=True):
     X['R433'] = np.array(HA_hcrf.iloc[433])
     X['R515'] = np.array(HA_hcrf.iloc[515])
     X['R1260'] = np.array(HA_hcrf.iloc[1260])
-    X['R1840'] = np.array(HA_hcrf.iloc[1840])
     
     X['label'] = 'HA'
     
@@ -219,7 +248,6 @@ def create_dataset(HCRF_file,plot_spectra=True):
     Y['R433'] = np.array(LA_hcrf.iloc[433])
     Y['R515'] = np.array(LA_hcrf.iloc[515])
     Y['R1260'] = np.array(LA_hcrf.iloc[1260])
-    Y['R1840'] = np.array(LA_hcrf.iloc[1840])
     
     Y['label'] = 'LA'
     
@@ -234,7 +262,6 @@ def create_dataset(HCRF_file,plot_spectra=True):
     Z['R433'] = np.array(CI_hcrf.iloc[433])
     Z['R515'] = np.array(CI_hcrf.iloc[515])
     Z['R1260'] = np.array(CI_hcrf.iloc[1260])
-    Z['R1840'] = np.array(CI_hcrf.iloc[1840])
     
     Z['label'] = 'CI'
     
@@ -249,7 +276,6 @@ def create_dataset(HCRF_file,plot_spectra=True):
     P['R433'] = np.array(CC_hcrf.iloc[433])
     P['R515'] = np.array(CC_hcrf.iloc[515])
     P['R1260'] = np.array(CC_hcrf.iloc[1260])
-    P['R1840'] = np.array(CC_hcrf.iloc[1840])
     
     P['label'] = 'CC'
     
@@ -263,7 +289,6 @@ def create_dataset(HCRF_file,plot_spectra=True):
     Q['R433'] = np.array(WAT_hcrf.iloc[433])
     Q['R515'] = np.array(WAT_hcrf.iloc[515])
     Q['R1260'] = np.array(WAT_hcrf.iloc[1260])
-    Q['R1840'] = np.array(WAT_hcrf.iloc[1840])
     
     Q['label'] = 'WAT'
     
@@ -276,7 +301,6 @@ def create_dataset(HCRF_file,plot_spectra=True):
     R['R433'] = np.array(SN_hcrf.iloc[433])
     R['R515'] = np.array(SN_hcrf.iloc[515])
     R['R1260'] = np.array(SN_hcrf.iloc[1260])
-    R['R1840'] = np.array(SN_hcrf.iloc[1840])
     
     R['label'] = 'SN'
 
@@ -286,12 +310,12 @@ def create_dataset(HCRF_file,plot_spectra=True):
     X = X.append(Q,ignore_index=True)
     X = X.append(R,ignore_index=True)
 
-    
     # Create features and labels (XX = features - all data but no labels, YY = labels only)
     XX = X.drop(['label'],1)
     YY = X['label']
+    XX.head() #print the top 5 rows of dataframe to console
         
-    return X, XX, YY
+    return HCRF_file,Sentinel_jp2s,X, XX, YY
 
 
 def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf_mx = True):
@@ -661,24 +685,13 @@ def ClassifyImages(Sentinel_jp2s,clf, savefigs=False):
     
     # Import multispectral imagery from Sentinel 2 and apply ML algorithm to classify surface
     
-    jp2s = Seninel_jp2s
+    jp2s = Sentinel_jp2s
     arrs = []   
     for jp2 in jp2s:
         with rasterio.open(jp2) as f:
             arrs.append(f.read(1))
     
     data = np.array(arrs, dtype=arrs[0].dtype)
-
-    # set up empty lists to append into
-    B2 = []
-    B3 = []
-    B4 = []
-    B5 = []
-    B6 = []
-    B7 = []
-    B8 =[]
-    B11 = []
-    B12 = []
     
     predicted = []
     test_array = []
@@ -1149,16 +1162,16 @@ def albedo_report_all_sites(albedo_DFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_
 ############### RUN ENTIRE SEQUENCE ###################
 
 # create dataset
-#X,XX,YY = create_dataset(HCRF_file,plot_spectra=True)
+HCRF_file,Sentinel_jp2s,X, XX, YY = create_dataset(year=2016,plot_spectra=True)
 #
 ##optimise and train model
-#clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, plot_all_conf_mx = False)
-#
+clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, plot_all_conf_mx = False)
+
 ##pickle classifier and save to working directory
-#save_classifier(clf)
+save_classifier(clf)
 
 # apply model to Sentinel2 image
-predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Seninel_jp2s,clf,savefigs=True)
+predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Sentinel_jp2s,clf,savefigs=True)
 
 #calculate coverage stats for each sub-area
 CoverageStats(predicted1,predicted2,predicted3)
