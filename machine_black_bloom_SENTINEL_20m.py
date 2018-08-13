@@ -68,14 +68,13 @@ Created on Thu Mar  8 14:32:24 2018
 import numpy as np
 import pandas as pd
 from sklearn.naive_bayes import GaussianNB
-from sklearn import preprocessing, cross_validation, neighbors, svm
+from sklearn import preprocessing, neighbors, svm, model_selection
 from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 from sklearn.externals import joblib
 import matplotlib.pyplot as plt
 import gdal
 import rasterio
-from sklearn.grid_search import GridSearchCV
 from datetime import datetime
 plt.style.use('ggplot')
 
@@ -328,7 +327,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf
     # X, XX, YY are the datasets with and without labels.
 
     # split data into test and train sets.
-    X_train, X_test, Y_train, Y_test = cross_validation.train_test_split(XX,YY,test_size = test_size)
+    X_train, X_test, Y_train, Y_test = model_selection.train_test_split(XX,YY,test_size = test_size)
     
     # test different classifers and report performance metrics using traning data only
     
