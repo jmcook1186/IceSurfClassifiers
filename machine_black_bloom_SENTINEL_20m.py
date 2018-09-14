@@ -71,6 +71,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn import preprocessing, neighbors, svm, model_selection
 from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
 from sklearn.externals import joblib
 import matplotlib.pyplot as plt
 import gdal
@@ -1161,16 +1162,16 @@ HCRF_file,Sentinel_jp2s,X, XX, YY = create_dataset(year=2016,plot_spectra=True)
 clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, plot_all_conf_mx = False)
 
 ##pickle classifier and save to working directory
-save_classifier(clf)
+#save_classifier(clf)
 
 # apply model to Sentinel2 image
-predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Sentinel_jp2s,clf,savefigs=True)
+#predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Sentinel_jp2s,clf,savefigs=True)
 
 #calculate coverage stats for each sub-area
-CoverageStats(predicted1,predicted2,predicted3)
+#CoverageStats(predicted1,predicted2,predicted3)
 
 #obtain albedo summary stats
-albedo_DF1,albedo_DF2,albedo_DF3,albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3 = albedo_report_by_site(predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3)
+#albedo_DF1,albedo_DF2,albedo_DF3,albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3 = albedo_report_by_site(predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3)
 
 # obtain albedo stats for all sites combined
-HA_DF,LA_DF,CI_DF,CC_DF,WAT_DF,SN_DF = albedo_report_all_sites(albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3)
+#HA_DF,LA_DF,CI_DF,CC_DF,WAT_DF,SN_DF = albedo_report_all_sites(albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3)
