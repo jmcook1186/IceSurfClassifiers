@@ -72,6 +72,7 @@ from sklearn import preprocessing, neighbors, svm, model_selection
 from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
+import matplotlib as mpl
 from sklearn.externals import joblib
 import matplotlib.pyplot as plt
 import gdal
