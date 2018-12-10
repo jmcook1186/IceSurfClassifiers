@@ -191,12 +191,12 @@ def create_dataset(HCRF_file,plot_spectra=True):
     
     if plot_spectra:
         WL = np.arange(350,2501,1)
-        HA_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('HA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        LA_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        CI_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('CI'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        CC_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('CC'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        WAT_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('WAT'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        SN_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('SN'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,HA_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('HA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,LA_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,CI_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('CI'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,CC_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('CC'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,WAT_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('WAT'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,SN_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('SN'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
     
     X = pd.DataFrame()
     
@@ -869,10 +869,10 @@ X,XX,YY = create_dataset(HCRF_file,plot_spectra=True)
 clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, plot_all_conf_mx = False)
 
 # export trained model to file for archiving or re-use in other scripts
-#save_classifier(clf) 
+save_classifier(clf) 
 
 # apply model to UAV image
-#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
+predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
 
 #obtain albedo summary stats
-#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
+alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)

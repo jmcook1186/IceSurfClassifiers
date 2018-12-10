@@ -183,14 +183,15 @@ def create_dataset(year=2016,plot_spectra=True):
     for ii in LAsites:
         hcrf_LA = np.array(hcrf_master[ii])
         LA_hcrf['{}'.format(ii)] = hcrf_LA
-         
+        
     for iii in CIsites:   
         hcrf_CI = np.array(hcrf_master[iii])
         CI_hcrf['{}'.format(iii)] = hcrf_CI   
-    
+        
     for iv in CCsites:   
         hcrf_CC = np.array(hcrf_master[iv])
         CC_hcrf['{}'.format(iv)] = hcrf_CC   
+
     
     for v in WATsites:   
         hcrf_WAT = np.array(hcrf_master[v])
@@ -199,19 +200,19 @@ def create_dataset(year=2016,plot_spectra=True):
     for vi in SNsites:
         hcrf_SN = np.array(hcrf_master[vi])
         SN_hcrf['{}'.format(vi)] = hcrf_SN 
-    
+   
     # plot spectra
     
     if plot_spectra:
         WL = np.arange(350,2501,1)
-        HA_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('HA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        LA_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        CI_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('CI'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        CC_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('CC'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        WAT_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('WAT'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        SN_hcrf.plot(x = WL,legend=None),plt.ylim(0,1.2),plt.title('SN'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,HA_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('HA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,LA_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,CI_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('CI'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,CC_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('CC'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,WAT_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('WAT'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        plt.figure(),plt.plot(WL,SN_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('SN'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
     
-    # Make dataframe with column for label, columns for reflectancxe at key wavelengths
+    # Make dataframe with column for label, columns for reflectance at key wavelengths
     # select wavelengths to use - currently set to 8 Sentnel 2 bands
     
     X = pd.DataFrame()
@@ -313,7 +314,7 @@ def create_dataset(year=2016,plot_spectra=True):
     return HCRF_file,Sentinel_jp2s,X, XX, YY
 
 
-def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf_mx = True):
+def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx = True, plot_all_conf_mx = True):
     
     # Function splits the data into training and test sets, then tests the 
     # performance of a range of models on the training data. The final model 
@@ -655,11 +656,19 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf
     final_precision = precision_score(Y_test, Y_test_predicted, average='weighted')
     final_average_metric = (final_recall + final_accuracy + final_f1)/3
 
+    if print_conf_mx:
+        print('Final Confusion Matrix')
+        print(final_conf_mx)
+        print()
+        print('Normalised Confusion Matrix')
+        print(norm_conf_mx)
+
     # The Feature importances 
     print()
     print('Feature Importances')
     print('(relative importance of each feature (wavelength) for prediction)')
     print()
+   
     for name, score in zip(X.columns,clf.feature_importances_):
         print (name,score)
 
@@ -672,7 +681,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf
     print('Final Model Average metric = ', final_average_metric)
 
 
-    return clf
+    return clf, final_conf_mx, norm_conf_mx
 
 
 def ClassifyImages(Sentinel_jp2s,clf, savefigs=False):
@@ -1160,19 +1169,19 @@ def albedo_report_all_sites(albedo_DFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_
 HCRF_file,Sentinel_jp2s,X, XX, YY = create_dataset(year=2016,plot_spectra=True)
 #
 ##optimise and train model
-clf =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, plot_all_conf_mx = False)
+clf, final_conf_mx, norm_conf_mx =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, print_conf_mx = True, plot_all_conf_mx = False)
 
 ##pickle classifier and save to working directory
-#save_classifier(clf)
+save_classifier(clf)
 
 # apply model to Sentinel2 image
-#predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Sentinel_jp2s,clf,savefigs=True)
+predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Sentinel_jp2s,clf,savefigs=False)
 
 #calculate coverage stats for each sub-area
-#CoverageStats(predicted1,predicted2,predicted3)
+CoverageStats(predicted1,predicted2,predicted3)
 
 #obtain albedo summary stats
-#albedo_DF1,albedo_DF2,albedo_DF3,albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3 = albedo_report_by_site(predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3)
+albedo_DF1,albedo_DF2,albedo_DF3,albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3 = albedo_report_by_site(predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3)
 
 # obtain albedo stats for all sites combined
-#HA_DF,LA_DF,CI_DF,CC_DF,WAT_DF,SN_DF = albedo_report_all_sites(albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3)
+HA_DF,LA_DF,CI_DF,CC_DF,WAT_DF,SN_DF = albedo_report_all_sites(albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3)
