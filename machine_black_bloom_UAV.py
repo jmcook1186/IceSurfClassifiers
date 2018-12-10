@@ -78,15 +78,18 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn import preprocessing, neighbors, svm, model_selection
 from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+import matplotlib as mpl
 from sklearn.externals import joblib
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 import gdal
 import rasterio
 from datetime import datetime
-
-
 plt.style.use('ggplot')
+
+
+# Set path to csv file containing hcrf spectra (trainin data) and UAV image to
+# be classified
 
 HCRF_file = '//home//joe//Code//HCRF_master_machine_snicar.csv'
 img_name = '//home//joe//Desktop//Machine_Learn_Tutorial//UAV_21_7_17//uav_21_7_5cm_commongrid.tif'
@@ -278,7 +281,7 @@ def create_dataset(HCRF_file,plot_spectra=True):
     
     return X, XX, YY
 
-def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf_mx = True):
+def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx = True, plot_all_conf_mx = True):
     
     # Function splits the data into training and test sets, then tests the 
     # performance of a range of models on the training data. The final model 
@@ -620,6 +623,13 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf
     final_precision = precision_score(Y_test, Y_test_predicted, average='weighted')
     final_average_metric = (final_recall + final_accuracy + final_f1)/3
     
+    if print_conf_mx:
+        print('Final Confusion Matrix')
+        print(final_conf_mx)
+        print()
+        print('Normalised Confusion Matrix')
+        print(norm_conf_mx)
+    
     # The Feature importances 
     print()
     print('Feature Importances')
@@ -637,7 +647,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, plot_all_conf
     print('Final Model Average metric = ', final_average_metric)
 
 
-    return clf
+    return clf,final_conf_mx, norm_conf_mx
 
 def save_classifier(clf):
     
@@ -866,13 +876,13 @@ def albedo_report(predicted,albedo_array):
 X,XX,YY = create_dataset(HCRF_file,plot_spectra=True)
 
 #optimise and train model
-clf = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, plot_all_conf_mx = False)
+clf, final_conf_mx, norm_conf_mx = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, print_conf_mx = True, plot_all_conf_mx = False)
 
 # export trained model to file for archiving or re-use in other scripts
-save_classifier(clf) 
+#save_classifier(clf) 
 
 # apply model to UAV image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
+#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
 
 #obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
+#alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
