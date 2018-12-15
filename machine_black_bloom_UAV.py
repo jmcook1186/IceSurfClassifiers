@@ -85,6 +85,7 @@ import matplotlib.pyplot as plt
 import gdal
 import rasterio
 from datetime import datetime
+
 plt.style.use('ggplot')
 
 
@@ -194,12 +195,30 @@ def create_dataset(HCRF_file,plot_spectra=True):
     
     if plot_spectra:
         WL = np.arange(350,2501,1)
-        plt.figure(),plt.plot(WL,HA_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('HA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        plt.figure(),plt.plot(WL,LA_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        plt.figure(),plt.plot(WL,CI_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('CI'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        plt.figure(),plt.plot(WL,CC_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('CC'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        plt.figure(),plt.plot(WL,WAT_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('WAT'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
-        plt.figure(),plt.plot(WL,SN_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('SN'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+
+        # Creates two subplots and unpacks the output array immediately
+        fig = plt.figure(figsize=(10,10))
+        ax1 = fig.add_subplot(321)
+        ax1.plot(WL,HA_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('HA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        ax1.set_title('Hbio')
+        ax2 = fig.add_subplot(322)
+        ax2.plot(WL,LA_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        ax2.set_title('Lbio')
+        ax3 = fig.add_subplot(323)
+        ax3.plot(WL,CI_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        ax3.set_title('Clean ice')
+        ax4 = fig.add_subplot(324)
+        ax4.plot(WL,CC_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        ax4.set_title('Cryoconite')
+        ax5 = fig.add_subplot(325)
+        ax5.plot(WL,WAT_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        ax5.set_title('Water')
+        ax6 = fig.add_subplot(326)
+        ax6.plot(WL,SN_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
+        ax6.set_title('Snow')
+        plt.tight_layout()
+        plt.show()
+
     
     X = pd.DataFrame()
     
@@ -392,51 +411,46 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
     
     # PLOT CONFUSION MATRICES
     if plot_all_conf_mx:
-        
-        plt.figure()    
-        plt.imshow(conf_mx_NB)
-        plt.title('NB Model Confusion matrix')
-        plt.colorbar()
+
+        fig = plt.figure(figsize=(15, 15))
+        ax1 = fig.add_subplot(321)
+        ax1.imshow(conf_mx_NB), plt.title('NB Model Confusion Matrix'), plt.colorbar
         classes = clf_NB.classes_
         tick_marks = np.arange(len(classes))
         plt.xticks(tick_marks, classes, rotation=45)
-        plt.yticks(tick_marks, classes)
-        
-        plt.figure()
-        plt.imshow(conf_mx_KNN)
-        plt.title('KNN Model Confusion matrix')
-        plt.colorbar()
-        classes = clf_KNN.classes_
-        tick_marks = np.arange(len(classes))
-        plt.xticks(tick_marks, classes, rotation=45)
-        plt.yticks(tick_marks, classes)
-        
-        plt.figure()
-        plt.imshow(conf_mx_svm)
-        plt.title('SVM Model Confusion matrix')
-        plt.colorbar()
+        plt.yticks(tick_marks, classes, rotation=45)
+
+        ax2 = fig.add_subplot(322)
+        ax2.imshow(conf_mx_KNN, cmap=plt.cm.gray), plt.title('KNN Model Confusion Matrix'), plt.colorbar,
         classes = clf_svm.classes_
         tick_marks = np.arange(len(classes))
         plt.xticks(tick_marks, classes, rotation=45)
-        plt.yticks(tick_marks, classes)
-    
-        plt.figure()
-        plt.imshow(conf_mx_RF)
-        plt.title('Random Forest Model Confusion matrix')
-        plt.colorbar()
-        classes = clf_RF.classes_
-        tick_marks = np.arange(len(classes))
-        plt.xticks(tick_marks, classes, rotation=45)
-        plt.yticks(tick_marks, classes)
+        plt.yticks(tick_marks, classes, rotation=45)
 
-        plt.figure()
-        plt.imshow(conf_mx_ensemble)
-        plt.title('Ensemble Model Confusion Matrix')
-        plt.colorbar()
-        classes = ensemble_clf.classes_
+        ax3 = fig.add_subplot(323)
+        ax3.imshow(conf_mx_svm, cmap=plt.cm.gray), plt.title('SVM Confusion Matrix'), plt.colorbar,
+        classes = clf_svm.classes_
         tick_marks = np.arange(len(classes))
         plt.xticks(tick_marks, classes, rotation=45)
-        plt.yticks(tick_marks, classes)
+        plt.yticks(tick_marks, classes, rotation=45)
+
+        ax4 = fig.add_subplot(324)
+        ax4.imshow(conf_mx_RF, cmap=plt.cm.gray), plt.title('Random Forest Confusion Matrix'), plt.colorbar,
+        classes = clf_svm.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes, rotation=45)
+
+        ax5 = fig.add_subplot(325)
+        ax5.imshow(conf_mx_ensemble, cmap=plt.cm.gray), plt.title('voting Ensemble Confusion Matrix'), plt.colorbar,
+        classes = clf_svm.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes, rotation=45)
+
+        plt.tight_layout()
+        plt.show()
+
         
     print() #line break
     
@@ -596,27 +610,33 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
     Y_test_predicted = clf.predict(X_test)
     final_conf_mx = confusion_matrix(Y_test, Y_test_predicted)
 
-    plt.figure()
-    plt.imshow(final_conf_mx)
-    plt.title('Final Model Confusion Matrix')
-    plt.colorbar()
+# calculate normalised confusion matrix
+    row_sums = final_conf_mx.sum(axis=1, keepdims=True)
+    norm_conf_mx = final_conf_mx / row_sums
+    np.fill_diagonal(norm_conf_mx, 0)
+
+
+# plot confusion matrices as subplots in a single figure
+
+    fig = plt.figure(figsize=(10,10))
+    ax1 = fig.add_subplot(211)
+    ax1.imshow(final_conf_mx), plt.title('Final Confusion Matrix'), plt.colorbar
     classes = clf.classes_
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45)
     plt.yticks(tick_marks, classes, rotation=45)
-    
-    # Normalise confusion matrix to show errors
-    row_sums = final_conf_mx.sum(axis=1, keepdims=True)
-    norm_conf_mx = final_conf_mx / row_sums
-    np.fill_diagonal(norm_conf_mx, 0)
-    plt.figure()
-    plt.imshow(norm_conf_mx, cmap=plt.cm.gray)
-    plt.colorbar()
-    plt.clim(0,1)
-    plt.title('Normalised Confusion Matrix')
+
+
+    ax2 = fig.add_subplot(212)
+    ax2.imshow(norm_conf_mx, cmap=plt.cm.gray), plt.title('Normalised Confusion Matrix'), plt.colorbar,
     plt.xticks(tick_marks, classes, rotation=45)
     plt.yticks(tick_marks, classes, rotation=45)
 
+    plt.tight_layout()
+    plt.show()
+
+
+# calculate performance measures for final model
     final_recall = recall_score(Y_test,Y_test_predicted,average="weighted")
     final_f1 = f1_score(Y_test, Y_test_predicted, average="weighted")
     final_accuracy = clf.score(X_test,Y_test)
@@ -708,11 +728,11 @@ def ImageAnalysis(img_name,clf,savefigs=True):
     cmap2.set_under(color='white') # make sure background is white
    
     #plots
-    plt.figure(figsize = (30,30)),plt.imshow(predicted,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None)
+    plt.figure(figsize = (30,30)),plt.imshow(predicted,cmap=cmap1),plt.colorbar(cmap=cmap1),plt.grid(None),plt.show()
     if savefigs:
         plt.savefig('Classified_UAV.png',dpi=300)
     
-    plt.figure(figsize = (30,30)),plt.imshow(albedo_array,cmap=cmap2,vmin=0.0000001,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None)
+    plt.figure(figsize = (30,30)),plt.imshow(albedo_array,cmap=cmap2,vmin=0.0000001,vmax=1),plt.colorbar(cmap=cmap2),plt.grid(None),plt.show()
     if savefigs:
         plt.savefig('Albedo_UAV.png',dpi=300)
     
@@ -876,13 +896,13 @@ def albedo_report(predicted,albedo_array):
 X,XX,YY = create_dataset(HCRF_file,plot_spectra=True)
 
 #optimise and train model
-clf, final_conf_mx, norm_conf_mx = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, print_conf_mx = True, plot_all_conf_mx = False)
+clf, final_conf_mx, norm_conf_mx = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, print_conf_mx = True, plot_all_conf_mx = True)
 
 # export trained model to file for archiving or re-use in other scripts
 #save_classifier(clf) 
 
 # apply model to UAV image
-#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
+predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
 
 #obtain albedo summary stats
 #alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
