@@ -68,14 +68,13 @@ Created on Thu Mar  8 14:32:24 2018
 import numpy as np
 import pandas as pd
 from sklearn.naive_bayes import GaussianNB
-from sklearn import preprocessing, neighbors, svm, model_selection
+from sklearn import neighbors, svm, model_selection
 from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 import matplotlib as mpl
 from sklearn.externals import joblib
 import matplotlib.pyplot as plt
-import gdal
 import rasterio
 from datetime import datetime
 plt.style.use('ggplot')
@@ -84,10 +83,13 @@ plt.style.use('ggplot')
 #######################################################################################
 ############################ DEFINE FUNCTIONS ###################################
 
+HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+savefig_path = '//home/joe/Desktop/'
 
-def create_dataset(year=2016,plot_spectra=True):
 
-    HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+def create_dataset(HCRF_file, year=2016, plot_spectra=True, savefigs = True):
+
+
    
     # Two options for filepaths depending on whether the code is run for Sentinel2
     # images from 2016 or 2017
@@ -116,10 +118,12 @@ def create_dataset(year=2016,plot_spectra=True):
                         '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B11_20m.jp2',
                         '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/B12_20m.jp2']
     else:
+
         print('ERROR: PLEASE CHOOSE TO USE IMAGERY FROM EITHER 2016 or 2017')
     
 
     # Read in raw HCRF data to DataFrame. This version pulls in HCRF data from 2016 and 2017
+
     hcrf_master = pd.read_csv(HCRF_file)
     HA_hcrf = pd.DataFrame()
     LA_hcrf = pd.DataFrame()
@@ -128,7 +132,7 @@ def create_dataset(year=2016,plot_spectra=True):
     WAT_hcrf = pd.DataFrame()
     SN_hcrf = pd.DataFrame()
     
-    # Group site namesaccording to surface class
+    # Group site names according to surface class
     
     HAsites = ['13_7_SB2','13_7_SB4','14_7_S5','14_7_SB1','14_7_SB5','14_7_SB10',
     '15_7_SB3','21_7_SB1','21_7_SB7','22_7_SB4','22_7_SB5','22_7_S3','22_7_S5',
@@ -227,6 +231,11 @@ def create_dataset(year=2016,plot_spectra=True):
         ax6.plot(WL,SN_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
         ax6.set_title('Snow')
         plt.tight_layout()
+
+        if savefigs:
+
+            plt.savefig(str(savefig_path + "training_spectra.jpg"))
+
         plt.show()
 
     # Make dataframe with column for label, columns for reflectance at key wavelengths
@@ -328,10 +337,11 @@ def create_dataset(year=2016,plot_spectra=True):
     YY = X['label']
     XX.head() #print the top 5 rows of dataframe to console
         
-    return HCRF_file,Sentinel_jp2s,X, XX, YY
+    return Sentinel_jp2s, X, XX, YY
 
 
-def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx = True, plot_all_conf_mx = True):
+def optimise_train_model(X,XX,YY, error_selector, test_size=0.3, print_conf_mx=True, plot_final_conf_mx=True,
+                         plot_all_conf_mx=True, savefigs=True):
     
     # Function splits the data into training and test sets, then tests the 
     # performance of a range of models on the training data. The final model 
@@ -347,7 +357,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
     # X, XX, YY are the datasets with and without labels.
 
     # split data into test and train sets.
-    X_train, X_test, Y_train, Y_test = model_selection.train_test_split(XX,YY,test_size = test_size)
+    X_train, X_test, Y_train, Y_test=model_selection.train_test_split(XX, YY, test_size=test_size)
     
     # test different classifers and report performance metrics using traning data only
     
@@ -480,6 +490,11 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
         plt.yticks(tick_marks, classes, rotation=45)
 
         plt.tight_layout()
+
+        if savefigs:
+
+            plt.savefig(str(savefig_path + "confusion_matrices.jpg"))
+
         plt.show()
         
     print() #line break
@@ -635,7 +650,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
             
 # Now that model has been selected using error metrics from training data, the final
 # model can be evaluated on the test set. The code below therefore measures the f1, recall,
-# confusion matrix and accuracy  for the final selected model and prints to ipython.
+# confusion matrix and accuracy for the final selected model and prints to console.
             
     Y_test_predicted = clf.predict(X_test)
     final_conf_mx = confusion_matrix(Y_test, Y_test_predicted)
@@ -647,21 +662,28 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
 
     # plot confusion matrices as subplots in a single figure
 
-    fig = plt.figure(figsize=(10, 10))
-    ax1 = fig.add_subplot(211)
-    ax1.imshow(final_conf_mx), plt.title('Final Confusion Matrix'), plt.colorbar
-    classes = clf.classes_
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes, rotation=45)
+    if plot_final_conf_mx == True:
 
-    ax2 = fig.add_subplot(212)
-    ax2.imshow(norm_conf_mx, cmap=plt.cm.gray), plt.title('Normalised Confusion Matrix'), plt.colorbar,
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes, rotation=45)
+        fig = plt.figure(figsize=(10, 10))
+        ax1 = fig.add_subplot(211)
+        ax1.imshow(final_conf_mx), plt.title("Final Model Confusion Matrix"), plt.colorbar
+        classes = clf.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes, rotation=45)
 
-    plt.tight_layout()
-    plt.show()
+        ax2 = fig.add_subplot(212)
+        ax2.imshow(norm_conf_mx, cmap=plt.cm.gray), plt.title('Final Model Normalised Confusion Matrix'), plt.colorbar,
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes, rotation=45)
+
+        plt.tight_layout()
+
+        if savefigs:
+
+            plt.savefig(str(savefig_path + "final_model_confusion_matrices.jpg"))
+
+        plt.show()
 
     final_recall = recall_score(Y_test,Y_test_predicted,average="weighted")
     final_f1 = f1_score(Y_test, Y_test_predicted, average="weighted")
@@ -670,6 +692,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
     final_average_metric = (final_recall + final_accuracy + final_f1)/3
 
     if print_conf_mx:
+
         print('Final Confusion Matrix')
         print(final_conf_mx)
         print()
@@ -698,6 +721,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
 
 
 def ClassifyImages(Sentinel_jp2s,clf, savefigs=False):
+
     startTime = datetime.now()
     
     # Import multispectral imagery from Sentinel 2 and apply ML algorithm to classify surface
@@ -709,10 +733,7 @@ def ClassifyImages(Sentinel_jp2s,clf, savefigs=False):
             arrs.append(f.read(1))
     
     data = np.array(arrs, dtype=arrs[0].dtype)
-    
-    predicted = []
-    test_array = []
-    albedo_array = []
+
     # get dimensions of each band layer
     lenx, leny = np.shape(data[0])
     
@@ -1179,10 +1200,10 @@ def albedo_report_all_sites(albedo_DFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_
 ############### RUN ENTIRE SEQUENCE ###################
 
 # create dataset
-HCRF_file,Sentinel_jp2s,X, XX, YY = create_dataset(year=2016,plot_spectra=True)
+Sentinel_jp2s, X, XX, YY = create_dataset(HCRF_file, year=2016, plot_spectra=False, savefigs=False)
 #
 ##optimise and train model
-clf, final_conf_mx, norm_conf_mx =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, print_conf_mx = True, plot_all_conf_mx = True)
+clf, final_conf_mx, norm_conf_mx =  optimise_train_model(X,XX,YY, error_selector = 'precision', test_size = 0.3, print_conf_mx = True, plot_final_conf_mx = False, plot_all_conf_mx = False, savefigs= False)
 
 ##pickle classifier and save to working directory
 #save_classifier(clf)

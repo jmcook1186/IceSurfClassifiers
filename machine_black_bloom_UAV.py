@@ -75,7 +75,7 @@ Created on Sat May 12 17:50:35 2018
 import numpy as np
 import pandas as pd
 from sklearn.naive_bayes import GaussianNB
-from sklearn import preprocessing, neighbors, svm, model_selection
+from sklearn import neighbors, svm, model_selection
 from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
@@ -83,7 +83,6 @@ import matplotlib as mpl
 from sklearn.externals import joblib
 import matplotlib.pyplot as plt
 import gdal
-import rasterio
 from datetime import datetime
 
 plt.style.use('ggplot')
@@ -94,13 +93,13 @@ plt.style.use('ggplot')
 
 HCRF_file = '//home//joe//Code//HCRF_master_machine_snicar.csv'
 img_name = '//home//joe//Desktop//Machine_Learn_Tutorial//UAV_21_7_17//uav_21_7_5cm_commongrid.tif'
-
+savefig_path = '//home/joe/Desktop/'
 
 ###############################################################################
 ########################## DEFINE FUNCTIONS ###################################
 
  
-def create_dataset(HCRF_file,plot_spectra=True):
+def create_dataset(HCRF_file,plot_spectra=True, savefigs = True):
 # Read in raw HCRF data to DataFrame. Pulls in HCRF data from 2016 and 2017
     
     hcrf_master = pd.read_csv(HCRF_file)
@@ -217,7 +216,17 @@ def create_dataset(HCRF_file,plot_spectra=True):
         ax6.plot(WL,SN_hcrf),plt.xlim(350,2000),plt.ylim(0,1.2),plt.title('LA'),plt.xlabel('Wavelength (nm)'),plt.ylabel('HCRF')
         ax6.set_title('Snow')
         plt.tight_layout()
+
+
+        if savefigs:
+
+            plt.savefig(str(savefig_path + "training_spectra.jpg"))
+
         plt.show()
+
+
+
+
 
     
     X = pd.DataFrame()
@@ -300,7 +309,7 @@ def create_dataset(HCRF_file,plot_spectra=True):
     
     return X, XX, YY
 
-def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx = True, plot_all_conf_mx = True):
+def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx = True, plot_final_conf_mx = True, plot_all_conf_mx = True, savefigs = True):
     
     # Function splits the data into training and test sets, then tests the 
     # performance of a range of models on the training data. The final model 
@@ -410,6 +419,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
     print('Ensemble accuracy',accuracy_ensemble,'Ensemble F1 Score = ', f1_ensemble, 'Ensemble Recall', recall_ensemble, 'Ensemble Precision = ', precision_ensemble)
     
     # PLOT CONFUSION MATRICES
+
     if plot_all_conf_mx:
 
         fig = plt.figure(figsize=(15, 15))
@@ -449,8 +459,13 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
         plt.yticks(tick_marks, classes, rotation=45)
 
         plt.tight_layout()
-        plt.show()
 
+
+        if savefigs:
+
+            plt.savefig(str(savefig_path+'confusion_matrices.jpg'))
+
+        plt.show()
         
     print() #line break
     
@@ -605,7 +620,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
             
 # Now that model has been selected using error metrics from training data, the final
 # model can be evaluated on the test set. The code below therefore measures the f1, recall,
-# confusion matrix and accuracy  for the final selected model and prints to ipython.
+# confusion matrix and accuracy  for the final selected model and prints to console.
             
     Y_test_predicted = clf.predict(X_test)
     final_conf_mx = confusion_matrix(Y_test, Y_test_predicted)
@@ -618,22 +633,29 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
 
 # plot confusion matrices as subplots in a single figure
 
-    fig = plt.figure(figsize=(10,10))
-    ax1 = fig.add_subplot(211)
-    ax1.imshow(final_conf_mx), plt.title('Final Confusion Matrix'), plt.colorbar
-    classes = clf.classes_
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes, rotation=45)
+    if plot_final_conf_mx == True:
+
+        fig = plt.figure(figsize=(10,10))
+        ax1 = fig.add_subplot(211)
+        ax1.imshow(final_conf_mx), plt.title('Final Confusion Matrix'), plt.colorbar
+        classes = clf.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes, rotation=45)
 
 
-    ax2 = fig.add_subplot(212)
-    ax2.imshow(norm_conf_mx, cmap=plt.cm.gray), plt.title('Normalised Confusion Matrix'), plt.colorbar,
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes, rotation=45)
+        ax2 = fig.add_subplot(212)
+        ax2.imshow(norm_conf_mx, cmap=plt.cm.gray), plt.title('Normalised Confusion Matrix'), plt.colorbar,
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes, rotation=45)
 
-    plt.tight_layout()
-    plt.show()
+        plt.tight_layout()
+
+        if savefigs:
+
+            plt.savefig(str(savefig_path + "final_model_confusion_matrices.jpg"))
+
+        plt.show()
 
 
 # calculate performance measures for final model
@@ -669,6 +691,7 @@ def optimise_train_model(X,XX,YY, error_selector, test_size = 0.3, print_conf_mx
 
     return clf,final_conf_mx, norm_conf_mx
 
+
 def save_classifier(clf):
     
     # pickle the classifier model for archiving or for reusing in another code
@@ -682,6 +705,7 @@ def save_classifier(clf):
 
 
 def ImageAnalysis(img_name,clf,savefigs=True):
+
     startTime = datetime.now()
     # set up empty lists to append into
     predicted = []
@@ -893,16 +917,16 @@ def albedo_report(predicted,albedo_array):
 ############### RUN ENTIRE SEQUENCE ###################
 
 # create dataset
-X,XX,YY = create_dataset(HCRF_file,plot_spectra=True)
+X,XX,YY = create_dataset(HCRF_file,plot_spectra=True, savefigs = True)
 
 #optimise and train model
-clf, final_conf_mx, norm_conf_mx = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, print_conf_mx = True, plot_all_conf_mx = True)
+clf, final_conf_mx, norm_conf_mx = optimise_train_model(X,XX,YY, error_selector = 'accuracy', test_size = 0.3, print_conf_mx = True, plot_final_conf_mx = True, plot_all_conf_mx = True, savefigs=True)
 
 # export trained model to file for archiving or re-use in other scripts
 #save_classifier(clf) 
 
 # apply model to UAV image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
+#predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
 
 #obtain albedo summary stats
 #alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,min_SN = albedo_report(predicted,albedo_array)
