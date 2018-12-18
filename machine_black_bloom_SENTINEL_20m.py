@@ -495,28 +495,33 @@ def optimise_train_model(X, XX, YY, error_selector, test_size=0.3, print_conf_mx
 
     if error_selector == 'accuracy':
 
-        if accuracy_KNN > accuracy_svm and accuracy_KNN > accuracy_NB and accuracy_KNN > accuracy_RF and accuracy_KNN > accuracy_ensemble:
+        if accuracy_KNN > accuracy_svm and accuracy_KNN > accuracy_NB and accuracy_KNN > accuracy_RF and accuracy_KNN >\
+                accuracy_ensemble:
             clf = neighbours.KNeighboursClassifier()
             clf.fit(X_train, Y_train)
             print('KNN model chosen')
 
-        elif accuracy_NB > accuracy_KNN and accuracy_NB > accuracy_svm and accuracy_NB > accuracy_RF and accuracy_NB > accuracy_ensemble:
+        elif accuracy_NB > accuracy_KNN and accuracy_NB > accuracy_svm and accuracy_NB > accuracy_RF and accuracy_NB > \
+                accuracy_ensemble:
             clf = clf_NB
             clf.fit(X_train, Y_train)
             print('Naive Bayes model chosen')
 
-        elif accuracy_svm > accuracy_NB and accuracy_svm > accuracy_KNN and accuracy_KNN > accuracy_RF and accuracy_svm > accuracy_ensemble:
+        elif accuracy_svm > accuracy_NB and accuracy_svm > accuracy_KNN and accuracy_KNN > accuracy_RF and accuracy_svm\
+                > accuracy_ensemble:
             clf = clf_svm
             clf.fit(X_train, Y_train)
             print('SVM model chosen')
             print('SVM Params: C = ', C, ' gamma = ', gamma, ' kernel = ', kernel)
 
-        elif accuracy_RF > accuracy_NB and accuracy_RF > accuracy_KNN and accuracy_RF > accuracy_ensemble and accuracy_RF > accuracy_svm:
+        elif accuracy_RF > accuracy_NB and accuracy_RF > accuracy_KNN and accuracy_RF > accuracy_ensemble and \
+                accuracy_RF > accuracy_svm:
             clf = clf_RF
             clf.fit(X_train, Y_train)
             print('RF model chosen')
 
-        elif accuracy_ensemble > accuracy_svm and accuracy_ensemble > accuracy_NB and accuracy_ensemble > accuracy_RF and accuracy_ensemble > accuracy_KNN:
+        elif accuracy_ensemble > accuracy_svm and accuracy_ensemble > accuracy_NB and accuracy_ensemble > accuracy_RF \
+                and accuracy_ensemble > accuracy_KNN:
             clf = clf_ensemble
             clf.fit(X_train, Y_train)
             print('Ensemble model chosen')
@@ -524,29 +529,34 @@ def optimise_train_model(X, XX, YY, error_selector, test_size=0.3, print_conf_mx
 
     elif error_selector == 'recall':
 
-        if recall_KNN > recall_svm and recall_KNN > recall_NB and recall_KNN > recall_RF and recall_KNN > recall_ensemble:
+        if recall_KNN > recall_svm and recall_KNN > recall_NB and recall_KNN > recall_RF and recall_KNN > \
+                recall_ensemble:
             clf = neighbours.KNeighboursClassifier()
             clf.fit(X_train, Y_train)
             print('KNN model chosen')
 
-        elif recall_NB > recall_KNN and recall_NB > recall_svm and recall_NB > recall_RF and recall_NB > recall_ensemble:
+        elif recall_NB > recall_KNN and recall_NB > recall_svm and recall_NB > recall_RF and recall_NB > \
+                recall_ensemble:
             clf = GaussianNB()
             clf.fit(X_train, Y_train)
             print('Naive Bayes model chosen')
 
-        elif recall_svm > recall_NB and recall_svm > recall_KNN and recall_svm > recall_RF and recall_svm > recall_ensemble:
+        elif recall_svm > recall_NB and recall_svm > recall_KNN and recall_svm > recall_RF and recall_svm > \
+                recall_ensemble:
             clf = svm.SVC(kernel=kernel, C=C, gamma=gamma, probability=True)
             clf.fit(X_train, Y_train)
             print('SVM model chosen')
             print('SVM Params: C = ', C, ' gamma = ', gamma, ' kernel = ', kernel)
 
-        elif recall_RF > recall_NB and recall_RF > recall_KNN and recall_RF > recall_ensemble and recall_RF > recall_svm:
+        elif recall_RF > recall_NB and recall_RF > recall_KNN and recall_RF > recall_ensemble and recall_RF > \
+                recall_svm:
             clf = clf_RF
             clf.fit(X_train, Y_train)
             print('RF model chosen')
 
 
-        elif recall_ensemble > recall_svm and recall_ensemble > recall_NB and recall_NB > recall_RF and recall_ensemble > recall_KNN:
+        elif recall_ensemble > recall_svm and recall_ensemble > recall_NB and recall_NB > recall_RF and \
+                recall_ensemble > recall_KNN:
             clf = VotingClassifier(
                 estimators=[('NB', clf_NB), ('SVM', clf_svm), ('KNN', clf_KNN)], voting='hard')
             clf.fit(X_train, Y_train)
@@ -585,28 +595,33 @@ def optimise_train_model(X, XX, YY, error_selector, test_size=0.3, print_conf_mx
 
     elif error_selector == 'precision':
 
-        if precision_KNN > precision_svm and precision_KNN > precision_NB and precision_KNN > precision_RF and precision_KNN > precision_ensemble:
+        if precision_KNN > precision_svm and precision_KNN > precision_NB and precision_KNN > precision_RF and \
+                precision_KNN > precision_ensemble:
             clf = neighbours.KNeighboursClassifier()
             clf.fit(X_train, Y_train)
             print('KNN model chosen')
 
-        elif precision_NB > precision_KNN and precision_NB > precision_svm and precision_NB > precision_RF and precision_NB > precision_ensemble:
+        elif precision_NB > precision_KNN and precision_NB > precision_svm and precision_NB > precision_RF and \
+                precision_NB > precision_ensemble:
             clf = GaussianNB()
             clf.fit(X_train, Y_train)
             print('Naive Bayes model chosen')
 
-        elif precision_RF > precision_NB and precision_RF > precision_KNN and precision_RF > precision_ensemble and precision_RF > precision_svm:
+        elif precision_RF > precision_NB and precision_RF > precision_KNN and precision_RF > precision_ensemble and \
+                precision_RF > precision_svm:
             clf = clf_RF
             clf.fit(X_train, Y_train)
             print('RF model chosen')
 
-        elif precision_svm > precision_NB and precision_svm > precision_KNN and precision_svm > precision_RF and precision_svm > precision_ensemble:
+        elif precision_svm > precision_NB and precision_svm > precision_KNN and precision_svm > precision_RF and \
+                precision_svm > precision_ensemble:
             clf = svm.SVC(kernel=kernel, C=C, gamma=gamma, probability=True)
             clf.fit(X_train, Y_train)
             print('SVM model chosen')
             print('SVM Params: C = ', C, ' gamma = ', gamma, ' kernel = ', kernel)
 
-        elif precision_ensemble > precision_svm and precision_ensemble > precision_NB and precision_ensemble > precision_RF and precision_ensemble > precision_KNN:
+        elif precision_ensemble > precision_svm and precision_ensemble > precision_NB and precision_ensemble > \
+                precision_RF and precision_ensemble > precision_KNN:
             clf = VotingClassifier(
                 estimators=[('NB', clf_NB), ('SVM', clf_svm), ('KNN', clf_KNN)], voting='hard')
             clf.fit(X_train, Y_train)
@@ -614,28 +629,33 @@ def optimise_train_model(X, XX, YY, error_selector, test_size=0.3, print_conf_mx
 
     elif error_selector == 'average_all_metric':
 
-        if average_metric_KNN > average_metric_svm and average_metric_KNN > average_metric_NB and average_metric_KNN > average_metric_RF and average_metric_KNN > average_metric_ensemble:
+        if average_metric_KNN > average_metric_svm and average_metric_KNN > average_metric_NB and average_metric_KNN > \
+                average_metric_RF and average_metric_KNN > average_metric_ensemble:
             clf = neighbours.KNeighboursClassifier()
             clf.fit(X_train, Y_train)
             print('KNN model chosen')
 
-        elif average_metric_NB > average_metric_KNN and average_metric_NB > average_metric_svm and average_metric_NB > average_metric_RF and average_metric_NB > average_metric_ensemble:
+        elif average_metric_NB > average_metric_KNN and average_metric_NB > average_metric_svm and average_metric_NB > \
+                average_metric_RF and average_metric_NB > average_metric_ensemble:
             clf = GaussianNB()
             clf.fit(X_train, Y_train)
             print('Naive Bayes model chosen')
 
-        elif average_metric_RF > average_metric_NB and average_metric_RF > average_metric_KNN and average_metric_RF > average_metric_ensemble and average_metric_RF > average_metric_svm:
+        elif average_metric_RF > average_metric_NB and average_metric_RF > average_metric_KNN and average_metric_RF > \
+                average_metric_ensemble and average_metric_RF > average_metric_svm:
             clf = clf_RF
             clf.fit(X_train, Y_train)
             print('RF model chosen')
 
-        elif average_metric_svm > average_metric_NB and average_metric_svm > average_metric_KNN and average_metric_svm > average_metric_RF and average_metric_svm > average_metric_ensemble:
+        elif average_metric_svm > average_metric_NB and average_metric_svm > average_metric_KNN and average_metric_svm\
+                > average_metric_RF and average_metric_svm > average_metric_ensemble:
             clf = svm.SVC(kernel=kernel, C=C, gamma=gamma, probability=True)
             clf.fit(X_train, Y_train)
             print('SVM model chosen')
             print('SVM Params: C = ', C, ' gamma = ', gamma, ' kernel = ', kernel)
 
-        elif average_metric_ensemble > average_metric_svm and average_metric_ensemble > average_metric_NB and average_metric_ensemble > average_metric_RF and average_metric_ensemble > average_metric_KNN:
+        elif average_metric_ensemble > average_metric_svm and average_metric_ensemble > average_metric_NB and \
+                average_metric_ensemble > average_metric_RF and average_metric_ensemble > average_metric_KNN:
             clf = VotingClassifier(
                 estimators=[('NB', clf_NB), ('SVM', clf_svm), ('KNN', clf_KNN)], voting='hard')
             clf.fit(X_train, Y_train)
@@ -1129,7 +1149,8 @@ def albedo_report_by_site(predicted1, predicted2, predicted3, albedo_array1, alb
         albedo_DFall = pd.concat([albedo_DF1, albedo_DF2, albedo_DF3])
         albedo_DFall.to_csv('2016Sentinel_20m_albedo_dataset_allsites.csv')
 
-    return albedo_DF1, albedo_DF2, albedo_DF3, albedo_DFall, HA_DF1, LA_DF1, CI_DF1, CC_DF1, WAT_DF1, SN_DF1, HA_DF2, LA_DF2, CI_DF2, CC_DF2, WAT_DF2, SN_DF2, HA_DF3, LA_DF3, CI_DF3, CC_DF3, WAT_DF3, SN_DF3
+    return albedo_DF1, albedo_DF2, albedo_DF3, albedo_DFall, HA_DF1, LA_DF1, CI_DF1, CC_DF1, WAT_DF1, SN_DF1, HA_DF2,\
+           LA_DF2, CI_DF2, CC_DF2, WAT_DF2, SN_DF2, HA_DF3, LA_DF3, CI_DF3, CC_DF3, WAT_DF3, SN_DF3
 
 
 def albedo_report_all_sites(albedo_DFall, HA_DF1, LA_DF1, CI_DF1, CC_DF1, WAT_DF1, SN_DF1, HA_DF2, LA_DF2, CI_DF2,
@@ -1198,13 +1219,17 @@ clf, final_conf_mx, norm_conf_mx = optimise_train_model(X, XX, YY, error_selecto
                                                         plot_all_conf_mx=False, savefigs=False, pickle_model=False)
 
 # apply model to Sentinel2 image
-# predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Sentinel_jp2s,clf,savefigs=False)
+# predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Sentinel_jp2s,clf,
+# savefigs=False)
 
 # calculate coverage stats for each sub-area
 # CoverageStats(predicted1,predicted2,predicted3)
 
 # obtain albedo summary stats
-# albedo_DF1,albedo_DF2,albedo_DF3,albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3 = albedo_report_by_site(predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3)
+# albedo_DF1,albedo_DF2,albedo_DF3,albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,
+# WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3 = albedo_report_by_site(predicted1,predicted2,predicted3,
+# albedo_array1,albedo_array2,albedo_array3)
 
 # obtain albedo stats for all sites combined
-# HA_DF,LA_DF,CI_DF,CC_DF,WAT_DF,SN_DF = albedo_report_all_sites(albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3)
+# HA_DF,LA_DF,CI_DF,CC_DF,WAT_DF,SN_DF = albedo_report_all_sites(albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_
+# DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3)
