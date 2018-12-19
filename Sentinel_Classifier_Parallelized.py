@@ -66,21 +66,14 @@
 
 import numpy as np
 import pandas as pd
-from sklearn.naive_bayes import GaussianNB
-from sklearn import neighbors, svm, model_selection
+from sklearn import model_selection
 from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
-from sklearn.ensemble import VotingClassifier, RandomForestClassifier
-from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
 import matplotlib as mpl
-from sklearn.externals import joblib
 import matplotlib.pyplot as plt
 import rasterio
 from datetime import datetime
-import dask.array as da
-from sklearn.datasets import make_classification
-from sklearn.linear_model import LogisticRegressionCV
 from dask_ml.wrappers import ParallelPostFit
-
 
 HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
 savefig_path = '//home/joe/Desktop/'
@@ -347,6 +340,17 @@ def optimise_train_model(X, XX, YY, test_size=0.3):
 
     clf.fit(X_train, Y_train)
 
+    accuracy_RF = clf.score(X_train, Y_train)
+    Y_predict_RF = clf.predict(X_train)
+    conf_mx_RF = confusion_matrix(Y_train, Y_predict_RF)
+    recall_RF = recall_score(Y_train, Y_predict_RF, average="weighted")
+    f1_RF = f1_score(Y_train, Y_predict_RF, average="weighted")
+    precision_RF = precision_score(Y_train, Y_predict_RF, average='weighted')
+    average_metric_RF = (accuracy_RF + recall_RF + f1_RF) / 3
+
+    print('Random Forest accuracy', accuracy_RF, '\nRandom Forest F1 Score = ', f1_RF, '\nRandom Forest Recall',
+          recall_RF, '\nRandom Forest Precision = ', precision_RF)
+
     return clf
 
 
@@ -372,14 +376,15 @@ def ClassifyImages(Sentinel_jp2s, clf, plot_maps = True, savefigs=False):
     test_array = np.array([data[0] / 10000, data[1] / 10000, data[2] / 10000, data[3] / 10000, data[4] / 10000,
                            data[5] / 10000, data[6] / 10000, data[7] / 10000, data[8] / 10000])
     test_array = test_array.reshape(9, lenx * leny)  # reshape into 5 x 1D arrays
-    test_array = test_array.transpose()  # transpose sot hat bands are read as features
+    test_array = test_array.transpose()  # transpose so that bands are read as features
+
     # create albedo array by applying Knap (1999) narrowband - broadband conversion
     albedo_array = np.array([0.356 * (data[0] / 10000) + 0.13 * (data[2] / 10000) + 0.373 * (
                 data[6] / 10000) + 0.085 * (data[7] / 10000) + 0.072 * (data[8] / 10000) - 0.0018])
 
-
     # apply ML algorithm to 4-value array for each pixel - predict surface type
     predicted = clf.predict(test_array)
+    predicted = np.array(predicted)
 
     # convert surface class (string) to a numeric value for plotting
     predicted[predicted == 'SN'] = float(1)
@@ -772,8 +777,11 @@ def albedo_report_by_site(predicted1, predicted2, predicted3, albedo_array1, alb
            LA_DF2, CI_DF2, CC_DF2, WAT_DF2, SN_DF2, HA_DF3, LA_DF3, CI_DF3, CC_DF3, WAT_DF3, SN_DF3
 
 
+
+
 def albedo_report_all_sites(albedo_DFall, HA_DF1, LA_DF1, CI_DF1, CC_DF1, WAT_DF1, SN_DF1, HA_DF2, LA_DF2, CI_DF2,
                             CC_DF2, WAT_DF2, SN_DF2, HA_DF3, LA_DF3, CI_DF3, CC_DF3, WAT_DF3, SN_DF3):
+
     HA_DF = pd.concat([HA_DF1, HA_DF2, HA_DF3])
     LA_DF = pd.concat([LA_DF1, LA_DF2, LA_DF3])
     CI_DF = pd.concat([CI_DF1, CI_DF2, CI_DF3])
@@ -825,24 +833,26 @@ def albedo_report_all_sites(albedo_DFall, HA_DF1, LA_DF1, CI_DF1, CC_DF1, WAT_DF
 
 
 
+# RUN FUNCTIONS
 
+# create dataset
 Sentinel_jp2s, X, XX, YY = create_dataset(HCRF_file, year=2016, plot_spectra=False, savefigs=False)
-#
-##optimise and train model
+
+#optimise and train model
 clf = optimise_train_model(X, XX, YY, test_size=0.3)
 
 # apply model to Sentinel2 image
 predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Sentinel_jp2s,clf,
-plot_maps = True, savefigs=False)
+plot_maps = False, savefigs=False)
 
 # calculate coverage stats for each sub-area
-# CoverageStats(predicted1,predicted2,predicted3)
+CoverageStats(predicted1,predicted2,predicted3)
 
 # obtain albedo summary stats
-# albedo_DF1,albedo_DF2,albedo_DF3,albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,
-# WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3 = albedo_report_by_site(predicted1,predicted2,predicted3,
-# albedo_array1,albedo_array2,albedo_array3)
+albedo_DF1, albedo_DF2, albedo_DF3, albedo_DFall, HA_DF1, LA_DF1, CI_DF1, CC_DF1, WAT_DF1, SN_DF1, HA_DF2, \
+LA_DF2, CI_DF2, CC_DF2, WAT_DF2, SN_DF2, HA_DF3, LA_DF3, CI_DF3, CC_DF3, WAT_DF3, SN_DF3= \
+albedo_report_by_site(predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3)
 
 # obtain albedo stats for all sites combined
-# HA_DF,LA_DF,CI_DF,CC_DF,WAT_DF,SN_DF = albedo_report_all_sites(albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_
-# DF1,HA
+HA_DF,LA_DF,CI_DF,CC_DF,WAT_DF,SN_DF = albedo_report_all_sites(albedo_DFall, HA_DF1, LA_DF1, CI_DF1, CC_DF1, WAT_DF1,
+SN_DF1, HA_DF2, LA_DF2, CI_DF2, CC_DF2, WAT_DF2, SN_DF2, HA_DF3, LA_DF3, CI_DF3, CC_DF3, WAT_DF3, SN_DF3)

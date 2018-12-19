@@ -1227,13 +1227,13 @@ predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  Cl
 plot_maps = True, savefigs=False)
 
 # calculate coverage stats for each sub-area
-# CoverageStats(predicted1,predicted2,predicted3)
+CoverageStats(predicted1,predicted2,predicted3)
 
 # obtain albedo summary stats
-# albedo_DF1,albedo_DF2,albedo_DF3,albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,
-# WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3 = albedo_report_by_site(predicted1,predicted2,predicted3,
-# albedo_array1,albedo_array2,albedo_array3)
+albedo_DF1, albedo_DF2, albedo_DF3, albedo_DFall, HA_DF1, LA_DF1, CI_DF1, CC_DF1, WAT_DF1, SN_DF1, HA_DF2, \
+LA_DF2, CI_DF2, CC_DF2, WAT_DF2, SN_DF2, HA_DF3, LA_DF3, CI_DF3, CC_DF3, WAT_DF3, SN_DF3= \
+albedo_report_by_site(predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3)
 
 # obtain albedo stats for all sites combined
-# HA_DF,LA_DF,CI_DF,CC_DF,WAT_DF,SN_DF = albedo_report_all_sites(albedoDFall,HA_DF1,LA_DF1,CI_DF1,CC_DF1,WAT_DF1,SN_
-# DF1,HA_DF2,LA_DF2,CI_DF2,CC_DF2,WAT_DF2,SN_DF2,HA_DF3,LA_DF3,CI_DF3,CC_DF3,WAT_DF3,SN_DF3)
+HA_DF,LA_DF,CI_DF,CC_DF,WAT_DF,SN_DF = albedo_report_all_sites(albedo_DFall, HA_DF1, LA_DF1, CI_DF1, CC_DF1, WAT_DF1,
+SN_DF1, HA_DF2, LA_DF2, CI_DF2, CC_DF2, WAT_DF2, SN_DF2, HA_DF3, LA_DF3, CI_DF3, CC_DF3, WAT_DF3, SN_DF3)
