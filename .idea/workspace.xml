@@ -2,8 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0cb12377-5080-4dfb-bd45-a6a909b22a49" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py" beforeDir="false" afterPath="$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/machine_black_bloom_UAV.py" beforeDir="false" afterPath="$PROJECT_DIR$/machine_black_bloom_UAV.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -14,19 +12,19 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="375">
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/machine_black_bloom_UAV.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="364">
-              <caret line="774" column="33" selection-start-line="774" selection-start-column="33" selection-end-line="774" selection-end-column="33" />
+            <state relative-caret-position="-2475">
+              <caret line="775" column="74" selection-start-line="775" selection-start-column="74" selection-end-line="775" selection-end-column="74" />
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="12388">
+            <state relative-caret-position="-3110">
               <caret line="743" selection-start-line="743" selection-end-line="743" />
               <folding>
                 <element signature="e#3436#3454#0" expanded="true" />
@@ -51,8 +49,8 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py" />
-        <option value="$PROJECT_DIR$/machine_black_bloom_UAV.py" />
         <option value="$PROJECT_DIR$/Sentinel_classifier_parallelized.py" />
+        <option value="$PROJECT_DIR$/machine_black_bloom_UAV.py" />
       </list>
     </option>
   </component>
@@ -111,9 +109,6 @@
       <module name="IceSurfClassifiers" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
@@ -121,7 +116,7 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/machine_black_bloom_UAV.py" />
       <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
       <option name="REDIRECT_INPUT" value="false" />
@@ -130,6 +125,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.machine_black_bloom_UAV" />
         <item itemvalue="Python.machine_black_bloom_UAV" />
         <item itemvalue="Python.machine_black_bloom_SENTINEL_20m" />
       </list>
@@ -191,13 +187,6 @@
     </layout-to-restore>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/machine_black_bloom_UAV.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="364">
-          <caret line="774" column="33" selection-start-line="774" selection-start-column="33" selection-end-line="774" selection-end-column="33" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/Sentinel_classifier_parallelized.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="270">
@@ -210,11 +199,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="12388">
+        <state relative-caret-position="-3110">
           <caret line="743" selection-start-line="743" selection-end-line="743" />
           <folding>
             <element signature="e#3436#3454#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/machine_black_bloom_UAV.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-2475">
+          <caret line="775" column="74" selection-start-line="775" selection-start-column="74" selection-end-line="775" selection-end-column="74" />
         </state>
       </provider>
     </entry>

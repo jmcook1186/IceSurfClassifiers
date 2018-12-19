@@ -825,6 +825,7 @@ def ImageAnalysis(img_name, clf, plot_maps = True, savefigs=True):
 
 
 def albedo_report(predicted, albedo_array):
+
     alb_WAT = []
     alb_CC = []
     alb_CI = []
@@ -959,6 +960,6 @@ predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT
 ImageAnalysis(img_name,clf,plot_maps = True, savefigs=False)
 
 # obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,
-mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,
+alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI, \
+mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,\
 min_SN = albedo_report(predicted,albedo_array)
