@@ -738,7 +738,8 @@ def optimise_train_model(X, XX, YY, error_selector, test_size=0.3, print_conf_mx
     return clf, final_conf_mx, norm_conf_mx
 
 
-def ClassifyImages(Sentinel_jp2s, clf, savefigs=False):
+def ClassifyImages(Sentinel_jp2s, clf, plot_maps = True, savefigs=False):
+
     startTime = datetime.now()
 
     # Import multispectral imagery from Sentinel 2 and apply ML algorithm to classify surface
@@ -763,8 +764,6 @@ def ClassifyImages(Sentinel_jp2s, clf, savefigs=False):
     albedo_array = np.array([0.356 * (data[0] / 10000) + 0.13 * (data[2] / 10000) + 0.373 * (
                 data[6] / 10000) + 0.085 * (data[7] / 10000) + 0.072 * (data[8] / 10000) - 0.0018])
 
-    # apply classifier to each pixel in multispectral image with bands as features
-    predicted = clf.predict(test_array)
 
     # apply ML algorithm to 4-value array for each pixel - predict surface type
     predicted = clf.predict(test_array)
@@ -784,7 +783,9 @@ def ClassifyImages(Sentinel_jp2s, clf, savefigs=False):
     predicted = np.reshape(predicted, [lenx, leny])
     albedo_array = np.reshape(albedo_array, [lenx, leny])
 
-    # split image into 3 ice-covered areas that together represent majority of glaciated land in image
+    # split image into 3 ice-covered areas that together represent majority of glaciated land in image (avoiding
+    # ice-free areas of satellite image) NB a mask isolating the ice over the entire img would be a better way to
+    # do this.
 
     predicted1 = predicted[2170:2975, 2130:4350]
     predicted2 = predicted[1400:2160, 2630:4740]
@@ -797,43 +798,46 @@ def ClassifyImages(Sentinel_jp2s, clf, savefigs=False):
     cmap2 = 'Greys_r'
 
     # plot classified surface
-    plt.figure(figsize=(30, 9)), plt.imshow(predicted1, cmap=cmap1), plt.colorbar(cmap=cmap1), plt.grid(
-        None), plt.show()
-    if savefigs:
-        plt.savefig('2016Clasified_Sentinel_20m_Area1.png', dpi=300)
 
-    plt.figure(figsize=(30, 8)), plt.imshow(predicted2, cmap=cmap1), plt.colorbar(cmap=cmap1), plt.grid(
-        None), plt.show()
-    if savefigs:
-        plt.savefig('2016Clasified_Sentinel_20m_Area2.png', dpi=300)
+    if plot_maps:
 
-    plt.figure(figsize=(30, 8)), plt.imshow(predicted3, cmap=cmap1), plt.colorbar(cmap=cmap1), plt.grid(
-        None), plt.show()
-    if savefigs:
-        plt.savefig('2016Clasified_Sentinel_20m_Area3.png', dpi=300)
+        plt.figure(figsize=(30,30))
+        plt.title("3 Classified ice surfaces and their albedos: SW Greenland Ice Sheet", fontsize = 28)
 
-    plt.figure(figsize=(30, 9)), plt.imshow(albedo_array1, cmap=cmap2, vmin=0, vmax=1), plt.colorbar(
-        cmap=cmap2), plt.grid(None), plt.show()
-    if savefigs:
-        plt.savefig('2016Albedo_Sentinel_20m_Area1.png', dpi=300)
+        plt.subplot(321)
+        plt.imshow(predicted1, cmap=cmap1), plt.grid(None), plt.colorbar(), plt.title("Area 1: Classified")
 
-    plt.figure(figsize=(30, 8)), plt.imshow(albedo_array2, cmap=cmap2, vmin=0, vmax=1), plt.colorbar(
-        cmap=cmap2), plt.grid(None), plt.show()
-    if savefigs:
-        plt.savefig('2016Albedo_Sentinel_20m_Area2.png', dpi=300)
+        plt.subplot(322)
+        plt.imshow(albedo_array1, cmap=cmap2), plt.grid(None), plt.colorbar(), plt.title("Area 1: Albedo")
 
-    plt.figure(figsize=(30, 8)), plt.imshow(albedo_array3, cmap=cmap2, vmin=0, vmax=1), plt.colorbar(
-        cmap=cmap2), plt.grid(None), plt.show()
-    if savefigs:
-        plt.savefig('2016Albedo_Sentinel_20m_Area3.png', dpi=300)
+        plt.subplot(323)
+        plt.imshow(predicted2, cmap=cmap1), plt.grid(None), plt.colorbar(), plt.title("Area 2: Classified")
 
-    print()
-    print('Time taken to classify image = ', datetime.now() - startTime)
+        plt.subplot(324)
+        plt.imshow(albedo_array2, cmap=cmap2), plt.grid(None), plt.colorbar(), plt.title("Area 2: Albedo")
+
+        plt.subplot(325)
+        plt.imshow(predicted3, cmap=cmap1), plt.grid(None), plt.colorbar(), plt.title("Area 3 : Classified")
+
+        plt.subplot(326)
+        plt.imshow(albedo_array3, cmap=cmap2), plt.grid(None), plt.colorbar(), plt.title("Area 3: Albedo")
+
+        if not savefigs:
+            plt.show()
+
+
+    if savefigs:
+        plt.savefig(str(savefig_path + "confusion_matrices.jpg"), dpi=300)
+        plt.show()
+
+
+    print("\nTime taken to classify image = ", datetime.now() - startTime)
 
     return predicted1, predicted2, predicted3, albedo_array1, albedo_array2, albedo_array3
 
 
 def CoverageStats(predicted1, predicted2, predicted3):
+
     res = 0.02  # Ground resolution of sentinel data in km
     counter = 0
 
@@ -1219,8 +1223,8 @@ clf, final_conf_mx, norm_conf_mx = optimise_train_model(X, XX, YY, error_selecto
                                                         plot_all_conf_mx=False, savefigs=False, pickle_model=False)
 
 # apply model to Sentinel2 image
-# predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Sentinel_jp2s,clf,
-# savefigs=False)
+predicted1,predicted2,predicted3,albedo_array1,albedo_array2,albedo_array3 =  ClassifyImages(Sentinel_jp2s,clf,
+plot_maps = True, savefigs=False)
 
 # calculate coverage stats for each sub-area
 # CoverageStats(predicted1,predicted2,predicted3)

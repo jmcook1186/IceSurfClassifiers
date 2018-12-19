@@ -717,7 +717,9 @@ def optimise_train_model(X, XX, YY, error_selector, test_size=0.3, print_conf_mx
     return clf, final_conf_mx, norm_conf_mx
 
 
-def ImageAnalysis(img_name, clf, savefigs=True):
+
+def ImageAnalysis(img_name, clf, plot_maps = True, savefigs=True):
+
     startTime = datetime.now()
     # set up empty lists to append into
     predicted = []
@@ -754,6 +756,7 @@ def ImageAnalysis(img_name, clf, savefigs=True):
     predicted[predicted == 'HA'] = float(6)
 
     predicted = predicted.astype(float)
+
     # reshape 1D array back into original image dimensions
     predicted = np.reshape(predicted, [lenx, leny])
     albedo_array = albedo_array.reshape(lenx, leny)
@@ -765,15 +768,30 @@ def ImageAnalysis(img_name, clf, savefigs=True):
     cmap2.set_under(color='white')  # make sure background is white
 
     # plots
-    plt.figure(figsize=(30, 30)), plt.imshow(predicted, cmap=cmap1), plt.colorbar(cmap=cmap1), plt.grid(
-        None), plt.show()
-    if savefigs:
-        plt.savefig('Classified_UAV.png', dpi=300)
 
-    plt.figure(figsize=(30, 30)), plt.imshow(albedo_array, cmap=cmap2, vmin=0.0000001, vmax=1), plt.colorbar(
-        cmap=cmap2), plt.grid(None), plt.show()
+
+    if plot_maps:
+
+        plt.figure(figsize=(15, 15))
+        plt.title("Classified ice surface and its albedos from UAV imagery: SW Greenland Ice Sheet", fontsize=28)
+
+        plt.subplot(211)
+        plt.imshow(predicted, cmap=cmap1), plt.grid(None), plt.colorbar(), plt.title("UAV Classified Map")
+
+        plt.subplot(212)
+        plt.imshow(albedo_array, cmap=cmap2, vmin=0.00000001, vmax = 1), plt.grid(None), plt.colorbar(),\
+        plt.title("UAV Albedo Map")
+
+        if not savefigs:
+            plt.show()
+
     if savefigs:
-        plt.savefig('Albedo_UAV.png', dpi=300)
+        plt.savefig(str(savefig_path + "UAV_classified_albedo_map.jpg"), dpi=300)
+        plt.show()
+
+
+    print("\nTime taken to classify image = ", datetime.now() - startTime)
+
 
     # Calculate coverage stats
     numHA = (predicted == 6).sum()
@@ -937,10 +955,10 @@ clf, final_conf_mx, norm_conf_mx = optimise_train_model(X, XX, YY, error_selecto
                                                         plot_all_conf_mx=False, savefigs=False, pickle_model=False)
 
 # apply model to UAV image
-# predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage,
-# SN_coverage = ImageAnalysis(img_name,clf,savefigs=False)
+predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = \
+ImageAnalysis(img_name,clf,plot_maps = True, savefigs=False)
 
 # obtain albedo summary stats
-# alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,
-# mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,
-# min_SN = albedo_report(predicted,albedo_array)
+alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI,
+mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,
+min_SN = albedo_report(predicted,albedo_array)
