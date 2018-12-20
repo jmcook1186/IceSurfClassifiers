@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0cb12377-5080-4dfb-bd45-a6a909b22a49" name="Default Changelist" comment="" />
+    <list default="true" id="0cb12377-5080-4dfb-bd45-a6a909b22a49" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py" beforeDir="false" afterPath="$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UAV_Classifier_Parallelized.py" beforeDir="false" afterPath="$PROJECT_DIR$/UAV_Classifier_Parallelized.py" afterDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -13,8 +17,26 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/machine_black_bloom_UAV.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-2475">
-              <caret line="775" column="74" selection-start-line="775" selection-start-column="74" selection-end-line="775" selection-end-column="74" />
+            <state relative-caret-position="4716">
+              <caret line="679" selection-start-line="679" selection-end-line="683" selection-end-column="73" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/UAV_Classifier_Parallelized.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="364">
+              <caret line="334" column="36" selection-start-line="334" selection-start-column="36" selection-end-line="334" selection-end-column="36" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="54">
+              <caret line="327" selection-start-line="327" selection-end-line="327" />
             </state>
           </provider>
         </entry>
@@ -22,22 +44,10 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="454">
-              <caret line="1228" selection-start-line="1228" selection-end-line="1238" selection-end-column="8" />
+            <state relative-caret-position="1135">
+              <caret line="1228" selection-start-line="1228" selection-end-line="1229" />
               <folding>
                 <element signature="e#3436#3454#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/parallel_test.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="292">
-              <caret line="345" column="29" lean-forward="true" selection-start-line="345" selection-start-column="29" selection-end-line="345" selection-end-column="29" />
-              <folding>
-                <element signature="e#3978#3996#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -62,6 +72,8 @@
         <option value="$PROJECT_DIR$/Sentinel_classifier_parallelized.py" />
         <option value="$PROJECT_DIR$/machine_black_bloom_UAV.py" />
         <option value="$PROJECT_DIR$/parallel_test.py" />
+        <option value="$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py" />
+        <option value="$PROJECT_DIR$/UAV_Classifier_Parallelized.py" />
       </list>
     </option>
   </component>
@@ -75,7 +87,20 @@
     <navigator proportions="" version="1">
       <foldersAlwaysOnTop value="true" />
     </navigator>
-    <panes />
+    <panes>
+      <pane id="Scope" />
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="IceSurfClassifiers" type="b2602c69:ProjectViewProjectNode" />
+              <item name="IceSurfClassifiers" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+    </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="full.screen.before.presentation.mode" value="false" />
@@ -94,7 +119,28 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.parallel_test">
+  <component name="RunManager" selected="Python.UAV_Classifier_Parallelized">
+    <configuration name="UAV_Classifier_Parallelized" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="IceSurfClassifiers" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/UAV_Classifier_Parallelized.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="machine_black_bloom_SENTINEL_20m" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="IceSurfClassifiers" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -120,6 +166,9 @@
       <module name="IceSurfClassifiers" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
@@ -157,10 +206,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.UAV_Classifier_Parallelized" />
+        <item itemvalue="Python.machine_black_bloom_SENTINEL_20m" />
         <item itemvalue="Python.parallel_test" />
         <item itemvalue="Python.machine_black_bloom_UAV" />
         <item itemvalue="Python.machine_black_bloom_UAV" />
-        <item itemvalue="Python.machine_black_bloom_SENTINEL_20m" />
       </list>
     </recent_temporary>
   </component>
@@ -179,14 +229,13 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="62" y="27" width="2498" height="1413" extended-state="0" />
-    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" weight="0.24979757" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24979757" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.3482143" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.3482143" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -220,40 +269,44 @@
     </layout-to-restore>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/Sentinel_classifier_parallelized.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="270">
-          <caret line="75" column="29" selection-start-line="75" selection-start-column="29" selection-end-line="75" selection-end-column="29" />
-          <folding>
-            <element signature="e#3436#3454#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/machine_black_bloom_UAV.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2475">
-          <caret line="775" column="74" selection-start-line="775" selection-start-column="74" selection-end-line="775" selection-end-column="74" />
+    <entry file="file://$PROJECT_DIR$/Sentinel_classifier_parallelized.py" />
+    <entry file="file://$PROJECT_DIR$/parallel_test.py" />
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor />
+          <second_editor />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="454">
-          <caret line="1228" selection-start-line="1228" selection-end-line="1238" selection-end-column="8" />
+        <state relative-caret-position="1135">
+          <caret line="1228" selection-start-line="1228" selection-end-line="1229" />
           <folding>
             <element signature="e#3436#3454#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/parallel_test.py">
+    <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="292">
-          <caret line="345" column="29" lean-forward="true" selection-start-line="345" selection-start-column="29" selection-end-line="345" selection-end-column="29" />
-          <folding>
-            <element signature="e#3978#3996#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="54">
+          <caret line="327" selection-start-line="327" selection-end-line="327" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/machine_black_bloom_UAV.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4716">
+          <caret line="679" selection-start-line="679" selection-end-line="683" selection-end-column="73" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/UAV_Classifier_Parallelized.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="364">
+          <caret line="334" column="36" selection-start-line="334" selection-start-column="36" selection-end-line="334" selection-end-column="36" />
         </state>
       </provider>
     </entry>

@@ -331,8 +331,10 @@ def optimise_train_model(X, XX, YY, test_size=0.3):
     precision_RF = precision_score(Y_train, Y_predict_RF, average='weighted')
     average_metric_RF = (accuracy_RF + recall_RF + f1_RF) / 3
 
-    print('Random Forest accuracy', accuracy_RF, '\nRandom Forest F1 Score = ', f1_RF, '\nRandom Forest Recall',
-          recall_RF, '\nRandom Forest Precision = ', precision_RF)
+
+    print("\nModel Performance","\n","\nRandom Forest accuracy = ", accuracy_RF, "\nRandom Forest F1 Score = ", f1_RF, "\nRandom Forest Recall = ",
+          recall_RF, "\nRandom Forest Precision = ", precision_RF, "\naverage of all metrics = ", average_metric_RF)
+
 
     return clf
 

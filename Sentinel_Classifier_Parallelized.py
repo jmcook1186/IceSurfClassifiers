@@ -327,8 +327,6 @@ def create_dataset(HCRF_file, year=2016, plot_spectra=True, savefigs=True):
 
 
 
-
-
 def optimise_train_model(X, XX, YY, test_size=0.3):
 
     # Function splits the data into training and test sets, then applies a Random Forest model
