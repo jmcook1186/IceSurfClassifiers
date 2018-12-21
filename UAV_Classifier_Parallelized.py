@@ -74,23 +74,18 @@ Created on Sat May 12 17:50:35 2018
 
 import numpy as np
 import pandas as pd
-from sklearn.naive_bayes import GaussianNB
-from sklearn import neighbors, svm, model_selection
+from sklearn import model_selection
 from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
-from sklearn.ensemble import VotingClassifier, RandomForestClassifier
-from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
 import matplotlib as mpl
-from sklearn.externals import joblib
 import matplotlib.pyplot as plt
 import gdal
 from datetime import datetime
-import dask.array as da
-from sklearn.datasets import make_classification
-from sklearn.linear_model import LogisticRegressionCV
+
 from dask_ml.wrappers import ParallelPostFit
 plt.style.use('ggplot')
 
-# Set path to csv file containing hcrf spectra (trainin data) and UAV image to
+# Set path to csv file containing hcrf spectra (training data) and UAV image to
 # be classified
 
 HCRF_file = '//home//joe//Code//HCRF_master_machine_snicar.csv'
@@ -583,3 +578,4 @@ ImageAnalysis(img_name,clf,plot_maps = True, savefigs=False)
 alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI, \
 mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,\
 min_SN = albedo_report(predicted,albedo_array)
+
