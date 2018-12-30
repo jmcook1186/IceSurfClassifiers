@@ -1,103 +1,39 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat May 12 17:50:35 2018
+Created on Thu Mar  8 14:32:24 2018
 
-@author: joe
+@author: joseph cook
 """
 
-############################# OVERVIEW #######################################
-
-# This code trains a range of supevised classification algorithms on multispectral
-# data obtained by reducing hyperspectral data from field spectroscopy down to
-# five key wavelengths matching those measured by the MicaSense Red-Edge camera.
-
-# The best performing model is then applied to multispectral imagery obtained
-# using the red-edge camera mounted to a UAV. The algorithm classifies each
-# pixel according to a function of its reflectance in the five wavelengths.
-# These classified pixels are then mapped and the spatial statistics reported.
-
-# A narrowband-broadband coversion function is then used to estimate the albedo
-# of each classified pixel, generating a dataset of surface type and albedo.
-
-############################# DETAIL #########################################
-
-# This code is divided into several functions. The first preprocesses the raw data
-# into a format appropriate for machine learning. The raw hyperspectral data is
-# first organised into separate pandas dataframes for each surface class.
-# The data is then reduced down to the reflectance at the five key wavelengths
-# and the remaining data discarded. The dataset is then arranged into columns
-# with one column per wavelength and a separate column for the surface class.
-# The dataset's features are the reflectance at each wavelength, and the labels
-# are the surface types. The dataframes for each surface type are merged into
-# one large dataframe and then the labels are removed and saved as a separate
-# dataframe. XX contains all the data features, YY contains the labels only. No
-# scaling of the data is required because the reflectance is already normalised
-# between 0 and 1 by the spectrometer.
-
-# The UAV image has been preprocessed in Agisoft Photoscan, including stitching
-# and conversion of raw DN to reflectance using calibrated reflectance panels
-# on the ground.
-
-# The second function trains a series of supervised classification algorithms.
-# The dataset is first divided into a train set and test set at a ratio defined
-# by the user (default = 80% train, 20% test). A suite of individual classifiers
-# plus two ensemble models are used:
-# Individual models are SVM (optimised using GridSearchCV with C between
-# 0.0001 - 100000 and gamma between 0.0001 and 1, rbf, polynomial and
-# linear kernels), Naive Bayes, K-Nearest Neighbours. Ensemble models are a voting
-# classifier (incorporating all the individual models) and a random forest.
-
-# Each classifier is trained and the performance on the training set is reported.
-# The user can define which performance measure is most important, and the
-# best performing classifier according to the chosen metric is automatically
-# selected as the final model. That model is then evaluated on the test set
-# and used to classify each pixel in the UAV image. The classified image is
-# displayed and the spatial statistics calculated.
-#
-# NB The classifier can also be loaded in from a joblib save file - in this case
-# omit the call to the optimise_train_model() function and simply load the
-# trained classifier into the workspace with the variable name 'clf'. Run the other
-# functions as normal.
-
-# The trained classifier can also be exported to a joblib savefile by running the
-# save_classifier() function,enabling the trained model to be replicated in other
-# scripts.
-
-# The albedo of each classified pixel is then calculated from the reflectance
-# at each individual wavelength using the narrowband-broadband conversion of
-# Knap (1999), creating a final dataframe containing broadband albedo and
-# surface type.
-
-##############################################################################
-####################### IMPORT MODULES #######################################
-
-import numpy as np
 import pandas as pd
-from sklearn import model_selection
-from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
-from sklearn.ensemble import RandomForestClassifier
-import matplotlib as mpl
+import xarray as xr
+import sklearn_xarray
+import numpy as np
 import matplotlib.pyplot as plt
-import gdal
+from osgeo import gdal, osr
+from sklearn import model_selection
+from sklearn.ensemble import RandomForestClassifier
 from datetime import datetime
-from sklearn.externals import joblib
-import dask_ml.joblib
-from dask_ml.wrappers import ParallelPostFit
+import matplotlib as mpl
+mpl.style.use('ggplot')
 
-plt.style.use('ggplot')
+# Note:
+# To convert UAV tif to netcdf: gdal_translate -of netcdf uav_21_7_5cm_commongrid.tif uav_data.nc
 
-# Set path to csv file containing hcrf spectra (training data) and UAV image to
-# be classified
+plt.ioff() # turn interactive plotting off so that plots can be saved but not shown
 
-HCRF_file = '//home//joe//Code//HCRF_master_machine_snicar.csv'
-img_name = '//home//joe//Desktop//Machine_Learn_Tutorial//UAV_21_7_17//uav_21_7_5cm_commongrid.tif'
+#Paths
+
+# local paths
+HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+img_name = '/home/joe/Desktop/uav_data.nc'
 savefig_path = '//home/joe/Desktop/'
 
-
-###############################################################################
-########################## DEFINE FUNCTIONS ###################################
-
+# VM paths
+# img_file = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/uav_data.nc'
+# HCRF_file = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+# savefig_path = '/data/home/tothepoles/Desktop/'
 
 def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     # Read in raw HCRF data to DataFrame. Pulls in HCRF data from 2016 and 2017
@@ -192,7 +128,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
         SN_hcrf['{}'.format(vi)] = hcrf_SN
         # Make dataframe with column for label, columns for reflectancxe at key wavelengths
 
-    if plot_spectra:
+    if plot_spectra or savefigs:
         WL = np.arange(350, 2501, 1)
 
         # Creates two subplots and unpacks the output array immediately
@@ -226,71 +162,72 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
         if savefigs:
             plt.savefig(str(savefig_path + "training_spectra.jpg"))
 
-        plt.show()
+        if plot_spectra:
+            plt.show()
 
     X = pd.DataFrame()
 
-    X['R475'] = np.array(HA_hcrf.iloc[125])
-    X['R560'] = np.array(HA_hcrf.iloc[210])
-    X['R668'] = np.array(HA_hcrf.iloc[318])
-    X['R717'] = np.array(HA_hcrf.iloc[367])
-    X['R840'] = np.array(HA_hcrf.iloc[490])
+    X['Band1'] = np.array(HA_hcrf.iloc[125])
+    X['Band2'] = np.array(HA_hcrf.iloc[210])
+    X['Band3'] = np.array(HA_hcrf.iloc[318])
+    X['Band4'] = np.array(HA_hcrf.iloc[367])
+    X['Band5'] = np.array(HA_hcrf.iloc[490])
 
     X['label'] = 'HA'
 
     Y = pd.DataFrame()
-    Y['R475'] = np.array(LA_hcrf.iloc[125])
-    Y['R560'] = np.array(LA_hcrf.iloc[210])
-    Y['R668'] = np.array(LA_hcrf.iloc[318])
-    Y['R717'] = np.array(LA_hcrf.iloc[367])
-    Y['R840'] = np.array(LA_hcrf.iloc[490])
+    Y['Band1'] = np.array(LA_hcrf.iloc[125])
+    Y['Band2'] = np.array(LA_hcrf.iloc[210])
+    Y['Band3'] = np.array(LA_hcrf.iloc[318])
+    Y['Band4'] = np.array(LA_hcrf.iloc[367])
+    Y['Band5'] = np.array(LA_hcrf.iloc[490])
 
     Y['label'] = 'LA'
 
     Z = pd.DataFrame()
 
-    Z['R475'] = np.array(CI_hcrf.iloc[125])
-    Z['R560'] = np.array(CI_hcrf.iloc[210])
-    Z['R668'] = np.array(CI_hcrf.iloc[318])
-    Z['R717'] = np.array(CI_hcrf.iloc[367])
-    Z['R840'] = np.array(CI_hcrf.iloc[490])
+    Z['Band1'] = np.array(CI_hcrf.iloc[125])
+    Z['Band2'] = np.array(CI_hcrf.iloc[210])
+    Z['Band3'] = np.array(CI_hcrf.iloc[318])
+    Z['Band4'] = np.array(CI_hcrf.iloc[367])
+    Z['Band5'] = np.array(CI_hcrf.iloc[490])
 
     Z['label'] = 'CI'
 
     P = pd.DataFrame()
 
-    P['R475'] = np.array(CC_hcrf.iloc[125])
-    P['R560'] = np.array(CC_hcrf.iloc[210])
-    P['R668'] = np.array(CC_hcrf.iloc[318])
-    P['R717'] = np.array(CC_hcrf.iloc[367])
-    P['R840'] = np.array(CC_hcrf.iloc[490])
+    P['Band1'] = np.array(CC_hcrf.iloc[125])
+    P['Band2'] = np.array(CC_hcrf.iloc[210])
+    P['Band3'] = np.array(CC_hcrf.iloc[318])
+    P['Band4'] = np.array(CC_hcrf.iloc[367])
+    P['Band5'] = np.array(CC_hcrf.iloc[490])
 
     P['label'] = 'CC'
 
     Q = pd.DataFrame()
-    Q['R475'] = np.array(WAT_hcrf.iloc[125])
-    Q['R560'] = np.array(WAT_hcrf.iloc[210])
-    Q['R668'] = np.array(WAT_hcrf.iloc[318])
-    Q['R717'] = np.array(WAT_hcrf.iloc[367])
-    Q['R840'] = np.array(WAT_hcrf.iloc[490])
+    Q['Band1'] = np.array(WAT_hcrf.iloc[125])
+    Q['Band2'] = np.array(WAT_hcrf.iloc[210])
+    Q['Band3'] = np.array(WAT_hcrf.iloc[318])
+    Q['Band4'] = np.array(WAT_hcrf.iloc[367])
+    Q['Band5'] = np.array(WAT_hcrf.iloc[490])
 
     Q['label'] = 'WAT'
 
     R = pd.DataFrame()
-    R['R475'] = np.array(SN_hcrf.iloc[125])
-    R['R560'] = np.array(SN_hcrf.iloc[210])
-    R['R668'] = np.array(SN_hcrf.iloc[318])
-    R['R717'] = np.array(SN_hcrf.iloc[367])
-    R['R840'] = np.array(SN_hcrf.iloc[490])
+    R['Band1'] = np.array(SN_hcrf.iloc[125])
+    R['Band2'] = np.array(SN_hcrf.iloc[210])
+    R['Band3'] = np.array(SN_hcrf.iloc[318])
+    R['Band4'] = np.array(SN_hcrf.iloc[367])
+    R['Band5'] = np.array(SN_hcrf.iloc[490])
 
     R['label'] = 'SN'
 
     Zero = pd.DataFrame()
-    Zero['R475'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    Zero['R560'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    Zero['R668'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    Zero['R717'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    Zero['R840'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['Band1'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['Band2'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['Band3'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['Band4'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['Band5'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     Zero['label'] = 'UNKNOWN'
 
@@ -302,73 +239,98 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     X = X.append(R, ignore_index=True)
     X = X.append(Zero, ignore_index=True)
 
-    # Create features and labels (XX = features - all data but no labels, YY = labels only)
-    XX = X.drop(['label'], 1)
-    YY = X['label']
-
-    return X, XX, YY
+    return X
 
 
-def optimise_train_model(X, XX, YY, test_size=0.3):
-
-    # Function splits the data into training and test sets, then applies a Random Forest model
-    # dask is used so that the model's predict function can be parallelised later
-
-    X_train, X_test, Y_train, Y_test = model_selection.train_test_split(XX, YY, test_size=test_size)
-
-    clf = ParallelPostFit(RandomForestClassifier(n_estimators=1000, max_leaf_nodes=16, n_jobs=-1))
-
-    clf.fit(X_train, Y_train)
-
-    accuracy_RF = clf.score(X_train, Y_train)
-    Y_predict_RF = clf.predict(X_train)
-    conf_mx_RF = confusion_matrix(Y_train, Y_predict_RF)
-    recall_RF = recall_score(Y_train, Y_predict_RF, average="weighted")
-    f1_RF = f1_score(Y_train, Y_predict_RF, average="weighted")
-    precision_RF = precision_score(Y_train, Y_predict_RF, average='weighted')
-    average_metric_RF = (accuracy_RF + recall_RF + f1_RF) / 3
 
 
-    print("\nModel Performance","\n","\nRandom Forest accuracy = ", accuracy_RF, "\nRandom Forest F1 Score = ", f1_RF, "\nRandom Forest Recall = ",
-          recall_RF, "\nRandom Forest Precision = ", precision_RF, "\naverage of all metrics = ", average_metric_RF)
+def train_test_split(X, test_size=0.2):
+    """ Split spectra into training and testing data sets
+    Arguments:
+    spectra : pd.DataFrame of spectra (each spectra = row, columns = bands)
+    test_size
+    returns training and testing datasets
+    """
 
+    # Split into test and train datasets
+    features = X.drop(labels=['label'], axis=1)
+    labels = X.filter(items=['label'])
+    X_train, X_test, Y_train, Y_test = model_selection.train_test_split(features, labels,
+        test_size=test_size)
+
+    # Convert training and test datasets to DataArrays
+    X_train_xr = xr.DataArray(X_train, dims=('samples','b'), coords={'b':features.columns})
+    Y_train_xr = xr.DataArray(Y_train, dims=('samples','label'))
+    X_test_xr = xr.DataArray(X_test, dims=('samples','b'), coords={'b':features.columns})
+    Y_test_xr = xr.DataArray(Y_test, dims=('samples','label'))
+
+    return X_train_xr, Y_train_xr, X_test_xr, Y_test_xr
+
+
+
+def train_RF(X_train_xr, Y_train_xr):
+    """
+    Train a Random Forest Classifier (wrapped for xarray)
+    """
+    clf = sklearn_xarray.wrap(
+        RandomForestClassifier(n_estimators=500, max_leaf_nodes=16, n_jobs=-1),
+        sample_dim='samples', reshapes='b')
+
+    clf.fit(X_train_xr, Y_train_xr)
 
     return clf
 
 
 
-def ImageAnalysis(img_name, clf, plot_maps = True, savefigs=True):
+def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netcdf = False):
 
     startTime = datetime.now()
-    # set up empty lists to append into
-    predicted = []
-    test_array = []
-    arrays = []
-    albedo_array = []
 
-    # use gdal to open image and assign each layer to a separate numpy array
-    ds = gdal.Open(img_name, gdal.GA_ReadOnly)
-    for i in range(1, ds.RasterCount + 1):
-        arrays.append(ds.GetRasterBand(i).ReadAsArray())
+    uav = xr.open_dataset(img_file, chunks={'x': 2000, 'y': 2000})
 
-    # get the length and width of the image from numpy.shape
-    lenx, leny = np.shape(arrays[0])
+    # # correct reflectance according to calibration against ASD Field Spec
 
-    # convert image bands into single 5-dimensional numpy array
-    test_array = np.array([arrays[0] - 0.17, arrays[1] - 0.18, arrays[2] - 0.15, arrays[3] - 0.16, arrays[4] - 0.1])
-    test_array = test_array.reshape(5, lenx * leny)  # reshape into 5 x 1D arrays
-    test_array = test_array.transpose()  # transpose so that bands are read as features
-    # create albedo array by applying Knap (1999) narrowband - broadband conversion
-    albedo_array = np.array([0.726 * (arrays[1] - 0.18) - 0.322 * (arrays[1] - 0.18) ** 2 - 0.015 * (
-                arrays[3] - 0.16) + 0.581 * (arrays[3] - 0.16)])
+    uav['Band1'] -= 0.17
+    uav['Band2'] -= 0.18
+    uav['Band3'] -= 0.15
+    uav['Band4'] -= 0.16
+    uav['Band5'] -= 0.1
 
-    # apply classifier to each pixel in multispectral image with bands as features
+    # Set index for reducing data
 
-    with joblib.parallel_backend("dask"):
+    b_ix = pd.Index([1, 2, 3, 4, 5], name='b')
 
-        predicted = clf.predict(test_array)
+    # concatenate the bands into a single dimension in the data array
+    concat = xr.concat([uav.Band1, uav.Band2, uav.Band3, uav.Band4, uav.Band5], b_ix)
 
-    # convert surface class (string) to a numeric value for plotting
+    # Mask nodata areas
+    concat = concat.where(concat.sum(dim='b') > 0)
+
+    # stack the values into a 1D array
+    stacked = concat.stack(allpoints=['y', 'x'])
+
+    # Transpose and rename so that DataArray has exactly the same layout/labels as the training DataArray.
+    stackedT = stacked.T
+    stackedT = stackedT.rename({'allpoints': 'samples'})
+    stackedT = stackedT.where(stackedT.sum(dim='b') > 0).dropna(dim='samples')
+
+    # apply classifier
+    predicted = clf.predict(stackedT).compute()
+
+    # Unstack back to x,y grid
+    predictedxr = predicted.unstack(dim='samples')
+
+    if save_netcdf:
+        predictedxr.to_netcdf(savefig_path+"classified_surface.nc")
+
+    # calculate albedo using Knap (1999) narrowband to broadband conversion
+    albedo = 0.726 * (uav['Band2'] - 0.18) - 0.322 * (uav['Band2'] - 0.18) ** 2 - 0.015 * (
+                uav['Band4'] - 0.16) + 0.581 * (uav['Band4'] - 0.16)
+
+
+    predicted = np.array(predictedxr)
+    albedo = np.array(albedo)
+
     predicted[predicted == 'UNKNOWN'] = float(0)
     predicted[predicted == 'SN'] = float(1)
     predicted[predicted == 'WAT'] = float(2)
@@ -377,46 +339,49 @@ def ImageAnalysis(img_name, clf, plot_maps = True, savefigs=True):
     predicted[predicted == 'LA'] = float(5)
     predicted[predicted == 'HA'] = float(6)
 
-
     predicted = predicted.astype(float)
 
-    # reshape 1D array back into original image dimensions
-    predicted = np.reshape(predicted, [lenx, leny])
-    albedo_array = albedo_array.reshape(lenx, leny)
+    print("\nTime taken to classify image = ", datetime.now() - startTime)
 
-    # set color scheme for plots - custom for predicted
-    cmap1 = mpl.colors.ListedColormap(['white', 'white', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
-    cmap1.set_under(color='white')  # make sure background is white
-    cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
-    cmap2.set_under(color='white')  # make sure background is white
+    if plot_maps or savefigs:
 
-    # plots
+        # set color scheme for plots - custom for predicted
+        cmap1 = mpl.colors.ListedColormap(
+            ['white','white', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
+        cmap1.set_under(color='white')  # make sure background is white
+        cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
+        cmap2.set_under(color='white')  # make sure background is white
 
-
-    if plot_maps:
-
-        plt.figure(figsize=(15, 15))
+        plt.figure(figsize=(25, 25))
         plt.title("Classified ice surface and its albedos from UAV imagery: SW Greenland Ice Sheet", fontsize=28)
 
         plt.subplot(211)
         plt.imshow(predicted, cmap=cmap1), plt.grid(None), plt.colorbar(), plt.title("UAV Classified Map")
+        plt.xticks(None), plt.yticks(None)
 
         plt.subplot(212)
-        plt.imshow(albedo_array, cmap=cmap2, vmin=0.00000001, vmax = 1), plt.grid(None), plt.colorbar(),\
+        plt.imshow(albedo, cmap=cmap2, vmin=0.000001, vmax=1), plt.grid(None), plt.colorbar(), \
+        plt.xticks(None), plt.yticks(None)
         plt.title("UAV Albedo Map")
 
-        if not savefigs:
+        if plot_maps:
             plt.show()
 
-    if savefigs:
-        plt.savefig(str(savefig_path + "UAV_classified_albedo_map.jpg"), dpi=300)
-        plt.show()
+        if savefigs:
+            plt.savefig(str(savefig_path + "UAV_classified_albedo_map.jpg"), dpi=300)
 
 
-    print("\nTime taken to classify image = ", datetime.now() - startTime)
+    print('Time taken to classify image = ', datetime.now() - startTime)
+
+    return predictedxr, predicted, albedo
 
 
-    # Calculate coverage stats
+
+
+def albedo_report(predicted, albedo):
+
+    # caluclate coverage statistics
+
     numHA = (predicted == 6).sum()
     numLA = (predicted == 5).sum()
     numCI = (predicted == 4).sum()
@@ -442,12 +407,7 @@ def ImageAnalysis(img_name, clf, plot_maps = True, savefigs=True):
     print('% clean ice coverage = ', np.round(CI_coverage, 2))
     print('% water coverage = ', np.round(WAT_coverage, 2))
     print('% snow coverage', np.round(SN_coverage, 2))
-    print('Time taken to classify image = ', datetime.now() - startTime)
 
-    return predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage
-
-
-def albedo_report(predicted, albedo_array):
 
     alb_WAT = []
     alb_CC = []
@@ -456,8 +416,11 @@ def albedo_report(predicted, albedo_array):
     alb_HA = []
     alb_SN = []
 
+
+# albedo report
+
     predicted = np.array(predicted).ravel()
-    albedo_array = np.array(albedo_array).ravel()
+    albedo = np.array(albedo).ravel()
 
     idx_SN = np.where(predicted == 1)[0]
     idx_WAT = np.where(predicted == 2)[0]
@@ -467,22 +430,22 @@ def albedo_report(predicted, albedo_array):
     idx_HA = np.where(predicted == 6)[0]
 
     for i in idx_WAT:
-        alb_WAT.append(albedo_array[i])
+        alb_WAT.append(albedo[i])
     for i in idx_CC:
-        alb_CC.append(albedo_array[i])
+        alb_CC.append(albedo[i])
     for i in idx_CI:
-        alb_CI.append(albedo_array[i])
+        alb_CI.append(albedo[i])
     for i in idx_LA:
-        alb_LA.append(albedo_array[i])
+        alb_LA.append(albedo[i])
     for i in idx_HA:
-        alb_HA.append(albedo_array[i])
+        alb_HA.append(albedo[i])
     for i in idx_SN:
-        alb_SN.append(albedo_array[i])
+        alb_SN.append(albedo[i])
 
     # create pandas dataframe containing albedo data (delete rows where albedo <= 0)
     albedo_DF = pd.DataFrame(columns=['albedo', 'class'])
     albedo_DF['class'] = predicted
-    albedo_DF['albedo'] = albedo_array
+    albedo_DF['albedo'] = albedo
     albedo_DF = albedo_DF[albedo_DF['albedo'] > 0]
     albedo_DF.to_csv('UAV_albedo_dataset.csv')
 
@@ -559,29 +522,24 @@ def albedo_report(predicted, albedo_array):
     print('n WAT = ', len(WAT_DF))
     print('n SN = ', len(SN_DF))
 
-    return alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC, std_CC, max_CC, min_CC, mean_CI, std_CI, max_CI,\
-           min_CI, mean_LA, min_LA, max_LA, std_LA, mean_HA, std_HA, max_HA, min_HA, mean_WAT, std_WAT, max_WAT, \
-           min_WAT, mean_SN, std_SN, max_SN, min_SN
+    return HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage, alb_WAT, alb_CC, alb_CI,\
+           alb_LA, alb_HA, alb_SN, mean_CC, std_CC, max_CC, min_CC, mean_CI, std_CI, max_CI, min_CI, mean_LA, min_LA,\
+           max_LA, std_LA, mean_HA, std_HA, max_HA, min_HA, mean_WAT, std_WAT, max_WAT, min_WAT, mean_SN, std_SN,\
+           max_SN, min_SN
 
 
-################################################################################
-################################################################################
 
+X = create_dataset(HCRF_file , plot_spectra=False, savefigs=False)
 
-############### RUN ENTIRE SEQUENCE ###################
+X_train_xr, Y_train_xr, X_test_xr, Y_test_xr = train_test_split(X, test_size=0.3)
 
-# create dataset
-X, XX, YY = create_dataset(HCRF_file, plot_spectra=False, savefigs=True)
+clf = train_RF(X_train_xr, Y_train_xr)
 
-# optimise and train model
-clf = optimise_train_model(X, XX, YY, test_size=0.3)
+predicted_unstacked, predicted, albedo,= classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
 
-# apply model to UAV image
-predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage = \
-ImageAnalysis(img_name,clf,plot_maps = True, savefigs=False)
+HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage, alb_WAT, alb_CC, alb_CI,\
+       alb_LA, alb_HA, alb_SN, mean_CC, std_CC, max_CC, min_CC, mean_CI, std_CI, max_CI, min_CI, mean_LA, min_LA,\
+       max_LA, std_LA, mean_HA, std_HA, max_HA, min_HA, mean_WAT, std_WAT, max_WAT, min_WAT, mean_SN, std_SN,\
+       max_SN, min_SN = albedo_report(predicted, albedo)
 
-# obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI, \
-mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,\
-min_SN = albedo_report(predicted,albedo_array)
 

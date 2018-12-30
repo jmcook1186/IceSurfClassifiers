@@ -333,6 +333,7 @@ def create_dataset(HCRF_file, year=2016, plot_spectra=True, savefigs=True):
 
 def optimise_train_model(X, XX, YY, error_selector, test_size=0.3, print_conf_mx=True, plot_final_conf_mx=True,
                          plot_all_conf_mx=True, savefigs=True, pickle_model=False):
+
     # Function splits the data into training and test sets, then tests the
     # performance of a range of models on the training data. The final model
     # selected is then evaluated using the test set. The function automatically
@@ -760,7 +761,7 @@ def ClassifyImages(Sentinel_jp2s, clf, plot_maps = True, savefigs=False):
                            data[5] / 10000, data[6] / 10000, data[7] / 10000, data[8] / 10000])
     test_array = test_array.reshape(9, lenx * leny)  # reshape into 5 x 1D arrays
     test_array = test_array.transpose()  # transpose sot hat bands are read as features
-    # create albedo array by applying Knap (1999) narrowband - broadband conversion
+    # create albedo array by applying Liang et al (2001) narrowband - broadband conversion
     albedo_array = np.array([0.356 * (data[0] / 10000) + 0.13 * (data[2] / 10000) + 0.373 * (
                 data[6] / 10000) + 0.085 * (data[7] / 10000) + 0.072 * (data[8] / 10000) - 0.0018])
 

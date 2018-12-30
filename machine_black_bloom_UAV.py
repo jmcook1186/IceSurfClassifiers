@@ -8,7 +8,7 @@ Created on Sat May 12 17:50:35 2018
 
 ############################# OVERVIEW #######################################
 
-# This code trains a range of supevised classification algorithms on multispectral
+# This code trains a range of supervised classification algorithms on multispectral
 # data obtained by reducing hyperspectral data from field spectroscopy down to
 # five key wavelengths matching those measured by the MicaSense Red-Edge camera.
 

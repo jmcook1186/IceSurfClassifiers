@@ -396,6 +396,7 @@ def ClassifyImages(Sentinel_jp2s, clf, plot_maps = True, savefigs=False):
     predicted = predicted.astype(float)
 
     # reshape 1D array back into original image dimensions
+
     predicted = np.reshape(predicted, [lenx, leny])
     albedo_array = np.reshape(albedo_array, [lenx, leny])
 
