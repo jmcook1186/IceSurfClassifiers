@@ -6,35 +6,41 @@ Created on Thu Mar  8 14:32:24 2018
 @author: joseph cook
 """
 
+
+# Note:
+# UAV images should be provided as netcdf files and opened using xarray
+# To convert UAV tif to netcdf: gdal_translate -of netcdf uav_21_7_5cm_commongrid.tif uav_data.nc
+
+
 import pandas as pd
 import xarray as xr
 import sklearn_xarray
 import numpy as np
 import matplotlib.pyplot as plt
-from osgeo import gdal, osr
 from sklearn import model_selection
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
 from datetime import datetime
 import matplotlib as mpl
+
+# matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown
 mpl.style.use('ggplot')
+plt.ioff()
 
-# Note:
-# To convert UAV tif to netcdf: gdal_translate -of netcdf uav_21_7_5cm_commongrid.tif uav_data.nc
-
-plt.ioff() # turn interactive plotting off so that plots can be saved but not shown
-
-#Paths
-
-# local paths
+# Set paths to training data and image files
+# LOCAL
 HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
-img_name = '/home/joe/Desktop/uav_data.nc'
+img_file = '/home/joe/Desktop/uav_data.nc'
 savefig_path = '//home/joe/Desktop/'
 
-# VM paths
+# VIRTUAL MACHINE
 # img_file = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/uav_data.nc'
 # HCRF_file = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
 # savefig_path = '/data/home/tothepoles/Desktop/'
 
+
+# Define functions
+####################
 def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     # Read in raw HCRF data to DataFrame. Pulls in HCRF data from 2016 and 2017
 
@@ -52,31 +58,22 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
                '23_7_SB3', '23_7_SB5', '23_7_S3', '23_7_SB4', '24_7_SB2', 'HA_1', 'HA_2', 'HA_3',
                'HA_4', 'HA_5', 'HA_6', 'HA_7', 'HA_8', 'HA_10', 'HA_11', 'HA_12', 'HA_13', 'HA_14',
                'HA_15', 'HA_16', 'HA_17', 'HA_18', 'HA_19', 'HA_20', 'HA_21', 'HA_22', 'HA_24',
-               'HA_25', 'HA_26', 'HA_27', 'HA_28', 'HA_29', 'HA_30', 'HA_31',
-               # the following were reclassified from LAsites due to their v low reflectance
-               '13_7_S2', '14_7_SB9', 'MA_11', 'MA_14', 'MA_15', 'MA_17', '21_7_SB2', '22_7_SB1',
-               'MA_4', 'MA_7', 'MA_18',
+               'HA_25', 'HA_26', 'HA_27', 'HA_28', 'HA_29', 'HA_30', 'HA_31', '13_7_S2', '14_7_SB9',
+               'MA_11', 'MA_14', 'MA_15', 'MA_17', '21_7_SB2', '22_7_SB1', 'MA_4', 'MA_7', 'MA_18',
                '27_7_16_SITE3_WMELON1', '27_7_16_SITE3_WMELON3', '27_7_16_SITE2_ALG1',
                '27_7_16_SITE2_ALG2', '27_7_16_SITE2_ALG3', '27_7_16_SITE2_ICE3', '27_7_16_SITE2_ICE5',
                '27_7_16_SITE3_ALG4', '5_8_16_site2_ice7', '5_8_16_site3_ice2', '5_8_16_site3_ice3',
                '5_8_16_site3_ice5', '5_8_16_site3_ice6', '5_8_16_site3_ice7',
-               '5_8_16_site3_ice8', '5_8_16_site3_ice9'
-               ]
-    # These have been removed completely from HAsites: '21_7_S3', '23_7_S5', 'HA_32'
-    # '24_7_S1','25_7_S1','HA_9', 'HA_33','13_7_SB1', '13_7_S5', 'HA_23'
+               '5_8_16_site3_ice8', '5_8_16_site3_ice9']
+
 
     LAsites = [
         '14_7_S2', '14_7_S3', '14_7_SB2', '14_7_SB3', '14_7_SB7', '15_7_S2', '15_7_SB4',
         '20_7_SB1', '20_7_SB3', '21_7_S1', '21_7_S5', '21_7_SB4', '22_7_SB2', '22_7_SB3', '22_7_S1',
         '23_7_S1', '23_7_S2', '24_7_S2', 'MA_1', 'MA_2', 'MA_3', 'MA_5', 'MA_6', 'MA_8', 'MA_9',
-        'MA_10', 'MA_12', 'MA_13', 'MA_16', 'MA_19',
-        # these have been moved from CI
-        '13_7_S1', '13_7_S3', '14_7_S1', '15_7_S1', '15_7_SB2', '20_7_SB2', '21_7_SB5', '21_7_SB8', '25_7_S3',
-        '5_8_16_site2_ice10', '5_8_16_site2_ice5', '5_8_16_site2_ice9', '27_7_16_SITE3_WHITE3'
-    ]
-    # ambiguous spectra removed
-    # '13_7_S2','13_7_SB1','14_7_SB9', '15_7_S3' ,'MA_11',' MA_14','MA15','MA_17',
-    # '13_7_S5', '25_7_S2','25_7_S4','25_7_S5'
+        'MA_10', 'MA_12', 'MA_13', 'MA_16', 'MA_19', '13_7_S1', '13_7_S3', '14_7_S1', '15_7_S1',
+        '15_7_SB2', '20_7_SB2', '21_7_SB5', '21_7_SB8', '25_7_S3', '5_8_16_site2_ice10', '5_8_16_site2_ice5',
+        '5_8_16_site2_ice9', '27_7_16_SITE3_WHITE3']
 
     CIsites = ['21_7_S4', '13_7_SB3', '15_7_S4', '15_7_SB1', '15_7_SB5', '21_7_S2',
                '21_7_SB3', '22_7_S2', '22_7_S4', '23_7_SB1', '23_7_SB2', '23_7_S4',
@@ -84,15 +81,12 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
                'WI_12', 'WI_13', '27_7_16_SITE3_WHITE1', '27_7_16_SITE3_WHITE2',
                '27_7_16_SITE2_ICE2', '27_7_16_SITE2_ICE4', '27_7_16_SITE2_ICE6',
                '5_8_16_site2_ice1', '5_8_16_site2_ice2', '5_8_16_site2_ice3', '5_8_16_site2_ice4',
-               '5_8_16_site2_ice6', '5_8_16_site2_ice8', '5_8_16_site3_ice1', '5_8_16_site3_ice4'
-               ]  # ambiguous spectra removed: '13_7_SB5', WI_3, WI_8
+               '5_8_16_site2_ice6', '5_8_16_site2_ice8', '5_8_16_site3_ice1', '5_8_16_site3_ice4']
 
     CCsites = ['DISP1', 'DISP2', 'DISP3', 'DISP4', 'DISP5', 'DISP6', 'DISP7', 'DISP8',
-               'DISP9', 'DISP10', 'DISP11', 'DISP12', 'DISP13', 'DISP14', '27_7_16_SITE3_DISP1', '27_7_16_SITE3_DISP3',
-               ]
+               'DISP9', 'DISP10', 'DISP11', 'DISP12', 'DISP13', 'DISP14', '27_7_16_SITE3_DISP1', '27_7_16_SITE3_DISP3',]
 
     WATsites = ['21_7_SB5', '21_7_SB8', 'WAT_1', 'WAT_3', 'WAT_6']
-    # REMOVED FROM WATER SITES 'WAT_2','WAT_4','WAT_5'
 
     SNsites = ['14_7_S4', '14_7_SB6', '14_7_SB8', '17_7_SB2', 'SNICAR100', 'SNICAR200',
                'SNICAR300', 'SNICAR400', 'SNICAR500', 'SNICAR600', 'SNICAR700', 'SNICAR800', 'SNICAR900', 'SNICAR1000',
@@ -100,9 +94,9 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
                '5_8_16_site1_snow4', '5_8_16_site1_snow6',
                '5_8_16_site1_snow7', '5_8_16_site1_snow9']
 
-    # REMOVED FROM WATER SITES 'WAT_2'
 
     # Create dataframes for ML algorithm
+
     for i in HAsites:
         hcrf_HA = np.array(hcrf_master[i])
         HA_hcrf['{}'.format(i)] = hcrf_HA
@@ -126,7 +120,6 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     for vi in SNsites:
         hcrf_SN = np.array(hcrf_master[vi])
         SN_hcrf['{}'.format(vi)] = hcrf_SN
-        # Make dataframe with column for label, columns for reflectancxe at key wavelengths
 
     if plot_spectra or savefigs:
         WL = np.arange(350, 2501, 1)
@@ -259,52 +252,104 @@ def train_test_split(X, test_size=0.2):
         test_size=test_size)
 
     # Convert training and test datasets to DataArrays
-    X_train_xr = xr.DataArray(X_train, dims=('samples','b'), coords={'b':features.columns})
+    X_train_xr = xr.DataArray(X_train, dims=('samples','bands'), coords={'bands':features.columns})
     Y_train_xr = xr.DataArray(Y_train, dims=('samples','label'))
-    X_test_xr = xr.DataArray(X_test, dims=('samples','b'), coords={'b':features.columns})
+    X_test_xr = xr.DataArray(X_test, dims=('samples','bands'), coords={'bands':features.columns})
     Y_test_xr = xr.DataArray(Y_test, dims=('samples','label'))
 
     return X_train_xr, Y_train_xr, X_test_xr, Y_test_xr
 
 
 
-def train_RF(X_train_xr, Y_train_xr):
+def train_RF(X_train_xr, Y_train_xr, print_conf_mx = True, plot_conf_mx = True, savefigs = False, show_model_performance = True):
     """
     Train a Random Forest Classifier (wrapped for xarray)
     """
+
+    # Define classifier
     clf = sklearn_xarray.wrap(
         RandomForestClassifier(n_estimators=500, max_leaf_nodes=16, n_jobs=-1),
-        sample_dim='samples', reshapes='b')
+        sample_dim='samples', reshapes='bands')
 
+    # fot classifier to training data
     clf.fit(X_train_xr, Y_train_xr)
 
-    return clf
+    # test model performance
+    accuracy_RF = clf.score(X_train_xr, Y_train_xr)
+    Y_predict_RF = clf.predict(X_train_xr)
+    conf_mx_RF = confusion_matrix(Y_train_xr, Y_predict_RF)
+    recall_RF = recall_score(Y_train_xr, Y_predict_RF, average="weighted")
+    f1_RF = f1_score(Y_train_xr, Y_predict_RF, average="weighted")
+    precision_RF = precision_score(Y_train_xr, Y_predict_RF, average='weighted')
+    average_metric_RF = (accuracy_RF + recall_RF + f1_RF) / 3
+
+    if show_model_performance:
+        print("\nModel Performance", "\n", "\nRandom Forest accuracy = ", accuracy_RF, "\nRandom Forest F1 Score = ", f1_RF,
+              "\nRandom Forest Recall = ",
+              recall_RF, "\nRandom Forest Precision = ", precision_RF, "\naverage of all metrics = ", average_metric_RF)
+
+    # calculate normalised confusion matrix
+    row_sums = conf_mx_RF.sum(axis=1, keepdims=True)
+    norm_conf_mx = conf_mx_RF / row_sums
+    np.fill_diagonal(norm_conf_mx, 0)
+
+    # plot confusion matrices as subplots in a single figure
+    if plot_conf_mx or savefigs:
+
+        fig = plt.figure(figsize=(10, 10))
+        ax1 = fig.add_subplot(211)
+        ax1.imshow(conf_mx_RF), plt.title("Final Model Confusion Matrix"), plt.colorbar
+        classes = clf.classes_
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes, rotation=45)
+
+        ax2 = fig.add_subplot(212)
+        ax2.imshow(norm_conf_mx, cmap=plt.cm.gray), plt.title('Final Model Normalised Confusion Matrix'), plt.colorbar,
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes, rotation=45)
+
+        plt.tight_layout()
+
+        if savefigs:
+            plt.savefig(str(savefig_path + "final_model_confusion_matrices.jpg"))
+
+        if plot_conf_mx:
+            plt.show()
+
+    if print_conf_mx:
+        print('Final Confusion Matrix')
+        print(conf_mx_RF)
+        print()
+        print('Normalised Confusion Matrix')
+        print(norm_conf_mx)
+
+    return clf, conf_mx_RF, norm_conf_mx
 
 
 
 def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netcdf = False):
 
-    startTime = datetime.now()
+    startTime = datetime.now() # start timer
 
+    # open uav file using xarray
     uav = xr.open_dataset(img_file, chunks={'x': 2000, 'y': 2000})
 
-    # # correct reflectance according to calibration against ASD Field Spec
-
+    # optional calibration against ASD Field Spec
     uav['Band1'] -= 0.17
     uav['Band2'] -= 0.18
     uav['Band3'] -= 0.15
-    uav['Band4'] -= 0.16
-    uav['Band5'] -= 0.1
+    uav['Band4'] -= 0.2
+    uav['Band5'] -= 0.05
 
     # Set index for reducing data
-
-    b_ix = pd.Index([1, 2, 3, 4, 5], name='b')
+    band_idx = pd.Index([1, 2, 3, 4, 5], name='bands')
 
     # concatenate the bands into a single dimension in the data array
-    concat = xr.concat([uav.Band1, uav.Band2, uav.Band3, uav.Band4, uav.Band5], b_ix)
+    concat = xr.concat([uav.Band1, uav.Band2, uav.Band3, uav.Band4, uav.Band5], band_idx)
 
     # Mask nodata areas
-    concat = concat.where(concat.sum(dim='b') > 0)
+    concat = concat.where(concat.sum(dim='bands') > 0)
 
     # stack the values into a 1D array
     stacked = concat.stack(allpoints=['y', 'x'])
@@ -312,7 +357,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     # Transpose and rename so that DataArray has exactly the same layout/labels as the training DataArray.
     stackedT = stacked.T
     stackedT = stackedT.rename({'allpoints': 'samples'})
-    stackedT = stackedT.where(stackedT.sum(dim='b') > 0).dropna(dim='samples')
+    stackedT = stackedT.where(stackedT.sum(dim='bands') > 0).dropna(dim='samples')
 
     # apply classifier
     predicted = clf.predict(stackedT).compute()
@@ -320,16 +365,21 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     # Unstack back to x,y grid
     predictedxr = predicted.unstack(dim='samples')
 
+    # optional save predicted array to netcdf
+    # TODO add metadata to saved netcdf file
+    # TODO add albedo array to saved netcdf file
+    # TODO add numeric classifier to netcdf file
     if save_netcdf:
-        predictedxr.to_netcdf(savefig_path+"classified_surface.nc")
+        predictedxr.to_netcdf(savefig_path+"Classified_Surface.nc")
 
     # calculate albedo using Knap (1999) narrowband to broadband conversion
-    albedo = 0.726 * (uav['Band2'] - 0.18) - 0.322 * (uav['Band2'] - 0.18) ** 2 - 0.015 * (
-                uav['Band4'] - 0.16) + 0.581 * (uav['Band4'] - 0.16)
+    albedoxr = 0.726 * (uav['Band2'] - 0.18) - 0.322 * (uav['Band2'] - 0.18) ** 2 - 0.015 * (
+                uav['Band4'] - 0.2) + 0.581 * (uav['Band4'] - 0.2)
 
 
+    # convert xarrays into numpy arrays for plotting
     predicted = np.array(predictedxr)
-    albedo = np.array(albedo)
+    albedo = np.array(albedoxr)
 
     predicted[predicted == 'UNKNOWN'] = float(0)
     predicted[predicted == 'SN'] = float(1)
@@ -347,7 +397,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
 
         # set color scheme for plots - custom for predicted
         cmap1 = mpl.colors.ListedColormap(
-            ['white','white', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
+            ['white', 'white', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
         cmap1.set_under(color='white')  # make sure background is white
         cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
         cmap2.set_under(color='white')  # make sure background is white
@@ -370,17 +420,14 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         if savefigs:
             plt.savefig(str(savefig_path + "UAV_classified_albedo_map.jpg"), dpi=300)
 
-
-    print('Time taken to classify image = ', datetime.now() - startTime)
-
-    return predictedxr, predicted, albedo
-
+    return predictedxr, predicted, albedoxr, albedo
 
 
 
 def albedo_report(predicted, albedo):
 
-    # caluclate coverage statistics
+# TODO update the albedo report function to use groupby rather than multiple dataframes
+    # calculate coverage statistics
 
     numHA = (predicted == 6).sum()
     numLA = (predicted == 5).sum()
@@ -447,7 +494,10 @@ def albedo_report(predicted, albedo):
     albedo_DF['class'] = predicted
     albedo_DF['albedo'] = albedo
     albedo_DF = albedo_DF[albedo_DF['albedo'] > 0]
-    albedo_DF.to_csv('UAV_albedo_dataset.csv')
+
+
+
+    #albedo_DF.to_csv('UAV_albedo_dataset.csv')
 
     # divide albedo dataframe into individual classes for summary stats. include only
     # rows where albedo is between 0.05 and 0.95 percentiles to remove outliers
@@ -529,17 +579,18 @@ def albedo_report(predicted, albedo):
 
 
 
+
 X = create_dataset(HCRF_file , plot_spectra=False, savefigs=False)
 
 X_train_xr, Y_train_xr, X_test_xr, Y_test_xr = train_test_split(X, test_size=0.3)
 
-clf = train_RF(X_train_xr, Y_train_xr)
+clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = True, savefigs = False, show_model_performance = True)
 
-predicted_unstacked, predicted, albedo,= classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
+predictedxr, predicted, albedoxr, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
 
 HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage, alb_WAT, alb_CC, alb_CI,\
-       alb_LA, alb_HA, alb_SN, mean_CC, std_CC, max_CC, min_CC, mean_CI, std_CI, max_CI, min_CI, mean_LA, min_LA,\
-       max_LA, std_LA, mean_HA, std_HA, max_HA, min_HA, mean_WAT, std_WAT, max_WAT, min_WAT, mean_SN, std_SN,\
-       max_SN, min_SN = albedo_report(predicted, albedo)
+        alb_LA, alb_HA, alb_SN, mean_CC, std_CC, max_CC, min_CC, mean_CI, std_CI, max_CI, min_CI, mean_LA, min_LA,\
+        max_LA, std_LA, mean_HA, std_HA, max_HA, min_HA, mean_WAT, std_WAT, max_WAT, min_WAT, mean_SN, std_SN,\
+        max_SN, min_SN = albedo_report(predicted, albedo)
 
 
