@@ -191,6 +191,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
         SN_hcrf['{}'.format(vi)] = hcrf_SN
 
     if plot_spectra or savefigs:
+
         WL = np.arange(350, 2501, 1)
 
         # Creates two subplots and unpacks the output array immediately
@@ -222,7 +223,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
         plt.tight_layout()
 
         if savefigs:
-            plt.savefig(str(savefig_path + "training_spectra.jpg"))
+            plt.savefig(str(savefig_path + "training_spectra.png"))
 
         if plot_spectra:
             plt.show()
@@ -235,7 +236,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     X['Band4'] = np.array(HA_hcrf.iloc[367])
     X['Band5'] = np.array(HA_hcrf.iloc[490])
 
-    X['label'] = 'HA'
+    X['label'] = 6
 
     Y = pd.DataFrame()
     Y['Band1'] = np.array(LA_hcrf.iloc[125])
@@ -244,7 +245,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     Y['Band4'] = np.array(LA_hcrf.iloc[367])
     Y['Band5'] = np.array(LA_hcrf.iloc[490])
 
-    Y['label'] = 'LA'
+    Y['label'] = 5
 
     Z = pd.DataFrame()
 
@@ -254,7 +255,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     Z['Band4'] = np.array(CI_hcrf.iloc[367])
     Z['Band5'] = np.array(CI_hcrf.iloc[490])
 
-    Z['label'] = 'CI'
+    Z['label'] = 4
 
     P = pd.DataFrame()
 
@@ -264,7 +265,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     P['Band4'] = np.array(CC_hcrf.iloc[367])
     P['Band5'] = np.array(CC_hcrf.iloc[490])
 
-    P['label'] = 'CC'
+    P['label'] = 3
 
     Q = pd.DataFrame()
     Q['Band1'] = np.array(WAT_hcrf.iloc[125])
@@ -273,7 +274,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     Q['Band4'] = np.array(WAT_hcrf.iloc[367])
     Q['Band5'] = np.array(WAT_hcrf.iloc[490])
 
-    Q['label'] = 'WAT'
+    Q['label'] = 2
 
     R = pd.DataFrame()
     R['Band1'] = np.array(SN_hcrf.iloc[125])
@@ -282,7 +283,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     R['Band4'] = np.array(SN_hcrf.iloc[367])
     R['Band5'] = np.array(SN_hcrf.iloc[490])
 
-    R['label'] = 'SN'
+    R['label'] = 1
 
     Zero = pd.DataFrame()
     Zero['Band1'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -291,7 +292,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     Zero['Band4'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
     Zero['Band5'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-    Zero['label'] = 'UNKNOWN'
+    Zero['label'] = 0
 
     # Join dataframes into one continuous DF
     X = X.append(Y, ignore_index=True)
@@ -432,40 +433,25 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     # Unstack back to x,y grid
     predictedxr = predicted.unstack(dim='samples')
 
-    # optional save predicted array to netcdf
-    # TODO add metadata to saved netcdf file
-    # TODO add albedo array to saved netcdf file
-    # TODO add numeric classifier to netcdf file
-    # TODO create predicted numerically labelled xarray layer instead of converting to numpy array
-    # TODO set x and y axes on predicted and albedo plots to geo coordinates from uav metadata
-    if save_netcdf:
-        predictedxr.to_netcdf(savefig_path+"Classified_Surface.nc")
+    # convert predicted text xarray into numeric numpy array for analysis and plotting
+    predicted = np.array(predictedxr)
 
     # calculate albedo using Knap (1999) narrowband to broadband conversion. Use "where" function to isolate pixels in
     # the image area and avoid null values in matrix
-
     albedoxr = 0.726 * (uav.Band2 - 0.18) - 0.322 * (
             uav.Band2 - 0.18) ** 2 - 0.015 * (uav.Band4 - 0.16) + 0.581 \
                * (uav.Band4 - 0.16)
 
     # convert albedo array to numpy array for analysis
-    albedonp = np.array(albedoxr)
-    albedonp[albedonp < -0.48] = -99999 # areas outside of main image area identified with constant value of -0.48...
-    albedonp[albedonp == -99999] = None # set values outside image area to null
-    albedonp[(albedonp != None) & (albedonp < 0)] = 0 # set any subzero pixels inside image area to 0
+    albedo = np.array(albedoxr)
+    albedo[albedo < -0.48] = -99999 # areas outside of main image area identified with constant value of -0.48...
+    albedo[albedo == -99999] = None # set values outside image area to null
+    with np.errstate(divide='ignore', invalid='ignore'): # ignore warning about nans in array
+        albedo[albedo < 0] = 0 # set any subzero pixels inside image area to 0
 
-    # convert predcted xarray into numeric numpy array for analysis and plotting
-    predicted = np.array(predictedxr)
-
-    # convert text labels to numeric labels
-    predicted[predicted == 'UNKNOWN'] = float(0)
-    predicted[predicted == 'SN'] = float(1)
-    predicted[predicted == 'WAT'] = float(2)
-    predicted[predicted == 'CC'] = float(3)
-    predicted[predicted == 'CI'] = float(4)
-    predicted[predicted == 'LA'] = float(5)
-    predicted[predicted == 'HA'] = float(6)
-    predicted = predicted.astype(float)
+    # optional save to netdcf file
+    if save_netcdf:
+        predictedxr.to_netcdf(savefig_path+"Classified_Surface.nc")
 
 
     print("\nTime taken to classify image = ", datetime.now() - startTime)
@@ -474,7 +460,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
 
         # set color scheme for plots - custom for predicted
         cmap1 = mpl.colors.ListedColormap(
-            ['white', 'lightblue', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
+            ['purple', 'white', 'royalblue', 'black', 'lightskyblue', 'mediumseagreen', 'darkgreen'])
         cmap1.set_under(color='white')  # make sure background is white
         cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
         cmap2.set_under(color='white')  # make sure background is white
@@ -487,174 +473,63 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         plt.xticks(None), plt.yticks(None)
 
         plt.subplot(212)
-        plt.imshow(albedonp, cmap=cmap2, vmin=0, vmax=1.0), plt.grid(None), plt.colorbar(), \
+        plt.imshow(albedo, cmap=cmap2, vmin=0, vmax=1.0), plt.grid(None), plt.colorbar(), \
         plt.xticks(None), plt.yticks(None)
         plt.title("UAV Albedo Map")
-
-        if plot_maps:
-            plt.show()
 
         if savefigs:
             plt.savefig(str(savefig_path + "UAV_classified_albedo_map.png"), dpi=300)
 
+        if plot_maps:
+            plt.show()
+
     uav.close()
 
-    return predictedxr, predicted, albedoxr
+    # TODO add metadata to saved netcdf file
+    # TODO add albedo array to saved netcdf file
+    # TODO add numeric classifier to netcdf file
+    # TODO create predicted numerically labelled xarray layer instead of converting to numpy array
+    # TODO set x and y axes on predicted and albedo plots to geo coordinates from uav metadata
+
+    return predicted, albedo
 
 
+def albedo_report(predicted, albedo, save_albedo_data = False):
 
-def albedo_report(predicted, albedonp):
-
-# TODO update the albedo report function to use groupby rather than multiple dataframes
-    # calculate coverage statistics
-
-    numHA = (predicted == 6).sum()
-    numLA = (predicted == 5).sum()
-    numCI = (predicted == 4).sum()
-    numCC = (predicted == 3).sum()
-    numWAT = (predicted == 2).sum()
-    numSN = (predicted == 1).sum()
-    noUNKNOWNS = (predicted != 0).sum()
-
-    tot_alg_coverage = (numHA + numLA) / noUNKNOWNS * 100
-    HA_coverage = (numHA) / noUNKNOWNS * 100
-    LA_coverage = (numLA) / noUNKNOWNS * 100
-    CI_coverage = (numCI) / noUNKNOWNS * 100
-    CC_coverage = (numCC) / noUNKNOWNS * 100
-    WAT_coverage = (numWAT) / noUNKNOWNS * 100
-    SN_coverage = (numSN) / noUNKNOWNS * 100
-    # Print coverage summary
-
-    print('**** SUMMARY ****')
-    print('% algal coverage (Hbio + Lbio) = ', np.round(tot_alg_coverage, 2))
-    print('% Hbio coverage = ', np.round(HA_coverage, 2))
-    print('% Lbio coverage = ', np.round(LA_coverage, 2))
-    print('% cryoconite coverage = ', np.round(CC_coverage, 2))
-    print('% clean ice coverage = ', np.round(CI_coverage, 2))
-    print('% water coverage = ', np.round(WAT_coverage, 2))
-    print('% snow coverage', np.round(SN_coverage, 2))
-
-
-    alb_WAT = []
-    alb_CC = []
-    alb_CI = []
-    alb_LA = []
-    alb_HA = []
-    alb_SN = []
-
-
-# albedo report
-
+    # match albedo to predicted class using indexes
     predicted = np.array(predicted).ravel()
-    albedo = np.array(albedonp).ravel()
+    albedo = np.array(albedo).ravel()
 
-    idx_SN = np.where(predicted == 1)[0]
-    idx_WAT = np.where(predicted == 2)[0]
-    idx_CC = np.where(predicted == 3)[0]
-    idx_CI = np.where(predicted == 4)[0]
-    idx_LA = np.where(predicted == 5)[0]
-    idx_HA = np.where(predicted == 6)[0]
+    albedoDF = pd.DataFrame()
+    albedoDF['pred'] = predicted
+    albedoDF['albedo'] = albedo
+    albedoDF = albedoDF.dropna()
 
-    for i in idx_WAT:
-        alb_WAT.append(albedo[i])
-    for i in idx_CC:
-        alb_CC.append(albedo[i])
-    for i in idx_CI:
-        alb_CI.append(albedo[i])
-    for i in idx_LA:
-        alb_LA.append(albedo[i])
-    for i in idx_HA:
-        alb_HA.append(albedo[i])
-    for i in idx_SN:
-        alb_SN.append(albedo[i])
-
-    # create pandas dataframe containing albedo data (delete rows where albedo <= 0)
-    albedo_DF = pd.DataFrame(columns=['albedo', 'class'])
-    albedo_DF['class'] = predicted
-    albedo_DF['albedo'] = albedo
-    albedo_DF = albedo_DF[albedo_DF['albedo'] > 0]
+    #coverage statistics
+    HApercent = (albedoDF['pred'][albedoDF['pred']==6].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    LApercent = (albedoDF['pred'][albedoDF['pred']==5].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    CIpercent = (albedoDF['pred'][albedoDF['pred']==4].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    CCpercent = (albedoDF['pred'][albedoDF['pred']==3].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    SNpercent = (albedoDF['pred'][albedoDF['pred']==2].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    WATpercent = (albedoDF['pred'][albedoDF['pred']==1].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
 
 
+    if save_albedo_data:
+        albedoDF.to_csv(savefig_path + 'RawAlbedoData.csv')
+        albedoDF.groupby(['pred']).count().to_csv(savefig_path+'Surface_Type_Counts.csv')
+        albedoDF.groupby(['pred']).describe()['albedo'].to_csv(savefig_path+'Albedo_summary_stats.csv')
 
-    #albedo_DF.to_csv('UAV_albedo_dataset.csv')
+    # report summary stats
+    print('\n Surface type counts: \n', albedoDF.groupby(['pred']).count())
+    print('\n Summary Statistics for ALBEDO of each surface type: \n',albedoDF.groupby(['pred']).describe()['albedo'])
 
-    # divide albedo dataframe into individual classes for summary stats. include only
-    # rows where albedo is between 0.05 and 0.95 percentiles to remove outliers
+    print('\n "Percent coverage by surface type: \n')
+    print(' HA coverage = ',np.round(HApercent,2)*100,'%\n','LA coverage = ',np.round(LApercent,2)*100,'%\n','CI coverage = ',
+          np.round(CIpercent,2)*100,'%\n', 'CC coverage = ',np.round(CCpercent,2)*100,'%\n', 'SN coverage = ',
+          np.round(SNpercent,2)*100,'%\n', 'WAT coverage = ', np.round(WATpercent,2)*100,'%\n', 'Total Algal Coverage = ',
+          np.round(HApercent+LApercent,2)*100)
 
-    HA_DF = albedo_DF[albedo_DF['class'] == 6]
-    HA_DF = HA_DF[HA_DF['albedo'] > HA_DF['albedo'].quantile(0.05)]
-    HA_DF = HA_DF[HA_DF['albedo'] < HA_DF['albedo'].quantile(0.95)]
-
-    LA_DF = albedo_DF[albedo_DF['class'] == 5]
-    LA_DF = LA_DF[LA_DF['albedo'] > LA_DF['albedo'].quantile(0.05)]
-    LA_DF = LA_DF[LA_DF['albedo'] < LA_DF['albedo'].quantile(0.95)]
-
-    CI_DF = albedo_DF[albedo_DF['class'] == 4]
-    CI_DF = CI_DF[CI_DF['albedo'] > CI_DF['albedo'].quantile(0.05)]
-    CI_DF = CI_DF[CI_DF['albedo'] < CI_DF['albedo'].quantile(0.95)]
-
-    CC_DF = albedo_DF[albedo_DF['class'] == 3]
-    CC_DF = CC_DF[CC_DF['albedo'] > CC_DF['albedo'].quantile(0.05)]
-    CC_DF = CC_DF[CC_DF['albedo'] < CC_DF['albedo'].quantile(0.95)]
-
-    WAT_DF = albedo_DF[albedo_DF['class'] == 2]
-    WAT_DF = WAT_DF[WAT_DF['albedo'] > WAT_DF['albedo'].quantile(0.05)]
-    WAT_DF = WAT_DF[WAT_DF['albedo'] < WAT_DF['albedo'].quantile(0.95)]
-
-    SN_DF = albedo_DF[albedo_DF['class'] == 1]
-    SN_DF = SN_DF[SN_DF['albedo'] > SN_DF['albedo'].quantile(0.05)]
-    SN_DF = SN_DF[SN_DF['albedo'] > SN_DF['albedo'].quantile(0.95)]
-
-    # Calculate summary stats
-    mean_CC = CC_DF['albedo'].mean()
-    std_CC = CC_DF['albedo'].std()
-    max_CC = CC_DF['albedo'].max()
-    min_CC = CC_DF['albedo'].min()
-
-    mean_CI = CI_DF['albedo'].mean()
-    std_CI = CI_DF['albedo'].std()
-    max_CI = CI_DF['albedo'].max()
-    min_CI = CI_DF['albedo'].min()
-
-    mean_LA = LA_DF['albedo'].mean()
-    std_LA = LA_DF['albedo'].std()
-    max_LA = LA_DF['albedo'].max()
-    min_LA = LA_DF['albedo'].min()
-
-    mean_HA = HA_DF['albedo'].mean()
-    std_HA = HA_DF['albedo'].std()
-    max_HA = HA_DF['albedo'].max()
-    min_HA = HA_DF['albedo'].min()
-
-    mean_WAT = WAT_DF['albedo'].mean()
-    std_WAT = WAT_DF['albedo'].std()
-    max_WAT = WAT_DF['albedo'].max()
-    min_WAT = WAT_DF['albedo'].min()
-
-    mean_SN = SN_DF['albedo'].mean()
-    std_SN = SN_DF['albedo'].std()
-    max_SN = SN_DF['albedo'].max()
-    min_SN = SN_DF['albedo'].min()
-
-    ## FIND IDX WHERE CLASS = Hbio..
-    ## BIN ALBEDOS FROM SAME IDXs
-    print('mean albedo WAT = ', mean_WAT)
-    print('mean albedo CC = ', mean_CC)
-    print('mean albedo CI = ', mean_CI)
-    print('mean albedo LA = ', mean_LA)
-    print('mean albedo HA = ', mean_HA)
-    print('mean albedo SN = ', mean_SN)
-    print('n HA = ', len(HA_DF))
-    print('n LA = ', len(LA_DF))
-    print('n CI = ', len(CI_DF))
-    print('n CC = ', len(CC_DF))
-    print('n WAT = ', len(WAT_DF))
-    print('n SN = ', len(SN_DF))
-
-    return HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage, alb_WAT, alb_CC, alb_CI,\
-           alb_LA, alb_HA, alb_SN, mean_CC, std_CC, max_CC, min_CC, mean_CI, std_CI, max_CI, min_CI, mean_LA, min_LA,\
-           max_LA, std_LA, mean_HA, std_HA, max_HA, min_HA, mean_WAT, std_WAT, max_WAT, min_WAT, mean_SN, std_SN,\
-           max_SN, min_SN
+    return albedoDF
 
 
 
@@ -665,11 +540,8 @@ X_train_xr, Y_train_xr, X_test_xr, Y_test_xr = train_test_split(X, test_size=0.3
 
 clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = True, savefigs = False, show_model_performance = True)
 
-predictedxr, predicted, albedonp, = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = False)
+predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = False, save_netcdf = False)
 
-HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage, alb_WAT, alb_CC, alb_CI,\
-        alb_LA, alb_HA, alb_SN, mean_CC, std_CC, max_CC, min_CC, mean_CI, std_CI, max_CI, min_CI, mean_LA, min_LA,\
-        max_LA, std_LA, mean_HA, std_HA, max_HA, min_HA, mean_WAT, std_WAT, max_WAT, min_WAT, mean_SN, std_SN,\
-        max_SN, min_SN = albedo_report(predicted, albedonp)
+albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
 
 

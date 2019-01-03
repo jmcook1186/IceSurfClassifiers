@@ -447,122 +447,42 @@ def ImageAnalysis(img_name, clf, plot_maps = True, savefigs=True):
     return predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage
 
 
-def albedo_report(predicted, albedo_array):
+def albedo_report(predicted, albedo, save_albedo_data = False):
 
-    alb_WAT = []
-    alb_CC = []
-    alb_CI = []
-    alb_LA = []
-    alb_HA = []
-    alb_SN = []
-
+    # match albedo to predicted class using indexes
     predicted = np.array(predicted).ravel()
-    albedo_array = np.array(albedo_array).ravel()
+    albedo = np.array(albedo).ravel()
 
-    idx_SN = np.where(predicted == 1)[0]
-    idx_WAT = np.where(predicted == 2)[0]
-    idx_CC = np.where(predicted == 3)[0]
-    idx_CI = np.where(predicted == 4)[0]
-    idx_LA = np.where(predicted == 5)[0]
-    idx_HA = np.where(predicted == 6)[0]
+    albedoDF = pd.DataFrame()
+    albedoDF['pred'] = predicted
+    albedoDF['albedo'] = albedo
+    albedoDF = albedoDF.dropna()
 
-    for i in idx_WAT:
-        alb_WAT.append(albedo_array[i])
-    for i in idx_CC:
-        alb_CC.append(albedo_array[i])
-    for i in idx_CI:
-        alb_CI.append(albedo_array[i])
-    for i in idx_LA:
-        alb_LA.append(albedo_array[i])
-    for i in idx_HA:
-        alb_HA.append(albedo_array[i])
-    for i in idx_SN:
-        alb_SN.append(albedo_array[i])
+    #coverage statistics
+    HApercent = (albedoDF['pred'][albedoDF['pred']==6].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    LApercent = (albedoDF['pred'][albedoDF['pred']==5].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    CIpercent = (albedoDF['pred'][albedoDF['pred']==4].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    CCpercent = (albedoDF['pred'][albedoDF['pred']==3].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    SNpercent = (albedoDF['pred'][albedoDF['pred']==2].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    WATpercent = (albedoDF['pred'][albedoDF['pred']==1].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
 
-    # create pandas dataframe containing albedo data (delete rows where albedo <= 0)
-    albedo_DF = pd.DataFrame(columns=['albedo', 'class'])
-    albedo_DF['class'] = predicted
-    albedo_DF['albedo'] = albedo_array
-    albedo_DF = albedo_DF[albedo_DF['albedo'] > 0]
-    albedo_DF.to_csv('UAV_albedo_dataset.csv')
 
-    # divide albedo dataframe into individual classes for summary stats. include only
-    # rows where albedo is between 0.05 and 0.95 percentiles to remove outliers
+    if save_albedo_data:
+        albedoDF.to_csv(savefig_path + 'RawAlbedoData.csv')
+        albedoDF.groupby(['pred']).count().to_csv(savefig_path+'Surface_Type_Counts.csv')
+        albedoDF.groupby(['pred']).describe()['albedo'].to_csv(savefig_path+'Albedo_summary_stats.csv')
 
-    HA_DF = albedo_DF[albedo_DF['class'] == 6]
-    HA_DF = HA_DF[HA_DF['albedo'] > HA_DF['albedo'].quantile(0.05)]
-    HA_DF = HA_DF[HA_DF['albedo'] < HA_DF['albedo'].quantile(0.95)]
+    # report summary stats
+    print('\n Surface type counts: \n', albedoDF.groupby(['pred']).count())
+    print('\n Summary Statistics for ALBEDO of each surface type: \n',albedoDF.groupby(['pred']).describe()['albedo'])
 
-    LA_DF = albedo_DF[albedo_DF['class'] == 5]
-    LA_DF = LA_DF[LA_DF['albedo'] > LA_DF['albedo'].quantile(0.05)]
-    LA_DF = LA_DF[LA_DF['albedo'] < LA_DF['albedo'].quantile(0.95)]
+    print('\n "Percent coverage by surface type: \n')
+    print(' HA coverage = ',np.round(HApercent,2)*100,'%\n','LA coverage = ',np.round(LApercent,2)*100,'%\n','CI coverage = ',
+          np.round(CIpercent,2)*100,'%\n', 'CC coverage = ',np.round(CCpercent,2)*100,'%\n', 'SN coverage = ',
+          np.round(SNpercent,2)*100,'%\n', 'WAT coverage = ', np.round(WATpercent,2)*100,'%\n', 'Total Algal Coverage = ',
+          np.round(HApercent+LApercent,2)*100)
 
-    CI_DF = albedo_DF[albedo_DF['class'] == 4]
-    CI_DF = CI_DF[CI_DF['albedo'] > CI_DF['albedo'].quantile(0.05)]
-    CI_DF = CI_DF[CI_DF['albedo'] < CI_DF['albedo'].quantile(0.95)]
-
-    CC_DF = albedo_DF[albedo_DF['class'] == 3]
-    CC_DF = CC_DF[CC_DF['albedo'] > CC_DF['albedo'].quantile(0.05)]
-    CC_DF = CC_DF[CC_DF['albedo'] < CC_DF['albedo'].quantile(0.95)]
-
-    WAT_DF = albedo_DF[albedo_DF['class'] == 2]
-    WAT_DF = WAT_DF[WAT_DF['albedo'] > WAT_DF['albedo'].quantile(0.05)]
-    WAT_DF = WAT_DF[WAT_DF['albedo'] < WAT_DF['albedo'].quantile(0.95)]
-
-    SN_DF = albedo_DF[albedo_DF['class'] == 1]
-    SN_DF = SN_DF[SN_DF['albedo'] > SN_DF['albedo'].quantile(0.05)]
-    SN_DF = SN_DF[SN_DF['albedo'] > SN_DF['albedo'].quantile(0.95)]
-
-    # Calculate summary stats
-    mean_CC = CC_DF['albedo'].mean()
-    std_CC = CC_DF['albedo'].std()
-    max_CC = CC_DF['albedo'].max()
-    min_CC = CC_DF['albedo'].min()
-
-    mean_CI = CI_DF['albedo'].mean()
-    std_CI = CI_DF['albedo'].std()
-    max_CI = CI_DF['albedo'].max()
-    min_CI = CI_DF['albedo'].min()
-
-    mean_LA = LA_DF['albedo'].mean()
-    std_LA = LA_DF['albedo'].std()
-    max_LA = LA_DF['albedo'].max()
-    min_LA = LA_DF['albedo'].min()
-
-    mean_HA = HA_DF['albedo'].mean()
-    std_HA = HA_DF['albedo'].std()
-    max_HA = HA_DF['albedo'].max()
-    min_HA = HA_DF['albedo'].min()
-
-    mean_WAT = WAT_DF['albedo'].mean()
-    std_WAT = WAT_DF['albedo'].std()
-    max_WAT = WAT_DF['albedo'].max()
-    min_WAT = WAT_DF['albedo'].min()
-
-    mean_SN = SN_DF['albedo'].mean()
-    std_SN = SN_DF['albedo'].std()
-    max_SN = SN_DF['albedo'].max()
-    min_SN = SN_DF['albedo'].min()
-
-    ## FIND IDX WHERE CLASS = Hbio..
-    ## BIN ALBEDOS FROM SAME IDXs
-    print('mean albedo WAT = ', mean_WAT)
-    print('mean albedo CC = ', mean_CC)
-    print('mean albedo CI = ', mean_CI)
-    print('mean albedo LA = ', mean_LA)
-    print('mean albedo HA = ', mean_HA)
-    print('mean albedo SN = ', mean_SN)
-    print('n HA = ', len(HA_DF))
-    print('n LA = ', len(LA_DF))
-    print('n CI = ', len(CI_DF))
-    print('n CC = ', len(CC_DF))
-    print('n WAT = ', len(WAT_DF))
-    print('n SN = ', len(SN_DF))
-
-    return alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC, std_CC, max_CC, min_CC, mean_CI, std_CI, max_CI,\
-           min_CI, mean_LA, min_LA, max_LA, std_LA, mean_HA, std_HA, max_HA, min_HA, mean_WAT, std_WAT, max_WAT, \
-           min_WAT, mean_SN, std_SN, max_SN, min_SN
-
+    return albedoDF
 
 ################################################################################
 ################################################################################
@@ -581,7 +501,5 @@ predicted, albedo_array, HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT
 ImageAnalysis(img_name,clf,plot_maps = True, savefigs=False)
 
 # obtain albedo summary stats
-alb_WAT, alb_CC, alb_CI, alb_LA, alb_HA, alb_SN, mean_CC,std_CC,max_CC,min_CC,mean_CI,std_CI,max_CI,min_CI, \
-mean_LA,min_LA,max_LA,std_LA,mean_HA,std_HA,max_HA,min_HA,mean_WAT,std_WAT,max_WAT,min_WAT,mean_SN,std_SN,max_SN,\
-min_SN = albedo_report(predicted,albedo_array)
+albedoDF = albedo_report(predicted, albedo_array, save_albedo_data = False)
 
