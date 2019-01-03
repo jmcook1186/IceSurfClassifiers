@@ -6,10 +6,77 @@ Created on Thu Mar  8 14:32:24 2018
 @author: joseph cook
 """
 
+# Implementation of UAV multispectral image classification algorithm using xarray.
+# Code from github.com/ajtedstone/IceSurfClassifiers was adapted and incorporated in this script.
+
+
+############################# OVERVIEW #######################################
+
+# This code trains a range of supevised classification algorithms on multispectral
+# data obtained by reducing hyperspectral data from field spectroscopy down to
+# five key wavelengths matching those measured by the MicaSense Red-Edge camera.
+
+# The best performing model is then applied to multispectral imagery obtained
+# using the red-edge camera mounted to a UAV. The algorithm classifies each
+# pixel according to a function of its reflectance in the five wavelengths.
+# These classified pixels are then mapped and the spatial statistics reported.
+
+# A narrowband-broadband coversion function is then used to estimate the albedo
+# of each classified pixel, generating a dataset of surface type and albedo.
+
+############################# DETAIL #########################################
+
+# This code is divided into several functions. The first preprocesses the raw data
+# into a format appropriate for supervised classification. The raw hyperspectral data is
+# first organised into separate pandas dataframes for each surface class.
+# The data is then reduced down to the reflectance at the five key wavelengths
+# and the remaining data discarded. The dataset is then arranged into columns
+# with one column per wavelength and a separate column for the surface class.
+# The dataset's features are the reflectance at each wavelength, and the labels
+# are the surface types. The dataframes for each surface type are concatenated into
+# one large dataframe and then the labels are removed and saved as a separate
+# dataframe. No scaling of the data is required because the reflectance is already
+# normalised between 0 and 1 by the spectrometer.
+
+# The second function trains a series of supervised classification algorithms.
+# The dataset is first divided into a train set and test set at a ratio defined
+# by the user (default = 80% train, 20% test). A suite of individual classifiers
+# plus two ensemble models are used:
+
+# Individual models are SVM (optimised using GridSearchCV with C between
+# 0.0001 - 100000 and gamma between 0.0001 and 1, rbf, polynomial and
+# linear kernels), Naive Bayes, K-Nearest Neighbours. Ensemble models are a voting
+# classifier (incorporating all the individual models) and a random forest.
+
+# Each classifier is trained and the performance on the training set is reported.
+# The user can define which performance measure is most important, and the
+# best performing classifier according to the chosen metric is automatically
+# selected as the final model. That model is then evaluated on the test set
+# and used to classify each pixel in the UAV image. The classified image is
+# displayed and the spatial statistics calculated.
+#
+# NB The classifier can also be loaded in from a joblib save file - in this case
+# omit the call to the optimise_train_model() function and simply load the
+# trained classifier into the workspace with the variable name 'clf'. Run the other
+# functions as normal.
+
+# The trained classifier can also be exported to a joblib savefile by running the
+# save_classifier() function,enabling the trained model to be replicated in other
+# scripts.
+
+# The albedo of each classified pixel is then calculated from the reflectance
+# at each individual wavelength using the narrowband-broadband conversion of
+# Knap (1999), creating a final dataframe containing broadband albedo and
+# surface type.
+
+
 
 # Note:
 # UAV images should be provided as netcdf files and opened using xarray
 # To convert UAV tif to netcdf: gdal_translate -of netcdf uav_21_7_5cm_commongrid.tif uav_data.nc
+# The UAV image has been preprocessed in Agisoft Photoscan, including stitching
+# and conversion of raw DN to reflectance using calibrated reflectance panels
+# on the ground.
 
 
 import pandas as pd
@@ -23,7 +90,9 @@ from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_
 from datetime import datetime
 import matplotlib as mpl
 
-# matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown
+
+# matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown (for
+# rapidly processing multiple images later)
 mpl.style.use('ggplot')
 plt.ioff()
 
@@ -31,7 +100,7 @@ plt.ioff()
 # LOCAL
 HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
 img_file = '/home/joe/Desktop/uav_data.nc'
-savefig_path = '//home/joe/Desktop/'
+savefig_path = '/home/joe/Desktop/'
 
 # VIRTUAL MACHINE
 # img_file = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/uav_data.nc'
@@ -235,8 +304,6 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     return X
 
 
-
-
 def train_test_split(X, test_size=0.2):
     """ Split spectra into training and testing data sets
     Arguments:
@@ -339,13 +406,13 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     uav['Band1'] -= 0.17
     uav['Band2'] -= 0.18
     uav['Band3'] -= 0.15
-    uav['Band4'] -= 0.2
+    uav['Band4'] -= 0.16
     uav['Band5'] -= 0.05
 
     # Set index for reducing data
     band_idx = pd.Index([1, 2, 3, 4, 5], name='bands')
 
-    # concatenate the bands into a single dimension in the data array
+    # concatenate the bands into a single dimension ('bands_idx') in the data array
     concat = xr.concat([uav.Band1, uav.Band2, uav.Band3, uav.Band4, uav.Band5], band_idx)
 
     # Mask nodata areas
@@ -369,18 +436,28 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     # TODO add metadata to saved netcdf file
     # TODO add albedo array to saved netcdf file
     # TODO add numeric classifier to netcdf file
+    # TODO create predicted numerically labelled xarray layer instead of converting to numpy array
+    # TODO set x and y axes on predicted and albedo plots to geo coordinates from uav metadata
     if save_netcdf:
         predictedxr.to_netcdf(savefig_path+"Classified_Surface.nc")
 
-    # calculate albedo using Knap (1999) narrowband to broadband conversion
-    albedoxr = 0.726 * (uav['Band2'] - 0.18) - 0.322 * (uav['Band2'] - 0.18) ** 2 - 0.015 * (
-                uav['Band4'] - 0.2) + 0.581 * (uav['Band4'] - 0.2)
+    # calculate albedo using Knap (1999) narrowband to broadband conversion. Use "where" function to isolate pixels in
+    # the image area and avoid null values in matrix
 
+    albedoxr = 0.726 * (uav.Band2 - 0.18) - 0.322 * (
+            uav.Band2 - 0.18) ** 2 - 0.015 * (uav.Band4 - 0.16) + 0.581 \
+               * (uav.Band4 - 0.16)
 
-    # convert xarrays into numpy arrays for plotting
+    # convert albedo array to numpy array for analysis
+    albedonp = np.array(albedoxr)
+    albedonp[albedonp < -0.48] = -99999 # areas outside of main image area identified with constant value of -0.48...
+    albedonp[albedonp == -99999] = None # set values outside image area to null
+    albedonp[(albedonp != None) & (albedonp < 0)] = 0 # set any subzero pixels inside image area to 0
+
+    # convert predcted xarray into numeric numpy array for analysis and plotting
     predicted = np.array(predictedxr)
-    albedo = np.array(albedoxr)
 
+    # convert text labels to numeric labels
     predicted[predicted == 'UNKNOWN'] = float(0)
     predicted[predicted == 'SN'] = float(1)
     predicted[predicted == 'WAT'] = float(2)
@@ -388,8 +465,8 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     predicted[predicted == 'CI'] = float(4)
     predicted[predicted == 'LA'] = float(5)
     predicted[predicted == 'HA'] = float(6)
-
     predicted = predicted.astype(float)
+
 
     print("\nTime taken to classify image = ", datetime.now() - startTime)
 
@@ -397,7 +474,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
 
         # set color scheme for plots - custom for predicted
         cmap1 = mpl.colors.ListedColormap(
-            ['white', 'white', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
+            ['white', 'lightblue', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
         cmap1.set_under(color='white')  # make sure background is white
         cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
         cmap2.set_under(color='white')  # make sure background is white
@@ -410,7 +487,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         plt.xticks(None), plt.yticks(None)
 
         plt.subplot(212)
-        plt.imshow(albedo, cmap=cmap2, vmin=0.000001, vmax=1), plt.grid(None), plt.colorbar(), \
+        plt.imshow(albedonp, cmap=cmap2, vmin=0, vmax=1.0), plt.grid(None), plt.colorbar(), \
         plt.xticks(None), plt.yticks(None)
         plt.title("UAV Albedo Map")
 
@@ -418,13 +495,15 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
             plt.show()
 
         if savefigs:
-            plt.savefig(str(savefig_path + "UAV_classified_albedo_map.jpg"), dpi=300)
+            plt.savefig(str(savefig_path + "UAV_classified_albedo_map.png"), dpi=300)
 
-    return predictedxr, predicted, albedoxr, albedo
+    uav.close()
+
+    return predictedxr, predicted, albedoxr
 
 
 
-def albedo_report(predicted, albedo):
+def albedo_report(predicted, albedonp):
 
 # TODO update the albedo report function to use groupby rather than multiple dataframes
     # calculate coverage statistics
@@ -467,7 +546,7 @@ def albedo_report(predicted, albedo):
 # albedo report
 
     predicted = np.array(predicted).ravel()
-    albedo = np.array(albedo).ravel()
+    albedo = np.array(albedonp).ravel()
 
     idx_SN = np.where(predicted == 1)[0]
     idx_WAT = np.where(predicted == 2)[0]
@@ -586,11 +665,11 @@ X_train_xr, Y_train_xr, X_test_xr, Y_test_xr = train_test_split(X, test_size=0.3
 
 clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = True, savefigs = False, show_model_performance = True)
 
-predictedxr, predicted, albedoxr, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
+predictedxr, predicted, albedonp, = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = False)
 
 HA_coverage, LA_coverage, CI_coverage, CC_coverage, WAT_coverage, SN_coverage, alb_WAT, alb_CC, alb_CI,\
         alb_LA, alb_HA, alb_SN, mean_CC, std_CC, max_CC, min_CC, mean_CI, std_CI, max_CI, min_CI, mean_LA, min_LA,\
         max_LA, std_LA, mean_HA, std_HA, max_HA, min_HA, mean_WAT, std_WAT, max_WAT, min_WAT, mean_SN, std_SN,\
-        max_SN, min_SN = albedo_report(predicted, albedo)
+        max_SN, min_SN = albedo_report(predicted, albedonp)
 
 
