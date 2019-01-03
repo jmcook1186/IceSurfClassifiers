@@ -91,6 +91,7 @@ from datetime import datetime
 import matplotlib as mpl
 
 
+
 # matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown (for
 # rapidly processing multiple images later)
 mpl.style.use('ggplot')
@@ -416,6 +417,14 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     # concatenate the bands into a single dimension ('bands_idx') in the data array
     concat = xr.concat([uav.Band1, uav.Band2, uav.Band3, uav.Band4, uav.Band5], band_idx)
 
+    # calculate albedo using Knap (1999) narrowband to broadband conversion. Use "where" function to isolate pixels in
+    # the image area and avoid null values in matrix
+    albedoxr = 0.726 * (uav.Band2 - 0.18) - 0.322 * (
+            uav.Band2 - 0.18) ** 2 - 0.015 * (uav.Band4 - 0.16) + 0.581 \
+               * (uav.Band4 - 0.16)
+
+    uav = None  # close uav file
+
     # Mask nodata areas
     concat = concat.where(concat.sum(dim='bands') > 0)
 
@@ -436,25 +445,43 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     # convert predicted text xarray into numeric numpy array for analysis and plotting
     predicted = np.array(predictedxr)
 
-    # calculate albedo using Knap (1999) narrowband to broadband conversion. Use "where" function to isolate pixels in
-    # the image area and avoid null values in matrix
-    albedoxr = 0.726 * (uav.Band2 - 0.18) - 0.322 * (
-            uav.Band2 - 0.18) ** 2 - 0.015 * (uav.Band4 - 0.16) + 0.581 \
-               * (uav.Band4 - 0.16)
 
     # convert albedo array to numpy array for analysis
     albedo = np.array(albedoxr)
-    albedo[albedo < -0.48] = -99999 # areas outside of main image area identified with constant value of -0.48...
-    albedo[albedo == -99999] = None # set values outside image area to null
-    with np.errstate(divide='ignore', invalid='ignore'): # ignore warning about nans in array
-        albedo[albedo < 0] = 0 # set any subzero pixels inside image area to 0
-
-    # optional save to netdcf file
-    if save_netcdf:
-        predictedxr.to_netcdf(savefig_path+"Classified_Surface.nc")
+    albedo[albedo < -0.48] = -99999  # areas outside of main image area identified with constant value of -0.48...
+    albedo[albedo == -99999] = None  # set values outside image area to null
+    with np.errstate(divide='ignore', invalid='ignore'):  # ignore warning about nans in array
+        albedo[albedo < 0] = 0  # set any subzero pixels inside image area to 0
 
 
     print("\nTime taken to classify image = ", datetime.now() - startTime)
+
+    if save_netcdf:
+        
+        # add metadata for classified map
+        predictedxr.encoding = {'dtype': 'int16', 'zlib': True, '_FillValue': -9999}
+        predictedxr.name = 'Surface Class'
+        predictedxr.attrs['long_name'] = 'Surface classification using Random Forests 6-class classifier'
+        predictedxr.attrs['units'] = 'None'
+        predictedxr.attrs[
+            'key'] = 'Unknown:0; Snow:1; Water:2; Cryoconite:3; Clean Ice:4; Light Algae:5; Heavy Algae:6'
+        predictedxr.attrs['grid_mapping'] = 'UTM'
+
+        # add metadata for albedo map
+        albedoxr.encoding = {'dtype': 'int16', 'scale_factor': 0.01, 'zlib': True, '_FillValue': -9999}
+        albedoxr.name = 'Surface albedo computed after Knap et al. (1999) narrowband-to-broadband conversion'
+        albedoxr.attrs['units'] = 'dimensionless'
+        albedoxr.attrs['grid_mapping'] = 'UTM'
+
+        # define projection
+
+        ds = xr.Dataset({'classified': predicted,
+                         'albedo': albedo,
+                         })
+        # save to netcdf
+        predictedxr.to_netcdf(savefig_path + "Classified_Surface.nc")
+
+
 
     if plot_maps or savefigs:
 
@@ -483,12 +510,9 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         if plot_maps:
             plt.show()
 
-    uav.close()
 
-    # TODO add metadata to saved netcdf file
-    # TODO add albedo array to saved netcdf file
-    # TODO add numeric classifier to netcdf file
-    # TODO create predicted numerically labelled xarray layer instead of converting to numpy array
+
+    # TODO add projection metadata to saved netcdf file
     # TODO set x and y axes on predicted and albedo plots to geo coordinates from uav metadata
 
     return predicted, albedo
@@ -533,14 +557,13 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 
 
 
-
 X = create_dataset(HCRF_file , plot_spectra=False, savefigs=False)
 
 X_train_xr, Y_train_xr, X_test_xr, Y_test_xr = train_test_split(X, test_size=0.3)
 
-clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = True, savefigs = False, show_model_performance = True)
+clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = False, savefigs = False, show_model_performance = True)
 
-predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = False, save_netcdf = False)
+predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = False)
 
 albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
 
