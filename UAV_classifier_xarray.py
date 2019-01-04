@@ -90,8 +90,6 @@ from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_
 from datetime import datetime
 import matplotlib as mpl
 
-
-
 # matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown (for
 # rapidly processing multiple images later)
 mpl.style.use('ggplot')
@@ -404,7 +402,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     # open uav file using xarray
     uav = xr.open_dataset(img_file, chunks={'x': 2000, 'y': 2000})
 
-    # optional calibration against ASD Field Spec
+    # calibration against ASD Field Spec
     uav['Band1'] -= 0.17
     uav['Band2'] -= 0.18
     uav['Band3'] -= 0.15
@@ -445,7 +443,6 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     # convert predicted text xarray into numeric numpy array for analysis and plotting
     predicted = np.array(predictedxr)
 
-
     # convert albedo array to numpy array for analysis
     albedo = np.array(albedoxr)
     albedo[albedo < -0.48] = -99999  # areas outside of main image area identified with constant value of -0.48...
@@ -453,11 +450,10 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     with np.errstate(divide='ignore', invalid='ignore'):  # ignore warning about nans in array
         albedo[albedo < 0] = 0  # set any subzero pixels inside image area to 0
 
-
     print("\nTime taken to classify image = ", datetime.now() - startTime)
 
     if save_netcdf:
-        
+
         # add metadata for classified map
         predictedxr.encoding = {'dtype': 'int16', 'zlib': True, '_FillValue': -9999}
         predictedxr.name = 'Surface Class'
@@ -479,8 +475,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
                          'albedo': albedo,
                          })
         # save to netcdf
-        predictedxr.to_netcdf(savefig_path + "Classified_Surface.nc")
-
+        ds.to_netcdf(savefig_path + "Classified_Surface.nc")
 
 
     if plot_maps or savefigs:
@@ -510,8 +505,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         if plot_maps:
             plt.show()
 
-
-
+    # TODO adjust tick mark positions in colorbar, set axis ticks to real coordinates
     # TODO add projection metadata to saved netcdf file
     # TODO set x and y axes on predicted and albedo plots to geo coordinates from uav metadata
 
@@ -554,7 +548,6 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
           np.round(HApercent+LApercent,2)*100)
 
     return albedoDF
-
 
 
 X = create_dataset(HCRF_file , plot_spectra=False, savefigs=False)
