@@ -156,11 +156,11 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
 
     WATsites = ['21_7_SB5', '21_7_SB8', 'WAT_1', 'WAT_3', 'WAT_6']
 
-    SNsites = ['14_7_S4', '14_7_SB6', '14_7_SB8', '17_7_SB2', 'SNICAR100', 'SNICAR200',
-               'SNICAR300', 'SNICAR400', 'SNICAR500', 'SNICAR600', 'SNICAR700', 'SNICAR800', 'SNICAR900', 'SNICAR1000',
+    SNsites = ['14_7_S4', '14_7_SB6', '14_7_SB8', '17_7_SB2',
                '27_7_16_KANU_', '27_7_16_SITE2_1', '5_8_16_site1_snow10', '5_8_16_site1_snow2', '5_8_16_site1_snow3',
                '5_8_16_site1_snow4', '5_8_16_site1_snow6',
-               '5_8_16_site1_snow7', '5_8_16_site1_snow9']
+               '5_8_16_site1_snow7', '5_8_16_site1_snow9', 'SNICAR100', 'SNICAR200',
+               'SNICAR300', 'SNICAR400', 'SNICAR500', 'SNICAR600', 'SNICAR700', 'SNICAR800', 'SNICAR900', 'SNICAR1000',]
 
 
     # Create dataframes for ML algorithm
@@ -399,29 +399,27 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
 
     startTime = datetime.now() # start timer
 
-    # open uav file using xarray
-    uav = xr.open_dataset(img_file, chunks={'x': 2000, 'y': 2000})
+    # open uav file using xarray. Use "with ... as ..." method so that file auto-closes after use
+    with xr.open_dataset(img_file, chunks={'x': 2000, 'y': 2000}) as uav:
 
-    # calibration against ASD Field Spec
-    uav['Band1'] -= 0.17
-    uav['Band2'] -= 0.18
-    uav['Band3'] -= 0.15
-    uav['Band4'] -= 0.16
-    uav['Band5'] -= 0.05
+        # calibration against ASD Field Spec
+        uav['Band1'] -= 0.17
+        uav['Band2'] -= 0.18
+        uav['Band3'] -= 0.15
+        uav['Band4'] -= 0.16
+        uav['Band5'] -= 0.05
 
-    # Set index for reducing data
-    band_idx = pd.Index([1, 2, 3, 4, 5], name='bands')
+        # Set index for reducing data
+        band_idx = pd.Index([1, 2, 3, 4, 5], name='bands')
 
-    # concatenate the bands into a single dimension ('bands_idx') in the data array
-    concat = xr.concat([uav.Band1, uav.Band2, uav.Band3, uav.Band4, uav.Band5], band_idx)
+        # concatenate the bands into a single dimension ('bands_idx') in the data array
+        concat = xr.concat([uav.Band1, uav.Band2, uav.Band3, uav.Band4, uav.Band5], band_idx)
 
-    # calculate albedo using Knap (1999) narrowband to broadband conversion. Use "where" function to isolate pixels in
-    # the image area and avoid null values in matrix
-    albedoxr = 0.726 * (uav.Band2 - 0.18) - 0.322 * (
-            uav.Band2 - 0.18) ** 2 - 0.015 * (uav.Band4 - 0.16) + 0.581 \
-               * (uav.Band4 - 0.16)
-
-    uav = None  # close uav file
+        # calculate albedo using Knap (1999) narrowband to broadband conversion. Use "where" function to isolate pixels in
+        # the image area and avoid null values in matrix
+        albedoxr = 0.726 * (uav.Band2 - 0.18) - 0.322 * (
+                uav.Band2 - 0.18) ** 2 - 0.015 * (uav.Band4 - 0.16) + 0.581 \
+                   * (uav.Band4 - 0.16)
 
     # Mask nodata areas
     concat = concat.where(concat.sum(dim='bands') > 0)
@@ -435,7 +433,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     stackedT = stackedT.where(stackedT.sum(dim='bands') > 0).dropna(dim='samples')
 
     # apply classifier
-    predicted = clf.predict(stackedT).compute()
+    predictedxr = clf.predict(stackedT).compute()
 
     # Unstack back to x,y grid
     predictedxr = predicted.unstack(dim='samples')
@@ -471,9 +469,9 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
 
         # define projection
 
-        ds = xr.Dataset({'classified': predicted,
-                         'albedo': albedo,
-                         })
+        ds = xr.Dataset({'classified': (['x', 'y'], predicted),
+                         'albedo': (['x', 'y'], albedo)})
+
         # save to netcdf
         ds.to_netcdf(savefig_path + "Classified_Surface.nc")
 
@@ -491,8 +489,9 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         plt.title("Classified ice surface and its albedos from UAV imagery: SW Greenland Ice Sheet", fontsize=28)
 
         plt.subplot(211)
-        plt.imshow(predicted, cmap=cmap1), plt.grid(None), plt.colorbar(), plt.title("UAV Classified Map")
-        plt.xticks(None), plt.yticks(None)
+        plt.imshow(predicted, cmap=cmap1), plt.grid(None), plt.colorbar(),\
+        plt.xticks(None), plt.yticks(None), plt.title("UAV Classified Map")
+
 
         plt.subplot(212)
         plt.imshow(albedo, cmap=cmap2, vmin=0, vmax=1.0), plt.grid(None), plt.colorbar(), \
@@ -554,9 +553,9 @@ X = create_dataset(HCRF_file , plot_spectra=False, savefigs=False)
 
 X_train_xr, Y_train_xr, X_test_xr, Y_test_xr = train_test_split(X, test_size=0.3)
 
-clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = False, savefigs = False, show_model_performance = True)
+clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = True, savefigs = False, show_model_performance = True)
 
-predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = False)
+predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
 
 albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
 
