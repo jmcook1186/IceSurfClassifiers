@@ -227,6 +227,7 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
         if plot_spectra:
             plt.show()
 
+
     X = pd.DataFrame()
 
     X['Band1'] = np.array(HA_hcrf.iloc[125])
@@ -365,14 +366,14 @@ def train_RF(X_train_xr, Y_train_xr, print_conf_mx = True, plot_conf_mx = True, 
 
         fig = plt.figure(figsize=(10, 10))
         ax1 = fig.add_subplot(211)
-        ax1.imshow(conf_mx_RF), plt.title("Final Model Confusion Matrix"), plt.colorbar
+        ax1.imshow(conf_mx_RF), plt.title("Final Model Confusion Matrix"), plt.colorbar(),
         classes = clf.classes_
         tick_marks = np.arange(len(classes))
         plt.xticks(tick_marks, classes, rotation=45)
         plt.yticks(tick_marks, classes, rotation=45)
 
         ax2 = fig.add_subplot(212)
-        ax2.imshow(norm_conf_mx, cmap=plt.cm.gray), plt.title('Final Model Normalised Confusion Matrix'), plt.colorbar,
+        ax2.imshow(norm_conf_mx, cmap=plt.cm.gray), plt.title('Final Model Normalised Confusion Matrix'), plt.colorbar(),
         plt.xticks(tick_marks, classes, rotation=45)
         plt.yticks(tick_marks, classes, rotation=45)
 
@@ -383,6 +384,9 @@ def train_RF(X_train_xr, Y_train_xr, print_conf_mx = True, plot_conf_mx = True, 
 
         if plot_conf_mx:
             plt.show()
+
+    # TODO work out why plotting confusion matrices sometimes hangs
+
 
     if print_conf_mx:
         print('Final Confusion Matrix')
@@ -436,8 +440,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     predictedxr = clf.predict(stackedT).compute()
 
     # Unstack back to x,y grid
-    predictedxr = predicted.unstack(dim='samples')
-
+    predictedxr = predictedxr.unstack(dim='samples')
     # convert predicted text xarray into numeric numpy array for analysis and plotting
     predicted = np.array(predictedxr)
 
@@ -467,10 +470,46 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         albedoxr.attrs['units'] = 'dimensionless'
         albedoxr.attrs['grid_mapping'] = 'UTM'
 
-        # define projection
+        # Retrieve projection info from uav datafile and add to saved netcdf
+        srs = osr.SpatialReference()
+        srs.ImportFromProj4('+init=epsg:32623')
+        crs = xr.DataArray(0, encoding={'dtype': np.dtype('int8')})
+        crs.attrs['projected_crs_name'] = srs.GetAttrValue('projcs')
+        crs.attrs['grid_mapping_name'] = 'UTM'
+        crs.attrs['scale_factor_at_central_origin'] = srs.GetProjParm('scale_factor')
+        crs.attrs['standard_parallel'] = srs.GetProjParm('latitude_of_origin')
+        crs.attrs['straight_vertical_longitude_from_pole'] = srs.GetProjParm('central_meridian')
+        crs.attrs['false_easting'] = srs.GetProjParm('false_easting')
+        crs.attrs['false_northing'] = srs.GetProjParm('false_northing')
+        crs.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
+
+        # Create associated lat/lon coordinates DataArrays usig georaster (imports geo metadata without loading img)
+        # see georaster docs at https: // media.readthedocs.org / pdf / georaster / latest / georaster.pdf
+        uav = georaster.SingleBandRaster('NETCDF:"%s":Band1' % (img_file),
+                                         load_data=False)
+        grid_lon, grid_lat = uav.coordinates(latlon=True)
+        uav = None # close file
+        uav = xr.open_dataset(img_file, chunks={'x': 1000, 'y': 1000})
+        coords_geo = {'y': uav['y'], 'x': uav['x']}
+        uav = None #close file
+
+        lon_da = xr.DataArray(grid_lon, coords=coords_geo, dims=['y', 'x'],
+                              encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
+        lon_da.attrs['grid_mapping'] = 'UTM'
+        lon_da.attrs['units'] = 'degrees'
+        lon_da.attrs['standard_name'] = 'longitude'
+
+        lat_da = xr.DataArray(grid_lat, coords=coords_geo, dims=['y', 'x'],
+                              encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
+        lat_da.attrs['grid_mapping'] = 'UTM'
+        lat_da.attrs['units'] = 'degrees'
+        lat_da.attrs['standard_name'] = 'latitude'
+
 
         ds = xr.Dataset({'classified': (['x', 'y'], predicted),
-                         'albedo': (['x', 'y'], albedo)})
+                         'albedo': (['x', 'y'], albedo),
+                         'lon': (['x','y'],lon_da),
+                         'lat': (['x','y'],lat_da)})
 
         # save to netcdf
         ds.to_netcdf(savefig_path + "Classified_Surface.nc")
@@ -505,7 +544,6 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
             plt.show()
 
     # TODO adjust tick mark positions in colorbar, set axis ticks to real coordinates
-    # TODO add projection metadata to saved netcdf file
     # TODO set x and y axes on predicted and albedo plots to geo coordinates from uav metadata
 
     return predicted, albedo
@@ -553,7 +591,7 @@ X = create_dataset(HCRF_file , plot_spectra=False, savefigs=False)
 
 X_train_xr, Y_train_xr, X_test_xr, Y_test_xr = train_test_split(X, test_size=0.3)
 
-clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = True, savefigs = False, show_model_performance = True)
+clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = False, savefigs = False, show_model_performance = True)
 
 predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
 
