@@ -78,6 +78,10 @@ Created on Thu Mar  8 14:32:24 2018
 # and conversion of raw DN to reflectance using calibrated reflectance panels
 # on the ground.
 
+# Note:
+# Choosing to interactively plot all figures can lead to memory overload. Better to save the figures to file until this
+# is fixed.
+
 
 import pandas as pd
 import xarray as xr
@@ -89,6 +93,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
 from datetime import datetime
 import matplotlib as mpl
+import georaster
+from osgeo import gdal, osr
+import seaborn as sn
 
 # matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown (for
 # rapidly processing multiple images later)
@@ -228,6 +235,8 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
             plt.show()
 
 
+
+
     X = pd.DataFrame()
 
     X['Band1'] = np.array(HA_hcrf.iloc[125])
@@ -361,31 +370,28 @@ def train_RF(X_train_xr, Y_train_xr, print_conf_mx = True, plot_conf_mx = True, 
     norm_conf_mx = conf_mx_RF / row_sums
     np.fill_diagonal(norm_conf_mx, 0)
 
-    # plot confusion matrices as subplots in a single figure
+    # plot confusion matrices as subplots in a single figure using Seaborn heatmap
     if plot_conf_mx or savefigs:
 
-        fig = plt.figure(figsize=(10, 10))
-        ax1 = fig.add_subplot(211)
-        ax1.imshow(conf_mx_RF), plt.title("Final Model Confusion Matrix"), plt.colorbar(),
-        classes = clf.classes_
-        tick_marks = np.arange(len(classes))
-        plt.xticks(tick_marks, classes, rotation=45)
-        plt.yticks(tick_marks, classes, rotation=45)
+        fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(15,15))
+        sn.heatmap(conf_mx_RF, annot=True, annot_kws={"size": 16},
+                   xticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite','Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   yticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   cbar_kws={"shrink": 0.4, 'label':'frequency'}, ax=ax1), ax1.tick_params(axis='both', rotation=45)
+        ax1.set_title('Confusion Matrix'), ax1.set_aspect('equal')
 
-        ax2 = fig.add_subplot(212)
-        ax2.imshow(norm_conf_mx, cmap=plt.cm.gray), plt.title('Final Model Normalised Confusion Matrix'), plt.colorbar(),
-        plt.xticks(tick_marks, classes, rotation=45)
-        plt.yticks(tick_marks, classes, rotation=45)
-
+        sn.heatmap(norm_conf_mx, annot=True, annot_kws={"size": 16}, cmap=plt.cm.gray,
+                   xticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   yticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   cbar_kws={"shrink": 0.4, 'label':'Normalised Error'}, ax=ax2), ax2.tick_params(axis='both', rotation=45)
+        ax2.set_title('Normalised Confusion Matrix'), ax2.set_aspect('equal')
         plt.tight_layout()
 
         if savefigs:
-            plt.savefig(str(savefig_path + "final_model_confusion_matrices.jpg"))
+            plt.savefig(str(savefig_path + "final_model_confusion_matrices.png"))
 
         if plot_conf_mx:
             plt.show()
-
-    # TODO work out why plotting confusion matrices sometimes hangs
 
 
     if print_conf_mx:
@@ -487,32 +493,33 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         # see georaster docs at https: // media.readthedocs.org / pdf / georaster / latest / georaster.pdf
         uav = georaster.SingleBandRaster('NETCDF:"%s":Band1' % (img_file),
                                          load_data=False)
-        grid_lon, grid_lat = uav.coordinates(latlon=True)
+        lon, lat = uav.coordinates(latlon=True)
         uav = None # close file
         uav = xr.open_dataset(img_file, chunks={'x': 1000, 'y': 1000})
         coords_geo = {'y': uav['y'], 'x': uav['x']}
         uav = None #close file
 
-        lon_da = xr.DataArray(grid_lon, coords=coords_geo, dims=['y', 'x'],
+        lon_array = xr.DataArray(lon, coords=coords_geo, dims=['y', 'x'],
                               encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
-        lon_da.attrs['grid_mapping'] = 'UTM'
-        lon_da.attrs['units'] = 'degrees'
-        lon_da.attrs['standard_name'] = 'longitude'
+        lon_array.attrs['grid_mapping'] = 'UTM'
+        lon_array.attrs['units'] = 'degrees'
+        lon_array.attrs['standard_name'] = 'longitude'
 
-        lat_da = xr.DataArray(grid_lat, coords=coords_geo, dims=['y', 'x'],
+        lat_array = xr.DataArray(lat, coords=coords_geo, dims=['y', 'x'],
                               encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
-        lat_da.attrs['grid_mapping'] = 'UTM'
-        lat_da.attrs['units'] = 'degrees'
-        lat_da.attrs['standard_name'] = 'latitude'
+        lat_array.attrs['grid_mapping'] = 'UTM'
+        lat_array.attrs['units'] = 'degrees'
+        lat_array.attrs['standard_name'] = 'latitude'
 
-
-        ds = xr.Dataset({'classified': (['x', 'y'], predicted),
-                         'albedo': (['x', 'y'], albedo),
-                         'lon': (['x','y'],lon_da),
-                         'lat': (['x','y'],lat_da)})
+        # collate data arrays into a dataset
+        dataset = xr.Dataset({
+            'classified': (['x', 'y'], predicted),
+             'albedo': (['x', 'y'], albedo),
+             'longitude': (['x','y'],lon_array),
+             'latitude': (['x','y'],lat_array)})
 
         # save to netcdf
-        ds.to_netcdf(savefig_path + "Classified_Surface.nc")
+        dataset.to_netcdf(savefig_path + "Classification_and_Albedo_Data.nc")
 
 
     if plot_maps or savefigs:
@@ -531,14 +538,13 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         plt.imshow(predicted, cmap=cmap1), plt.grid(None), plt.colorbar(),\
         plt.xticks(None), plt.yticks(None), plt.title("UAV Classified Map")
 
-
         plt.subplot(212)
         plt.imshow(albedo, cmap=cmap2, vmin=0, vmax=1.0), plt.grid(None), plt.colorbar(), \
         plt.xticks(None), plt.yticks(None)
         plt.title("UAV Albedo Map")
 
         if savefigs:
-            plt.savefig(str(savefig_path + "UAV_classified_albedo_map.png"), dpi=300)
+            plt.savefig(str(savefig_path + "UAV_classified_albedo_map.png"), dpi=150)
 
         if plot_maps:
             plt.show()
@@ -591,7 +597,7 @@ X = create_dataset(HCRF_file , plot_spectra=False, savefigs=False)
 
 X_train_xr, Y_train_xr, X_test_xr, Y_test_xr = train_test_split(X, test_size=0.3)
 
-clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = False, savefigs = False, show_model_performance = True)
+clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = True, savefigs = True, show_model_performance = False)
 
 predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
 
