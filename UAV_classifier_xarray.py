@@ -427,7 +427,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
 
         # calculate albedo using Knap (1999) narrowband to broadband conversion. Use "where" function to isolate pixels in
         # the image area and avoid null values in matrix
-        albedoxr = 0.726 * (uav.Band2 - 0.18) - 0.322 * (
+        albedo_temp = 0.726 * (uav.Band2 - 0.18) - 0.322 * (
                 uav.Band2 - 0.18) ** 2 - 0.015 * (uav.Band4 - 0.16) + 0.581 \
                    * (uav.Band4 - 0.16)
 
@@ -443,114 +443,148 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     stackedT = stackedT.where(stackedT.sum(dim='bands') > 0).dropna(dim='samples')
 
     # apply classifier
-    predictedxr = clf.predict(stackedT).compute()
+    predicted_temp = clf.predict(stackedT).compute()
 
-    # Unstack back to x,y grid
-    predictedxr = predictedxr.unstack(dim='samples')
-    # convert predicted text xarray into numeric numpy array for analysis and plotting
-    predicted = np.array(predictedxr)
+    # Unstack back to x,y grid and save as numpy array
+    predicted = np.array(predicted_temp.unstack(dim='samples'))
 
     # convert albedo array to numpy array for analysis
-    albedo = np.array(albedoxr)
+    albedo = np.array(albedo_temp)
     albedo[albedo < -0.48] = -99999  # areas outside of main image area identified with constant value of -0.48...
     albedo[albedo == -99999] = None  # set values outside image area to null
     with np.errstate(divide='ignore', invalid='ignore'):  # ignore warning about nans in array
         albedo[albedo < 0] = 0  # set any subzero pixels inside image area to 0
 
-    print("\nTime taken to classify image = ", datetime.now() - startTime)
+    # collate predicted map, albeod map and projection info into xarray dataset
+    # 1) Retrieve projection info from uav datafile and add to netcdf
+    srs = osr.SpatialReference()
+    srs.ImportFromProj4('+init=epsg:32623')
+    proj_info = xr.DataArray(0, encoding={'dtype': np.dtype('int8')})
+    proj_info.attrs['projected_crs_name'] = srs.GetAttrValue('projcs')
+    proj_info.attrs['grid_mapping_name'] = 'UTM'
+    proj_info.attrs['scale_factor_at_central_origin'] = srs.GetProjParm('scale_factor')
+    proj_info.attrs['standard_parallel'] = srs.GetProjParm('latitude_of_origin')
+    proj_info.attrs['straight_vertical_longitude_from_pole'] = srs.GetProjParm('central_meridian')
+    proj_info.attrs['false_easting'] = srs.GetProjParm('false_easting')
+    proj_info.attrs['false_northing'] = srs.GetProjParm('false_northing')
+    proj_info.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
 
+    # 2) Create associated lat/lon coordinates DataArrays usig georaster (imports geo metadata without loading img)
+    # see georaster docs at https: // media.readthedocs.org / pdf / georaster / latest / georaster.pdf
+    uav = georaster.SingleBandRaster('NETCDF:"%s":Band1' % (img_file),
+                                     load_data=False)
+    lon, lat = uav.coordinates(latlon=True)
+    uav = None # close file
+    uav = xr.open_dataset(img_file, chunks={'x': 2000, 'y': 2000})
+    coords_geo = {'y': uav['y'], 'x': uav['x']}
+    uav = None #close file
+
+    lon_array = xr.DataArray(lon, coords=coords_geo, dims=['y', 'x'],
+                          encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
+    lon_array.attrs['grid_mapping'] = 'UTM'
+    lon_array.attrs['units'] = 'degrees'
+    lon_array.attrs['standard_name'] = 'longitude'
+
+    lat_array = xr.DataArray(lat, coords=coords_geo, dims=['y', 'x'],
+                          encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
+    lat_array.attrs['grid_mapping'] = 'UTM'
+    lat_array.attrs['units'] = 'degrees'
+    lat_array.attrs['standard_name'] = 'latitude'
+
+    # 3) add predicted map array and add metadata
+    predictedxr = xr.DataArray(predicted, coords=coords_geo, dims=['y','x'])
+    predictedxr.encoding = {'dtype': 'int16', 'zlib': True, '_FillValue': -9999}
+    predictedxr.name = 'Surface Class'
+    predictedxr.attrs['long_name'] = 'Surface classified using Random Forest'
+    predictedxr.attrs['units'] = 'None'
+    predictedxr.attrs[
+        'key'] = 'Unknown:0; Snow:1; Water:2; Cryoconite:3; Clean Ice:4; Light Algae:5; Heavy Algae:6'
+    predictedxr.attrs['grid_mapping'] = 'UTM'
+
+    # add albedo map array and add metadata
+    albedoxr = xr.DataArray(albedo, coords=coords_geo, dims=['y', 'x'])
+    albedoxr.encoding = {'dtype': 'int16', 'scale_factor': 0.01, 'zlib': True, '_FillValue': -9999}
+    albedoxr.name = 'Surface albedo computed after Knap et al. (1999) narrowband-to-broadband conversion'
+    albedoxr.attrs['units'] = 'dimensionless'
+    albedoxr.attrs['grid_mapping'] = 'UTM'
+
+    # collate data arrays into a dataset
+    dataset = xr.Dataset({
+
+       'classified': (['x', 'y'],predictedxr),
+        'albedo': (['x', 'y'], albedoxr),
+        'Projection(UTM)': proj_info,
+        'longitude': (['x','y'],lon_array),
+        'latitude': (['x','y'],lat_array)
+    })
+
+    # add metadata for dataset
+    dataset.attrs['Conventions'] = 'CF-1.4'
+    dataset.attrs['Author'] = 'Joseph Cook (University of Sheffield, UK)'
+    dataset.attrs[
+        'title'] = 'Classified surface and albedo maps produced from UAV-derived multispectral ' \
+                   'imagery of the SW Greenland Ice Sheet'
+
+    # Additional geo-referencing
+    dataset.attrs['nx'] = len(dataset.x)
+    dataset.attrs['ny'] = len(dataset.y)
+    dataset.attrs['xmin'] = float(dataset.x.min())
+    dataset.attrs['ymax'] = float(dataset.y.max())
+    dataset.attrs['spacing'] = 0.05
+
+    # NC conventions metadata for dimensions variables
+    dataset.x.attrs['units'] = 'meters'
+    dataset.x.attrs['standard_name'] = 'projection_x_coordinate'
+    dataset.x.attrs['point_spacing'] = 'even'
+    dataset.x.attrs['axis'] = 'x'
+
+    dataset.y.attrs['units'] = 'meters'
+    dataset.y.attrs['standard_name'] = 'projection_y_coordinate'
+    dataset.y.attrs['point_spacing'] = 'even'
+    dataset.y.attrs['axis'] = 'y'
+
+    # save dataset to netcdf if requested
     if save_netcdf:
-
-        # add metadata for classified map
-        predictedxr.encoding = {'dtype': 'int16', 'zlib': True, '_FillValue': -9999}
-        predictedxr.name = 'Surface Class'
-        predictedxr.attrs['long_name'] = 'Surface classification using Random Forests 6-class classifier'
-        predictedxr.attrs['units'] = 'None'
-        predictedxr.attrs[
-            'key'] = 'Unknown:0; Snow:1; Water:2; Cryoconite:3; Clean Ice:4; Light Algae:5; Heavy Algae:6'
-        predictedxr.attrs['grid_mapping'] = 'UTM'
-
-        # add metadata for albedo map
-        albedoxr.encoding = {'dtype': 'int16', 'scale_factor': 0.01, 'zlib': True, '_FillValue': -9999}
-        albedoxr.name = 'Surface albedo computed after Knap et al. (1999) narrowband-to-broadband conversion'
-        albedoxr.attrs['units'] = 'dimensionless'
-        albedoxr.attrs['grid_mapping'] = 'UTM'
-
-        # Retrieve projection info from uav datafile and add to saved netcdf
-        srs = osr.SpatialReference()
-        srs.ImportFromProj4('+init=epsg:32623')
-        crs = xr.DataArray(0, encoding={'dtype': np.dtype('int8')})
-        crs.attrs['projected_crs_name'] = srs.GetAttrValue('projcs')
-        crs.attrs['grid_mapping_name'] = 'UTM'
-        crs.attrs['scale_factor_at_central_origin'] = srs.GetProjParm('scale_factor')
-        crs.attrs['standard_parallel'] = srs.GetProjParm('latitude_of_origin')
-        crs.attrs['straight_vertical_longitude_from_pole'] = srs.GetProjParm('central_meridian')
-        crs.attrs['false_easting'] = srs.GetProjParm('false_easting')
-        crs.attrs['false_northing'] = srs.GetProjParm('false_northing')
-        crs.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
-
-        # Create associated lat/lon coordinates DataArrays usig georaster (imports geo metadata without loading img)
-        # see georaster docs at https: // media.readthedocs.org / pdf / georaster / latest / georaster.pdf
-        uav = georaster.SingleBandRaster('NETCDF:"%s":Band1' % (img_file),
-                                         load_data=False)
-        lon, lat = uav.coordinates(latlon=True)
-        uav = None # close file
-        uav = xr.open_dataset(img_file, chunks={'x': 1000, 'y': 1000})
-        coords_geo = {'y': uav['y'], 'x': uav['x']}
-        uav = None #close file
-
-        lon_array = xr.DataArray(lon, coords=coords_geo, dims=['y', 'x'],
-                              encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
-        lon_array.attrs['grid_mapping'] = 'UTM'
-        lon_array.attrs['units'] = 'degrees'
-        lon_array.attrs['standard_name'] = 'longitude'
-
-        lat_array = xr.DataArray(lat, coords=coords_geo, dims=['y', 'x'],
-                              encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
-        lat_array.attrs['grid_mapping'] = 'UTM'
-        lat_array.attrs['units'] = 'degrees'
-        lat_array.attrs['standard_name'] = 'latitude'
-
-        # collate data arrays into a dataset
-        dataset = xr.Dataset({
-            'classified': (['x', 'y'], predicted),
-             'albedo': (['x', 'y'], albedo),
-             'longitude': (['x','y'],lon_array),
-             'latitude': (['x','y'],lat_array)})
-
-        # save to netcdf
         dataset.to_netcdf(savefig_path + "Classification_and_Albedo_Data.nc")
 
-
+    # plot and save figure if requested
     if plot_maps or savefigs:
 
         # set color scheme for plots - custom for predicted
         cmap1 = mpl.colors.ListedColormap(
             ['purple', 'white', 'royalblue', 'black', 'lightskyblue', 'mediumseagreen', 'darkgreen'])
+
         cmap1.set_under(color='white')  # make sure background is white
         cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
         cmap2.set_under(color='white')  # make sure background is white
 
-        plt.figure(figsize=(25, 25))
+        fig = plt.figure(figsize=(25, 25))
         plt.title("Classified ice surface and its albedos from UAV imagery: SW Greenland Ice Sheet", fontsize=28)
+        class_labels = ['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae']
 
-        plt.subplot(211)
-        plt.imshow(predicted, cmap=cmap1), plt.grid(None), plt.colorbar(),\
-        plt.xticks(None), plt.yticks(None), plt.title("UAV Classified Map")
+        # first subplot = classified map
+        ax1 = plt.subplot(211)
+        img = dataset.classified.plot(cmap=cmap1, add_colorbar=False)
+        cbar = fig.colorbar(mappable=img, ax=ax1)
+        # workaround to get colorbar labels centrally positioned
+        n_classes = 7
+        tick_locs = (np.arange(n_classes) + 0.5) * (n_classes - 1) / n_classes
+        cbar.set_ticks(tick_locs)
+        cbar.ax.set_yticklabels(class_labels, rotation=45, va='center')
+        plt.title('Classified Surface Map (UTM coordinates)'), ax1.set_aspect('equal')
 
-        plt.subplot(212)
-        plt.imshow(albedo, cmap=cmap2, vmin=0, vmax=1.0), plt.grid(None), plt.colorbar(), \
-        plt.xticks(None), plt.yticks(None)
-        plt.title("UAV Albedo Map")
-
+        # second subplot = albedo map
+        ax2 = plt.subplot(212)
+        dataset.albedo.plot(cmap=cmap2, vmin=0, vmax=1, ax=ax2), plt.title('Albedo Map (UTM coordinates)')
+        ax2.set_aspect('equal')
+        plt.show()
         if savefigs:
             plt.savefig(str(savefig_path + "UAV_classified_albedo_map.png"), dpi=150)
 
         if plot_maps:
             plt.show()
 
-    # TODO adjust tick mark positions in colorbar, set axis ticks to real coordinates
-    # TODO set x and y axes on predicted and albedo plots to geo coordinates from uav metadata
+    print("\n Image Classification and Albedo Function Time = ", datetime.now() - startTime)
 
     return predicted, albedo
 
@@ -597,10 +631,8 @@ X = create_dataset(HCRF_file , plot_spectra=False, savefigs=False)
 
 X_train_xr, Y_train_xr, X_test_xr, Y_test_xr = train_test_split(X, test_size=0.3)
 
-clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = True, savefigs = True, show_model_performance = False)
+clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = False, savefigs = True, show_model_performance = False)
 
 predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
 
 albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
-
-
