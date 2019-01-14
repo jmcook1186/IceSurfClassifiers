@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0cb12377-5080-4dfb-bd45-a6a909b22a49" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UAV_classifier_xarray.py" beforeDir="false" afterPath="$PROJECT_DIR$/UAV_classifier_xarray.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -13,15 +12,6 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/new_train.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="409">
-              <caret line="49" selection-start-line="49" selection-end-line="53" selection-end-column="46" />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/UAV_Classifier_Parallelized.py">
           <provider selected="true" editor-type-id="text-editor">
@@ -56,7 +46,7 @@
         <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="295">
-              <caret line="662" column="68" lean-forward="true" selection-start-line="662" selection-start-column="68" selection-end-line="662" selection-end-column="68" />
+              <caret line="332" column="81" lean-forward="true" selection-start-line="332" selection-start-column="81" selection-end-line="332" selection-end-column="81" />
             </state>
           </provider>
         </entry>
@@ -239,10 +229,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.UAV_classifier_xarray" />
-        <item itemvalue="Python.new_train" />
-        <item itemvalue="Python.new_train" />
         <item itemvalue="Python.UAV_classifier_xarray" />
         <item itemvalue="Python.UAV_classifier_xarray" />
+        <item itemvalue="Python.UAV_classifier_xarray" />
+        <item itemvalue="Python.new_train" />
       </list>
     </recent_temporary>
   </component>
@@ -283,8 +273,8 @@
       <window_info anchor="bottom" id="TODO" order="6" weight="0.32990506" />
       <window_info anchor="bottom" id="Version Control" order="7" weight="0.32954547" />
       <window_info anchor="bottom" id="Terminal" order="8" weight="0.32911393" />
-      <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.50161815" side_tool="true" weight="0.43829113" />
-      <window_info active="true" anchor="bottom" x="76" y="413" width="2470" height="608" id="Python Console" order="10" sideWeight="0.49838188" visible="true" weight="0.43829113" />
+      <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.50242716" side_tool="true" weight="0.43829113" />
+      <window_info active="true" anchor="bottom" x="76" y="413" width="2470" height="608" id="Python Console" order="10" sideWeight="0.4975728" visible="true" weight="0.43829113" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -372,7 +362,7 @@
     <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="295">
-          <caret line="662" column="68" lean-forward="true" selection-start-line="662" selection-start-column="68" selection-end-line="662" selection-end-column="68" />
+          <caret line="332" column="81" lean-forward="true" selection-start-line="332" selection-start-column="81" selection-end-line="332" selection-end-column="81" />
         </state>
       </provider>
     </entry>

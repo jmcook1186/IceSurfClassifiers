@@ -316,29 +316,39 @@ def training_data_from_spectra(HCRF_file, plot_spectra=True, savefigs=True):
 def training_data_from_img(X, img_file, x_min, x_max, y_min, y_max, area_labels):
     """Function appends to training data spectra from selected homogenous areas from images
      where the surface label is known """
-    outDF = pd.DataFrame(columns=['Band1', 'Band2', 'Band3', 'Band4', 'Band5'])
+    outDF = pd.DataFrame(columns=['Band1', 'Band2', 'Band3', 'Band4', 'Band5', 'label'])
     n_areas = len(x_min)
+    x_min = np.array(x_min)
+    x_max = np.array(x_max)
+    y_min = np.array(y_min)
+    y_max = np.array(y_max)
+    area_labels = np.array(area_labels)
+
     with xr.open_dataset(img_file) as uav:
 
-        for i in np.arange(0, n_areas, 1):
+        for i in range(n_areas):
+
             # slice areas defined by corner coordinates
-            uavsubset = uav.isel(x=slice(x_min[i], x_max[i]), y=slice(y_min[i], y_max[i]))
-            uavdf = uavsubset.to_dataframe() #send slice to dataframe
+            uavsubsetB1 = uav.Band1.values[x_min[i]:x_max[i], y_min[i]: y_max[i]]
+            uavsubsetB2 = uav.Band2.values[x_min[i]:x_max[i], y_min[i]: y_max[i]]
+            uavsubsetB3 = uav.Band3.values[x_min[i]:x_max[i], y_min[i]: y_max[i]]
+            uavsubsetB4 = uav.Band4.values[x_min[i]:x_max[i], y_min[i]: y_max[i]]
+            uavsubsetB5 = uav.Band5.values[x_min[i]:x_max[i], y_min[i]: y_max[i]]
 
             tempDF = pd.DataFrame(columns=['Band1', 'Band2', 'Band3', 'Band4', 'Band5', 'label'])
             # create second dataframe for collecting reflectance data from each spectral band
-            tempDF['Band1'] = uavdf.Band1.values
-            tempDF['Band2'] = uavdf.Band2.values
-            tempDF['Band3'] = uavdf.Band3.values
-            tempDF['Band4'] = uavdf.Band4.values
-            tempDF['Band5'] = uavdf.Band5.values
-            tempDF['label'] = [area_labels[i]] * len(uavdf.Band1.values) # add classification label
+            tempDF['Band1'] = np.ravel(uavsubsetB1)
+            tempDF['Band2'] = np.ravel(uavsubsetB2)
+            tempDF['Band3'] = np.ravel(uavsubsetB3)
+            tempDF['Band4'] = np.ravel(uavsubsetB4)
+            tempDF['Band5'] = np.ravel(uavsubsetB5)
+            tempDF['label'] = [float(area_labels[i])] * len(tempDF['Band1']) # add classification label
 
             outDF = outDF.append(tempDF, ignore_index=True) # append data from each image area to main dataframe
         outDF = outDF[(outDF != 0).all(1)] # ignore any pixels that are NaN or out of true image area
         X = X.append(outDF, ignore_index=True) # append all new data to the main training set
 
-    return X, outDF
+        return X, outDF
 
 def split_train_test(X, test_size=0.2, print_conf_mx = True, plot_conf_mx = True, savefigs = False, show_model_performance = True, pickle_model=False):
     """ Split spectra into training and testing data sets
@@ -657,14 +667,19 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 X = training_data_from_spectra(HCRF_file, plot_spectra=False, savefigs=False)
 
 X, outDF = training_data_from_img(X = X, img_file = img_file,
-                                  x_min=[4020, 4435, 5120, 3855, 4450],
-                                  x_max=[4060, 4540, 5240, 3910, 4520],
-                                  y_min=[325, 200, 760, 1760, 3180],
-                                  y_max=[355, 255, 840, 1920, 3280],
-                                  area_labels=[1, 1, 1, 1, 1, 1])
 
-# clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.3, print_conf_mx = False, plot_conf_mx = True,
-#                                                   savefigs = False, show_model_performance = False, pickle_model=False)
+                                  x_min=[4810,5120,5185,4036,5050],
+
+                                  x_max=[4850,5160,5200,4052,5075],
+
+                                  y_min=[1070,750,810,380,1670],
+
+                                  y_max=[1115,790,832,415,1720],
+
+                                  area_labels=[1,1,1,1,1])
+
+clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.3, print_conf_mx = False, plot_conf_mx = True,
+                                                   savefigs = False, show_model_performance = False, pickle_model=False)
 #
 # predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
 #
