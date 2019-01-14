@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Mar  8 14:32:24 2018
-
 @author: joseph cook
-"""
+
 
 # Implementation of UAV multispectral image classification algorithm using xarray.
 # Code from github.com/ajtedstone/IceSurfClassifiers was adapted and incorporated in this script.
@@ -82,6 +81,7 @@ Created on Thu Mar  8 14:32:24 2018
 # Choosing to interactively plot all figures can lead to memory overload. Better to save the figures to file until this
 # is fixed.
 
+"""
 
 import pandas as pd
 import xarray as xr
@@ -91,6 +91,7 @@ import matplotlib.pyplot as plt
 from sklearn import model_selection
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, recall_score, f1_score, precision_score
+from sklearn.externals import joblib
 from datetime import datetime
 import matplotlib as mpl
 import georaster
@@ -116,7 +117,7 @@ savefig_path = '/home/joe/Desktop/'
 
 # Define functions
 ####################
-def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
+def training_data_from_spectra(HCRF_file, plot_spectra=True, savefigs=True):
     # Read in raw HCRF data to DataFrame. Pulls in HCRF data from 2016 and 2017
 
     hcrf_master = pd.read_csv(HCRF_file)
@@ -235,8 +236,6 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
             plt.show()
 
 
-
-
     X = pd.DataFrame()
 
     X['Band1'] = np.array(HA_hcrf.iloc[125])
@@ -314,7 +313,34 @@ def create_dataset(HCRF_file, plot_spectra=True, savefigs=True):
     return X
 
 
-def train_test_split(X, test_size=0.2):
+def training_data_from_img(X, img_file, x_min, x_max, y_min, y_max, area_labels):
+    """Function appends to training data spectra from selected homogenous areas from images
+     where the surface label is known """
+    outDF = pd.DataFrame(columns=['Band1', 'Band2', 'Band3', 'Band4', 'Band5'])
+    n_areas = len(x_min)
+    with xr.open_dataset(img_file) as uav:
+
+        for i in np.arange(0, n_areas, 1):
+            # slice areas defined by corner coordinates
+            uavsubset = uav.isel(x=slice(x_min[i], x_max[i]), y=slice(y_min[i], y_max[i]))
+            uavdf = uavsubset.to_dataframe() #send slice to dataframe
+
+            tempDF = pd.DataFrame(columns=['Band1', 'Band2', 'Band3', 'Band4', 'Band5', 'label'])
+            # create second dataframe for collecting reflectance data from each spectral band
+            tempDF['Band1'] = uavdf.Band1.values
+            tempDF['Band2'] = uavdf.Band2.values
+            tempDF['Band3'] = uavdf.Band3.values
+            tempDF['Band4'] = uavdf.Band4.values
+            tempDF['Band5'] = uavdf.Band5.values
+            tempDF['label'] = [area_labels[i]] * len(uavdf.Band1.values) # add classification label
+
+            outDF = outDF.append(tempDF, ignore_index=True) # append data from each image area to main dataframe
+        outDF = outDF[(outDF != 0).all(1)] # ignore any pixels that are NaN or out of true image area
+        X = X.append(outDF, ignore_index=True) # append all new data to the main training set
+
+    return X, outDF
+
+def split_train_test(X, test_size=0.2, print_conf_mx = True, plot_conf_mx = True, savefigs = False, show_model_performance = True, pickle_model=False):
     """ Split spectra into training and testing data sets
     Arguments:
     spectra : pd.DataFrame of spectra (each spectra = row, columns = bands)
@@ -334,14 +360,6 @@ def train_test_split(X, test_size=0.2):
     X_test_xr = xr.DataArray(X_test, dims=('samples','bands'), coords={'bands':features.columns})
     Y_test_xr = xr.DataArray(Y_test, dims=('samples','label'))
 
-    return X_train_xr, Y_train_xr, X_test_xr, Y_test_xr
-
-
-
-def train_RF(X_train_xr, Y_train_xr, print_conf_mx = True, plot_conf_mx = True, savefigs = False, show_model_performance = True):
-    """
-    Train a Random Forest Classifier (wrapped for xarray)
-    """
 
     # Define classifier
     clf = sklearn_xarray.wrap(
@@ -400,6 +418,15 @@ def train_RF(X_train_xr, Y_train_xr, print_conf_mx = True, plot_conf_mx = True, 
         print()
         print('Normalised Confusion Matrix')
         print(norm_conf_mx)
+
+
+    if pickle_model:
+        # pickle the classifier model for archiving or for reusing in another code
+        joblibfile = 'Sentinel2_classifier.pkl'
+        joblib.dump(clf, joblibfile)
+
+        # to load this classifier into another code use the following syntax:
+        # clf = joblib.load(joblib_file)
 
     return clf, conf_mx_RF, norm_conf_mx
 
@@ -577,7 +604,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         ax2 = plt.subplot(212)
         dataset.albedo.plot(cmap=cmap2, vmin=0, vmax=1, ax=ax2), plt.title('Albedo Map (UTM coordinates)')
         ax2.set_aspect('equal')
-        plt.show()
+
         if savefigs:
             plt.savefig(str(savefig_path + "UAV_classified_albedo_map.png"), dpi=150)
 
@@ -627,12 +654,18 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
     return albedoDF
 
 
-X = create_dataset(HCRF_file , plot_spectra=False, savefigs=False)
+X = training_data_from_spectra(HCRF_file, plot_spectra=False, savefigs=False)
 
-X_train_xr, Y_train_xr, X_test_xr, Y_test_xr = train_test_split(X, test_size=0.3)
+X, outDF = training_data_from_img(X = X, img_file = img_file,
+                                  x_min=[4020, 4435, 5120, 3855, 4450],
+                                  x_max=[4060, 4540, 5240, 3910, 4520],
+                                  y_min=[325, 200, 760, 1760, 3180],
+                                  y_max=[355, 255, 840, 1920, 3280],
+                                  area_labels=[1, 1, 1, 1, 1, 1])
 
-clf, conf_mx_RF, norm_conf_mx = train_RF(X_train_xr, Y_train_xr, print_conf_mx = False, plot_conf_mx = False, savefigs = True, show_model_performance = False)
-
-predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
-
-albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
+# clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.3, print_conf_mx = False, plot_conf_mx = True,
+#                                                   savefigs = False, show_model_performance = False, pickle_model=False)
+#
+# predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
+#
+# albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
