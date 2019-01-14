@@ -45,8 +45,11 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="295">
-              <caret line="332" column="81" lean-forward="true" selection-start-line="332" selection-start-column="81" selection-end-line="332" selection-end-column="81" />
+            <state relative-caret-position="145">
+              <caret line="115" lean-forward="true" selection-start-line="115" selection-end-line="115" />
+              <folding>
+                <element signature="e#4230#4249#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -232,7 +235,7 @@
         <item itemvalue="Python.UAV_classifier_xarray" />
         <item itemvalue="Python.UAV_classifier_xarray" />
         <item itemvalue="Python.UAV_classifier_xarray" />
-        <item itemvalue="Python.new_train" />
+        <item itemvalue="Python.UAV_classifier_xarray" />
       </list>
     </recent_temporary>
   </component>
@@ -260,6 +263,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="60" y="-5" width="2500" height="1445" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" sideWeight="0.4984756" visible="true" weight="0.24959546" />
       <window_info id="Structure" order="1" sideWeight="0.5015244" side_tool="true" weight="0.24979757" />
@@ -361,8 +365,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="295">
-          <caret line="332" column="81" lean-forward="true" selection-start-line="332" selection-start-column="81" selection-end-line="332" selection-end-column="81" />
+        <state relative-caret-position="145">
+          <caret line="115" lean-forward="true" selection-start-line="115" selection-end-line="115" />
+          <folding>
+            <element signature="e#4230#4249#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

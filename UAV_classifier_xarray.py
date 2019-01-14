@@ -114,9 +114,24 @@ savefig_path = '/home/joe/Desktop/'
 # HCRF_file = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
 # savefig_path = '/data/home/tothepoles/Desktop/'
 
+# set coordinates for generating training data from images
+
+x_min = [4810, 5120, 5185, 4036, 5050]
+
+x_max = [4850, 5160, 5200, 4052, 5075]
+
+y_min = [1070, 750, 810, 380, 1670]
+
+y_max = [1115, 790, 832, 415, 1720]
+
+area_labels = [1, 1, 1, 1, 1]
+
+n_areas = len(x_min)
+
 
 # Define functions
 ####################
+
 def training_data_from_spectra(HCRF_file, plot_spectra=True, savefigs=True):
     # Read in raw HCRF data to DataFrame. Pulls in HCRF data from 2016 and 2017
 
@@ -313,42 +328,43 @@ def training_data_from_spectra(HCRF_file, plot_spectra=True, savefigs=True):
     return X
 
 
-def training_data_from_img(X, img_file, x_min, x_max, y_min, y_max, area_labels):
+def training_data_from_img(X, img_file, x_min, x_max, y_min, y_max, n_areas, area_labels):
+
     """Function appends to training data spectra from selected homogenous areas from images
-     where the surface label is known """
-    outDF = pd.DataFrame(columns=['Band1', 'Band2', 'Band3', 'Band4', 'Band5', 'label'])
-    n_areas = len(x_min)
-    x_min = np.array(x_min)
-    x_max = np.array(x_max)
-    y_min = np.array(y_min)
-    y_max = np.array(y_max)
-    area_labels = np.array(area_labels)
+     where the surface label is known. Currently only appending to the SN class because of availability of unambiguous
+     sites """
+
 
     with xr.open_dataset(img_file) as uav:
-
         for i in range(n_areas):
-
+            npix = (x_max[i]- x_min[i])*(y_max[i]- y_min[i])
+            print(npix)
             # slice areas defined by corner coordinates
-            uavsubsetB1 = uav.Band1.values[x_min[i]:x_max[i], y_min[i]: y_max[i]]
-            uavsubsetB2 = uav.Band2.values[x_min[i]:x_max[i], y_min[i]: y_max[i]]
-            uavsubsetB3 = uav.Band3.values[x_min[i]:x_max[i], y_min[i]: y_max[i]]
-            uavsubsetB4 = uav.Band4.values[x_min[i]:x_max[i], y_min[i]: y_max[i]]
-            uavsubsetB5 = uav.Band5.values[x_min[i]:x_max[i], y_min[i]: y_max[i]]
+            uavsubsetB1 = uav.Band1[x_min[i]:x_max[i], y_min[i]: y_max[i]]
+            uavsubsetB2 = uav.Band2[x_min[i]:x_max[i], y_min[i]: y_max[i]]
+            uavsubsetB3 = uav.Band3[x_min[i]:x_max[i], y_min[i]: y_max[i]]
+            uavsubsetB4 = uav.Band4[x_min[i]:x_max[i], y_min[i]: y_max[i]]
+            uavsubsetB5 = uav.Band5[x_min[i]:x_max[i], y_min[i]: y_max[i]]
 
-            tempDF = pd.DataFrame(columns=['Band1', 'Band2', 'Band3', 'Band4', 'Band5', 'label'])
-            # create second dataframe for collecting reflectance data from each spectral band
-            tempDF['Band1'] = np.ravel(uavsubsetB1)
-            tempDF['Band2'] = np.ravel(uavsubsetB2)
-            tempDF['Band3'] = np.ravel(uavsubsetB3)
-            tempDF['Band4'] = np.ravel(uavsubsetB4)
-            tempDF['Band5'] = np.ravel(uavsubsetB5)
-            tempDF['label'] = [float(area_labels[i])] * len(tempDF['Band1']) # add classification label
+            stackB1 = uavsubsetB1.stack(z=('x','y'))
+            stackB2 = uavsubsetB2.stack(z=('x','y'))
+            stackB3 = uavsubsetB3.stack(z=('x','y'))
+            stackB4 = uavsubsetB4.stack(z=('x','y'))
+            stackB5 = uavsubsetB5.stack(z=('x','y'))
 
-            outDF = outDF.append(tempDF, ignore_index=True) # append data from each image area to main dataframe
-        outDF = outDF[(outDF != 0).all(1)] # ignore any pixels that are NaN or out of true image area
-        X = X.append(outDF, ignore_index=True) # append all new data to the main training set
+            label = area_labels[i]
 
-        return X, outDF
+            tempDF = pd.DataFrame()
+            tempDF['Band1'] = stackB1.values
+            tempDF['Band2'] = stackB2.values
+            tempDF['Band3'] = stackB3.values
+            tempDF['Band4'] = stackB4.values
+            tempDF['Band5'] = stackB5.values
+            tempDF['label'] = label
+
+            X = X.append(tempDF,ignore_index=False)
+
+    return X, tempDF
 
 def split_train_test(X, test_size=0.2, print_conf_mx = True, plot_conf_mx = True, savefigs = False, show_model_performance = True, pickle_model=False):
     """ Split spectra into training and testing data sets
@@ -401,7 +417,7 @@ def split_train_test(X, test_size=0.2, print_conf_mx = True, plot_conf_mx = True
     # plot confusion matrices as subplots in a single figure using Seaborn heatmap
     if plot_conf_mx or savefigs:
 
-        fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(15,15))
+        fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(35,35))
         sn.heatmap(conf_mx_RF, annot=True, annot_kws={"size": 16},
                    xticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite','Clean Ice', 'Light Algae', 'Heavy Algae'],
                    yticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
@@ -642,8 +658,8 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
     LApercent = (albedoDF['pred'][albedoDF['pred']==5].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
     CIpercent = (albedoDF['pred'][albedoDF['pred']==4].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
     CCpercent = (albedoDF['pred'][albedoDF['pred']==3].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
-    SNpercent = (albedoDF['pred'][albedoDF['pred']==2].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
-    WATpercent = (albedoDF['pred'][albedoDF['pred']==1].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+    WATpercent = (albedoDF['pred'][albedoDF['pred'] == 2].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
+    SNpercent = (albedoDF['pred'][albedoDF['pred']==1].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
 
 
     if save_albedo_data:
@@ -664,23 +680,16 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
     return albedoDF
 
 
+
 X = training_data_from_spectra(HCRF_file, plot_spectra=False, savefigs=False)
 
-X, outDF = training_data_from_img(X = X, img_file = img_file,
+X, tempDF = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_max = x_max, y_min = y_min,
+                                  y_max = y_max, area_labels = area_labels, n_areas=n_areas)
 
-                                  x_min=[4810,5120,5185,4036,5050],
 
-                                  x_max=[4850,5160,5200,4052,5075],
-
-                                  y_min=[1070,750,810,380,1670],
-
-                                  y_max=[1115,790,832,415,1720],
-
-                                  area_labels=[1,1,1,1,1])
-
-clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.3, print_conf_mx = False, plot_conf_mx = True,
+clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.2, print_conf_mx = False, plot_conf_mx = True,
                                                    savefigs = False, show_model_performance = False, pickle_model=False)
-#
-# predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
-#
-# albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
+
+predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
+
+albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
