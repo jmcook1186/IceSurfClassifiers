@@ -83,6 +83,8 @@ Created on Thu Mar  8 14:32:24 2018
 
 """
 
+
+
 import pandas as pd
 import xarray as xr
 import sklearn_xarray
@@ -97,6 +99,8 @@ import matplotlib as mpl
 import georaster
 from osgeo import gdal, osr
 import seaborn as sn
+import dask.array as da
+from dask.array.core import map_blocks
 
 # matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown (for
 # rapidly processing multiple images later)
@@ -459,11 +463,9 @@ def split_train_test(X, test_size=0.2, print_conf_mx = True, plot_conf_mx = True
 
 
 def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netcdf = False):
-
-    startTime = datetime.now() # start timer
-
+    startTime = datetime.now()  # start timer
     # open uav file using xarray. Use "with ... as ..." method so that file auto-closes after use
-    with xr.open_dataset(img_file, chunks={'x': 2000, 'y': 2000}) as uav:
+    with xr.open_dataset(img_file) as uav:
 
         # calibration against ASD Field Spec
         uav['Band1'] -= 0.17
@@ -484,29 +486,30 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
                 uav.Band2 - 0.18) ** 2 - 0.015 * (uav.Band4 - 0.16) + 0.581 \
                    * (uav.Band4 - 0.16)
 
-    # Mask nodata areas
-    concat = concat.where(concat.sum(dim='bands') > 0)
+        # Mask nodata areas
+        concat = concat.where(concat.sum(dim='bands') > 0)
 
-    # stack the values into a 1D array
-    stacked = concat.stack(allpoints=['y', 'x'])
+        # stack the values into a 1D array
+        stacked = concat.stack(allpoints=['y', 'x'])
 
-    # Transpose and rename so that DataArray has exactly the same layout/labels as the training DataArray.
-    stackedT = stacked.T
-    stackedT = stackedT.rename({'allpoints': 'samples'})
-    stackedT = stackedT.where(stackedT.sum(dim='bands') > 0).dropna(dim='samples')
+        # Transpose and rename so that DataArray has exactly the same layout/labels as the training DataArray.
+        stackedT = stacked.T
+        stackedT = stackedT.rename({'allpoints': 'samples'})
+        stackedT = stackedT.where(stackedT.sum(dim='bands') > 0).dropna(dim='samples')
+        stacked_chunk = stackedT.chunk({'samples':1000000, 'bands':5})
 
-    # apply classifier
-    predicted_temp = clf.predict(stackedT).compute()
+        predicted_temp = clf.predict(stacked_chunk).compute()
+        print('time taken to complete prediction:',datetime.now()-startTime)
 
-    # Unstack back to x,y grid and save as numpy array
-    predicted = np.array(predicted_temp.unstack(dim='samples'))
+        # Unstack back to x,y grid and save as numpy array
+        predicted = np.array(predicted_temp.unstack(dim='samples'))
 
     # convert albedo array to numpy array for analysis
     albedo = np.array(albedo_temp)
-    albedo[albedo < -0.48] = -99999  # areas outside of main image area identified with constant value of -0.48...
-    albedo[albedo == -99999] = None  # set values outside image area to null
+    albedo[albedo < -0.48] = None  # areas outside of main image area identified set to null
     with np.errstate(divide='ignore', invalid='ignore'):  # ignore warning about nans in array
         albedo[albedo < 0] = 0  # set any subzero pixels inside image area to 0
+    print('time taken to complete albedo array:',datetime.now()-startTime)
 
     # collate predicted map, albeod map and projection info into xarray dataset
     # 1) Retrieve projection info from uav datafile and add to netcdf
@@ -595,7 +598,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     dataset.y.attrs['standard_name'] = 'projection_y_coordinate'
     dataset.y.attrs['point_spacing'] = 'even'
     dataset.y.attrs['axis'] = 'y'
-
+    print('time taken to create dataset: ',datetime.now()-startTime)
     # save dataset to netcdf if requested
     if save_netcdf:
         dataset.to_netcdf(savefig_path + "Classification_and_Albedo_Data.nc")
@@ -683,13 +686,13 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 
 X = training_data_from_spectra(HCRF_file, plot_spectra=False, savefigs=False)
 
-X, tempDF = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_max = x_max, y_min = y_min,
-                                  y_max = y_max, area_labels = area_labels, n_areas=n_areas)
+# X, tempDF = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_max = x_max, y_min = y_min,
+#                                   y_max = y_max, area_labels = area_labels, n_areas=n_areas)
 
 
-clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.2, print_conf_mx = False, plot_conf_mx = True,
+clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.2, print_conf_mx = False, plot_conf_mx = False,
                                                    savefigs = False, show_model_performance = False, pickle_model=False)
 
 predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
 
-albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
+# albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)

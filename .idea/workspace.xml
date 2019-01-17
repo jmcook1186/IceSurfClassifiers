@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0cb12377-5080-4dfb-bd45-a6a909b22a49" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UAV_classifier_xarray.py" beforeDir="false" afterPath="$PROJECT_DIR$/UAV_classifier_xarray.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -11,12 +12,12 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="375">
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/UAV_Classifier_Parallelized.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state>
-              <caret line="435" selection-start-line="435" selection-end-line="435" />
+            <state relative-caret-position="11688">
+              <caret line="498" column="20" selection-start-line="498" selection-start-column="20" selection-end-line="498" selection-end-column="20" />
               <folding>
                 <element signature="e#3926#3944#0" expanded="true" />
               </folding>
@@ -27,7 +28,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state>
+            <state relative-caret-position="1800">
               <caret line="75" selection-start-line="75" selection-end-line="75" selection-end-column="44" />
             </state>
           </provider>
@@ -36,7 +37,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state>
+            <state relative-caret-position="1608">
               <caret line="67" column="42" selection-start-line="67" selection-start-column="42" selection-end-line="67" selection-end-column="42" />
             </state>
           </provider>
@@ -45,10 +46,22 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="145">
-              <caret line="115" lean-forward="true" selection-start-line="115" selection-end-line="115" />
+            <state relative-caret-position="459">
+              <caret line="500" column="39" lean-forward="true" selection-start-line="500" selection-start-column="39" selection-end-line="500" selection-end-column="39" />
               <folding>
-                <element signature="e#4230#4249#0" expanded="true" />
+                <element signature="e#4849#4868#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/test.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="459">
+              <caret line="730" column="65" lean-forward="true" selection-end-line="730" selection-end-column="71" />
+              <folding>
+                <element signature="e#4849#4868#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -76,8 +89,8 @@
         <option value="$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py" />
         <option value="$PROJECT_DIR$/xarray_test.py" />
         <option value="$PROJECT_DIR$/UAV_Classifier_Parallelized.py" />
-        <option value="$PROJECT_DIR$/test.py" />
         <option value="$PROJECT_DIR$/new_train.py" />
+        <option value="$PROJECT_DIR$/test.py" />
         <option value="$PROJECT_DIR$/UAV_classifier_xarray.py" />
       </list>
     </option>
@@ -93,7 +106,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -110,6 +122,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -169,24 +182,6 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="new_train" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="IceSurfClassifiers" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/new_train.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="parallel_test" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="IceSurfClassifiers" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -202,6 +197,24 @@
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="test" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="IceSurfClassifiers" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
       <option name="REDIRECT_INPUT" value="false" />
@@ -232,10 +245,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.UAV_classifier_xarray" />
-        <item itemvalue="Python.UAV_classifier_xarray" />
-        <item itemvalue="Python.UAV_classifier_xarray" />
-        <item itemvalue="Python.UAV_classifier_xarray" />
-        <item itemvalue="Python.UAV_classifier_xarray" />
+        <item itemvalue="Python.test" />
+        <item itemvalue="Python.test" />
+        <item itemvalue="Python.test" />
+        <item itemvalue="Python.test" />
       </list>
     </recent_temporary>
   </component>
@@ -278,7 +291,7 @@
       <window_info anchor="bottom" id="Version Control" order="7" weight="0.32954547" />
       <window_info anchor="bottom" id="Terminal" order="8" weight="0.32911393" />
       <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.50242716" side_tool="true" weight="0.43829113" />
-      <window_info active="true" anchor="bottom" x="76" y="413" width="2470" height="608" id="Python Console" order="10" sideWeight="0.4975728" visible="true" weight="0.43829113" />
+      <window_info anchor="bottom" x="76" y="413" width="2470" height="608" id="Python Console" order="10" sideWeight="0.4975728" visible="true" weight="0.46044305" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -322,53 +335,47 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/xarray_test.py" />
-    <entry file="file://$PROJECT_DIR$/test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="253">
-          <caret line="200" lean-forward="true" selection-start-line="200" selection-end-line="200" />
-          <folding>
-            <element signature="e#2#21#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret line="67" column="42" selection-start-line="67" selection-start-column="42" selection-end-line="67" selection-end-column="42" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret line="75" selection-start-line="75" selection-end-line="75" selection-end-column="44" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/new_train.py" />
     <entry file="file://$PROJECT_DIR$/UAV_Classifier_Parallelized.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret line="435" selection-start-line="435" selection-end-line="435" />
+        <state relative-caret-position="11688">
+          <caret line="498" column="20" selection-start-line="498" selection-start-column="20" selection-end-line="498" selection-end-column="20" />
           <folding>
             <element signature="e#3926#3944#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/new_train.py">
+    <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="409">
-          <caret line="49" selection-start-line="49" selection-end-line="53" selection-end-column="46" />
+        <state relative-caret-position="1800">
+          <caret line="75" selection-start-line="75" selection-end-line="75" selection-end-column="44" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1608">
+          <caret line="67" column="42" selection-start-line="67" selection-start-column="42" selection-end-line="67" selection-end-column="42" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="459">
+          <caret line="730" column="65" lean-forward="true" selection-end-line="730" selection-end-column="71" />
+          <folding>
+            <element signature="e#4849#4868#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="145">
-          <caret line="115" lean-forward="true" selection-start-line="115" selection-end-line="115" />
+        <state relative-caret-position="459">
+          <caret line="500" column="39" lean-forward="true" selection-start-line="500" selection-start-column="39" selection-end-line="500" selection-end-column="39" />
           <folding>
-            <element signature="e#4230#4249#0" expanded="true" />
+            <element signature="e#4849#4868#0" expanded="true" />
           </folding>
         </state>
       </provider>
