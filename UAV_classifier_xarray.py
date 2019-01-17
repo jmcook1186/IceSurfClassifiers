@@ -99,11 +99,10 @@ import matplotlib as mpl
 import georaster
 from osgeo import gdal, osr
 import seaborn as sn
-import dask.array as da
-from dask.array.core import map_blocks
 
 # matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown (for
 # rapidly processing multiple images later)
+
 mpl.style.use('ggplot')
 plt.ioff()
 
@@ -393,7 +392,7 @@ def split_train_test(X, test_size=0.2, print_conf_mx = True, plot_conf_mx = True
 
     # Define classifier
     clf = sklearn_xarray.wrap(
-        RandomForestClassifier(n_estimators=500, max_leaf_nodes=16, n_jobs=-1),
+        RandomForestClassifier(n_estimators=64, max_leaf_nodes=16, n_jobs=-1),
         sample_dim='samples', reshapes='bands')
 
     # fot classifier to training data
@@ -496,34 +495,35 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         stackedT = stacked.T
         stackedT = stackedT.rename({'allpoints': 'samples'})
         stackedT = stackedT.where(stackedT.sum(dim='bands') > 0).dropna(dim='samples')
-        stacked_chunk = stackedT.chunk({'samples':1000000, 'bands':5})
 
-        predicted_temp = clf.predict(stacked_chunk).compute()
+        # apply classifier (make use of all cores)
+        predicted_temp = clf.predict(stackedT)
+
         print('time taken to complete prediction:',datetime.now()-startTime)
 
         # Unstack back to x,y grid and save as numpy array
         predicted = np.array(predicted_temp.unstack(dim='samples'))
 
-    # convert albedo array to numpy array for analysis
-    albedo = np.array(albedo_temp)
-    albedo[albedo < -0.48] = None  # areas outside of main image area identified set to null
-    with np.errstate(divide='ignore', invalid='ignore'):  # ignore warning about nans in array
-        albedo[albedo < 0] = 0  # set any subzero pixels inside image area to 0
-    print('time taken to complete albedo array:',datetime.now()-startTime)
+        # convert albedo array to numpy array for analysis
+        albedo = np.array(albedo_temp)
+        albedo[albedo < -0.48] = None  # areas outside of main image area identified set to null
+        with np.errstate(divide='ignore', invalid='ignore'):  # ignore warning about nans in array
+            albedo[albedo < 0] = 0  # set any subzero pixels inside image area to 0
+        print('time taken to complete albedo array:',datetime.now()-startTime)
 
-    # collate predicted map, albeod map and projection info into xarray dataset
-    # 1) Retrieve projection info from uav datafile and add to netcdf
-    srs = osr.SpatialReference()
-    srs.ImportFromProj4('+init=epsg:32623')
-    proj_info = xr.DataArray(0, encoding={'dtype': np.dtype('int8')})
-    proj_info.attrs['projected_crs_name'] = srs.GetAttrValue('projcs')
-    proj_info.attrs['grid_mapping_name'] = 'UTM'
-    proj_info.attrs['scale_factor_at_central_origin'] = srs.GetProjParm('scale_factor')
-    proj_info.attrs['standard_parallel'] = srs.GetProjParm('latitude_of_origin')
-    proj_info.attrs['straight_vertical_longitude_from_pole'] = srs.GetProjParm('central_meridian')
-    proj_info.attrs['false_easting'] = srs.GetProjParm('false_easting')
-    proj_info.attrs['false_northing'] = srs.GetProjParm('false_northing')
-    proj_info.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
+        # collate predicted map, albeod map and projection info into xarray dataset
+        # 1) Retrieve projection info from uav datafile and add to netcdf
+        srs = osr.SpatialReference()
+        srs.ImportFromProj4('+init=epsg:32623')
+        proj_info = xr.DataArray(0, encoding={'dtype': np.dtype('int8')})
+        proj_info.attrs['projected_crs_name'] = srs.GetAttrValue('projcs')
+        proj_info.attrs['grid_mapping_name'] = 'UTM'
+        proj_info.attrs['scale_factor_at_central_origin'] = srs.GetProjParm('scale_factor')
+        proj_info.attrs['standard_parallel'] = srs.GetProjParm('latitude_of_origin')
+        proj_info.attrs['straight_vertical_longitude_from_pole'] = srs.GetProjParm('central_meridian')
+        proj_info.attrs['false_easting'] = srs.GetProjParm('false_easting')
+        proj_info.attrs['false_northing'] = srs.GetProjParm('false_northing')
+        proj_info.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
 
     # 2) Create associated lat/lon coordinates DataArrays usig georaster (imports geo metadata without loading img)
     # see georaster docs at https: // media.readthedocs.org / pdf / georaster / latest / georaster.pdf
@@ -600,6 +600,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     dataset.y.attrs['axis'] = 'y'
     print('time taken to create dataset: ',datetime.now()-startTime)
     # save dataset to netcdf if requested
+
     if save_netcdf:
         dataset.to_netcdf(savefig_path + "Classification_and_Albedo_Data.nc")
 

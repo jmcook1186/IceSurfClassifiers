@@ -46,22 +46,10 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="459">
-              <caret line="500" column="39" lean-forward="true" selection-start-line="500" selection-start-column="39" selection-end-line="500" selection-end-column="39" />
+            <state relative-caret-position="2616">
+              <caret line="603" column="4" selection-start-line="603" selection-start-column="4" selection-end-line="603" selection-end-column="4" />
               <folding>
-                <element signature="e#4849#4868#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/test.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="459">
-              <caret line="730" column="65" lean-forward="true" selection-end-line="730" selection-end-column="71" />
-              <folding>
-                <element signature="e#4849#4868#0" expanded="true" />
+                <element signature="e#4232#4251#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -291,7 +279,7 @@
       <window_info anchor="bottom" id="Version Control" order="7" weight="0.32954547" />
       <window_info anchor="bottom" id="Terminal" order="8" weight="0.32911393" />
       <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.50242716" side_tool="true" weight="0.43829113" />
-      <window_info anchor="bottom" x="76" y="413" width="2470" height="608" id="Python Console" order="10" sideWeight="0.4975728" visible="true" weight="0.46044305" />
+      <window_info active="true" anchor="bottom" x="76" y="413" width="2470" height="608" id="Python Console" order="10" sideWeight="0.4975728" visible="true" weight="0.46044305" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -372,10 +360,10 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="459">
-          <caret line="500" column="39" lean-forward="true" selection-start-line="500" selection-start-column="39" selection-end-line="500" selection-end-column="39" />
+        <state relative-caret-position="2616">
+          <caret line="603" column="4" selection-start-line="603" selection-start-column="4" selection-end-line="603" selection-end-column="4" />
           <folding>
-            <element signature="e#4849#4868#0" expanded="true" />
+            <element signature="e#4232#4251#0" expanded="true" />
           </folding>
         </state>
       </provider>
