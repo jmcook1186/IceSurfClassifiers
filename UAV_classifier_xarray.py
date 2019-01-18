@@ -369,7 +369,8 @@ def training_data_from_img(X, img_file, x_min, x_max, y_min, y_max, n_areas, are
 
     return X, tempDF
 
-def split_train_test(X, test_size=0.2, print_conf_mx = True, plot_conf_mx = True, savefigs = False, show_model_performance = True, pickle_model=False):
+def split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, plot_conf_mx = True, savefigs = False,
+                     show_model_performance = True, pickle_model=False):
     """ Split spectra into training and testing data sets
     Arguments:
     spectra : pd.DataFrame of spectra (each spectra = row, columns = bands)
@@ -392,7 +393,7 @@ def split_train_test(X, test_size=0.2, print_conf_mx = True, plot_conf_mx = True
 
     # Define classifier
     clf = sklearn_xarray.wrap(
-        RandomForestClassifier(n_estimators=64, max_leaf_nodes=16, n_jobs=-1),
+        RandomForestClassifier(n_estimators=n_trees, max_leaf_nodes=None, n_jobs=-1),
         sample_dim='samples', reshapes='bands')
 
     # fot classifier to training data
@@ -463,6 +464,7 @@ def split_train_test(X, test_size=0.2, print_conf_mx = True, plot_conf_mx = True
 
 def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netcdf = False):
     startTime = datetime.now()  # start timer
+
     # open uav file using xarray. Use "with ... as ..." method so that file auto-closes after use
     with xr.open_dataset(img_file) as uav:
 
@@ -479,17 +481,11 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         # concatenate the bands into a single dimension ('bands_idx') in the data array
         concat = xr.concat([uav.Band1, uav.Band2, uav.Band3, uav.Band4, uav.Band5], band_idx)
 
-        # calculate albedo using Knap (1999) narrowband to broadband conversion. Use "where" function to isolate pixels in
-        # the image area and avoid null values in matrix
-        albedo_temp = 0.726 * (uav.Band2 - 0.18) - 0.322 * (
-                uav.Band2 - 0.18) ** 2 - 0.015 * (uav.Band4 - 0.16) + 0.581 \
-                   * (uav.Band4 - 0.16)
-
         # Mask nodata areas
-        concat = concat.where(concat.sum(dim='bands') > 0)
+        concat2 = concat.where(concat.sum(dim='bands') > 0)
 
         # stack the values into a 1D array
-        stacked = concat.stack(allpoints=['y', 'x'])
+        stacked = concat2.stack(allpoints=['y', 'x'])
 
         # Transpose and rename so that DataArray has exactly the same layout/labels as the training DataArray.
         stackedT = stacked.T
@@ -505,25 +501,32 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
         predicted = np.array(predicted_temp.unstack(dim='samples'))
 
         # convert albedo array to numpy array for analysis
+        # obtain albedo by aplying Knap (1999) narrowband to broadband albedo conversion.
+        albedo_temp = 0.726 * (concat[1,:,:] - 0.18) - 0.322 * (
+                concat[1,:,:] - 0.18) ** 2 - 0.015 * (concat[3,:,:] - 0.16) + 0.581 \
+                   * (concat[3,:,:] - 0.16)
+
+        # convert albedo array to numpy array for analysis
         albedo = np.array(albedo_temp)
         albedo[albedo < -0.48] = None  # areas outside of main image area identified set to null
         with np.errstate(divide='ignore', invalid='ignore'):  # ignore warning about nans in array
             albedo[albedo < 0] = 0  # set any subzero pixels inside image area to 0
         print('time taken to complete albedo array:',datetime.now()-startTime)
 
-        # collate predicted map, albeod map and projection info into xarray dataset
-        # 1) Retrieve projection info from uav datafile and add to netcdf
-        srs = osr.SpatialReference()
-        srs.ImportFromProj4('+init=epsg:32623')
-        proj_info = xr.DataArray(0, encoding={'dtype': np.dtype('int8')})
-        proj_info.attrs['projected_crs_name'] = srs.GetAttrValue('projcs')
-        proj_info.attrs['grid_mapping_name'] = 'UTM'
-        proj_info.attrs['scale_factor_at_central_origin'] = srs.GetProjParm('scale_factor')
-        proj_info.attrs['standard_parallel'] = srs.GetProjParm('latitude_of_origin')
-        proj_info.attrs['straight_vertical_longitude_from_pole'] = srs.GetProjParm('central_meridian')
-        proj_info.attrs['false_easting'] = srs.GetProjParm('false_easting')
-        proj_info.attrs['false_northing'] = srs.GetProjParm('false_northing')
-        proj_info.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
+
+    # collate predicted map, albeod map and projection info into xarray dataset
+    # 1) Retrieve projection info from uav datafile and add to netcdf
+    srs = osr.SpatialReference()
+    srs.ImportFromProj4('+init=epsg:32623')
+    proj_info = xr.DataArray(0, encoding={'dtype': np.dtype('int8')})
+    proj_info.attrs['projected_crs_name'] = srs.GetAttrValue('projcs')
+    proj_info.attrs['grid_mapping_name'] = 'UTM'
+    proj_info.attrs['scale_factor_at_central_origin'] = srs.GetProjParm('scale_factor')
+    proj_info.attrs['standard_parallel'] = srs.GetProjParm('latitude_of_origin')
+    proj_info.attrs['straight_vertical_longitude_from_pole'] = srs.GetProjParm('central_meridian')
+    proj_info.attrs['false_easting'] = srs.GetProjParm('false_easting')
+    proj_info.attrs['false_northing'] = srs.GetProjParm('false_northing')
+    proj_info.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
 
     # 2) Create associated lat/lon coordinates DataArrays usig georaster (imports geo metadata without loading img)
     # see georaster docs at https: // media.readthedocs.org / pdf / georaster / latest / georaster.pdf
@@ -599,18 +602,16 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     dataset.y.attrs['point_spacing'] = 'even'
     dataset.y.attrs['axis'] = 'y'
     print('time taken to create dataset: ',datetime.now()-startTime)
-    # save dataset to netcdf if requested
 
+    # save dataset to netcdf if requested
     if save_netcdf:
         dataset.to_netcdf(savefig_path + "Classification_and_Albedo_Data.nc")
 
     # plot and save figure if requested
     if plot_maps or savefigs:
-
         # set color scheme for plots - custom for predicted
         cmap1 = mpl.colors.ListedColormap(
             ['purple', 'white', 'royalblue', 'black', 'lightskyblue', 'mediumseagreen', 'darkgreen'])
-
         cmap1.set_under(color='white')  # make sure background is white
         cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
         cmap2.set_under(color='white')  # make sure background is white
@@ -687,13 +688,13 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 
 X = training_data_from_spectra(HCRF_file, plot_spectra=False, savefigs=False)
 
-# X, tempDF = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_max = x_max, y_min = y_min,
-#                                   y_max = y_max, area_labels = area_labels, n_areas=n_areas)
+X, tempDF = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_max = x_max, y_min = y_min,
+                                  y_max = y_max, area_labels = area_labels, n_areas=n_areas)
 
 
-clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.2, print_conf_mx = False, plot_conf_mx = False,
-                                                   savefigs = False, show_model_performance = False, pickle_model=False)
+clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.2, n_trees=32, print_conf_mx = False, plot_conf_mx = True,
+                                                   savefigs = False, show_model_performance = True, pickle_model=False)
 
-predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = True)
+predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = False)
 
 # albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
