@@ -494,27 +494,24 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
 
         # apply classifier (make use of all cores)
         predicted_temp = clf.predict(stackedT)
-
-        print('time taken to complete prediction:',datetime.now()-startTime)
-
         # Unstack back to x,y grid and save as numpy array
         predicted = np.array(predicted_temp.unstack(dim='samples'))
 
         # convert albedo array to numpy array for analysis
         # obtain albedo by aplying Knap (1999) narrowband to broadband albedo conversion.
-        albedo_temp = 0.726 * (concat[1,:,:] - 0.18) - 0.322 * (
+        concat = np.array(concat)
+        albedo = 0.726 * (concat[1,:,:] - 0.18) - 0.322 * (
                 concat[1,:,:] - 0.18) ** 2 - 0.015 * (concat[3,:,:] - 0.16) + 0.581 \
                    * (concat[3,:,:] - 0.16)
 
         # convert albedo array to numpy array for analysis
-        albedo = np.array(albedo_temp)
         albedo[albedo < -0.48] = None  # areas outside of main image area identified set to null
         with np.errstate(divide='ignore', invalid='ignore'):  # ignore warning about nans in array
             albedo[albedo < 0] = 0  # set any subzero pixels inside image area to 0
-        print('time taken to complete albedo array:',datetime.now()-startTime)
 
 
-    # collate predicted map, albeod map and projection info into xarray dataset
+
+    # collate predicted map, albedo map and projection info into xarray dataset
     # 1) Retrieve projection info from uav datafile and add to netcdf
     srs = osr.SpatialReference()
     srs.ImportFromProj4('+init=epsg:32623')
@@ -688,13 +685,13 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 
 X = training_data_from_spectra(HCRF_file, plot_spectra=False, savefigs=False)
 
-X, tempDF = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_max = x_max, y_min = y_min,
-                                  y_max = y_max, area_labels = area_labels, n_areas=n_areas)
+# X, tempDF = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_max = x_max, y_min = y_min,
+#                                   y_max = y_max, area_labels = area_labels, n_areas=n_areas)
 
 
-clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.2, n_trees=32, print_conf_mx = False, plot_conf_mx = True,
+clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.2, n_trees=32, print_conf_mx = False, plot_conf_mx = False,
                                                    savefigs = False, show_model_performance = True, pickle_model=False)
 
-predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = False)
+#predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = False)
 
 # albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
