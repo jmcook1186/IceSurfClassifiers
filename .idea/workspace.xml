@@ -2,10 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0cb12377-5080-4dfb-bd45-a6a909b22a49" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/Sentinel_Classifier_xarray.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/UAV_Classifier_Parallelized.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Sentinel_Classifier_xarray.py" beforeDir="false" afterPath="$PROJECT_DIR$/Sentinel_Classifier_xarray.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UAV_classifier_xarray.py" beforeDir="false" afterPath="$PROJECT_DIR$/UAV_classifier_xarray.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -19,8 +16,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="216">
-              <caret line="646" selection-start-line="646" selection-end-line="681" selection-end-column="19" />
+            <state relative-caret-position="7341">
+              <caret line="384" column="28" lean-forward="true" selection-start-line="384" selection-start-column="28" selection-end-line="384" selection-end-column="28" />
               <folding>
                 <element signature="e#4232#4251#0" expanded="true" />
               </folding>
@@ -31,8 +28,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_xarray.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="360">
-              <caret line="623" selection-start-line="623" selection-end-line="658" selection-end-column="19" />
+            <state relative-caret-position="216">
+              <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
               <folding>
                 <element signature="e#5529#5547#0" expanded="true" />
               </folding>
@@ -117,7 +114,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.S2_xarray">
+  <component name="RunManager" selected="Python.Sentinel_Classifier_xarray">
     <configuration name="S2_xarray" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="IceSurfClassifiers" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -128,6 +125,24 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/S2_xarray.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Sentinel_Classifier_xarray" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="IceSurfClassifiers" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Sentinel_Classifier_xarray.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="true" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -161,36 +176,12 @@
       <module name="IceSurfClassifiers" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/UAV_classifier_xarray.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="test" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="IceSurfClassifiers" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="true" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -222,9 +213,9 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.S2_xarray" />
-        <item itemvalue="Python.S2_xarray" />
-        <item itemvalue="Python.S2_xarray" />
+        <item itemvalue="Python.Sentinel_Classifier_xarray" />
+        <item itemvalue="Python.Sentinel_Classifier_xarray" />
+        <item itemvalue="Python.UAV_classifier_xarray" />
         <item itemvalue="Python.S2_xarray" />
         <item itemvalue="Python.S2_xarray" />
       </list>
@@ -254,6 +245,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="60" y="-5" width="2500" height="1445" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" sideWeight="0.4984756" visible="true" weight="0.24959546" />
       <window_info id="Structure" order="1" sideWeight="0.5015244" side_tool="true" weight="0.24979757" />
@@ -353,8 +345,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="216">
-          <caret line="646" selection-start-line="646" selection-end-line="681" selection-end-column="19" />
+        <state relative-caret-position="7341">
+          <caret line="384" column="28" lean-forward="true" selection-start-line="384" selection-start-column="28" selection-end-line="384" selection-end-column="28" />
           <folding>
             <element signature="e#4232#4251#0" expanded="true" />
           </folding>
@@ -363,8 +355,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_xarray.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="360">
-          <caret line="623" selection-start-line="623" selection-end-line="658" selection-end-column="19" />
+        <state relative-caret-position="216">
+          <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
           <folding>
             <element signature="e#5529#5547#0" expanded="true" />
           </folding>

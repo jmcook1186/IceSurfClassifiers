@@ -5,8 +5,8 @@ code written by Joseph Cook (University of Sheffield), 2018. Correspondence to j
 
 *** OVERVIEW ***
 
-This code trains a random forest classifier on ground and (optionally) UAV-derived multispectral reflectance data, then
-deploys it to classify Sentinel 2 imagery into various surface categories:
+This code trains a random forest classifier on ground-level reflectance data, then deploys it to classify Sentinel 2
+imagery into various surface categories:
 
 Water, Snow, Clean Ice, Cryoconite, Light Algal Bloom, Heavy Algal Bloom
 
@@ -50,10 +50,9 @@ Then reformat the jp2 images for each band into netCDF files using gdal:
 >> gdal_translate L2A_T22WEV_20160721T151912_B02_20m.jp2 /home/joe/Desktop/S2A_NetCDFs/B02.nc
 
 repeat for each band. The final processed files are then available in the desktop folder 'S2A_NetCDFs' and saved
-as B02.nc, B03.nc etc
+as B02.nc, B03.nc etc. These netcdfs are then used as input data in this script.
 
-The resulting NetCDF files are then used as inpout data for this script. If additional training data from UAv imagery
-is to be used, a netCDF containing preprocessed UAV multispectral imagery must also be saved to the working directory.
+The resulting NetCDF files are then used as input data for this script.
 
 3) The GIMP mask downloaded from https://nsidc.org/data/nsidc-0714/versions/1 must be saved to the working directory.
 Ensure the downloaded tile is the correct one for the section of ice sheet being examined.
@@ -100,22 +99,27 @@ from sklearn.ensemble import RandomForestClassifier
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from datetime import datetime
-from dask_ml.wrappers import ParallelPostFit
 import xarray as xr
 import seaborn as sn
 from osgeo import gdal, osr
 import georaster
 
-
+# SET INPUT PATHS/VALUES
+# paths for create_dataset()
 HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
 savefig_path = '//home/joe/Desktop/'
 img_path = '/home/joe/Desktop/S2A_NetCDFs/'
 
-def create_dataset(HCRF_file, img_path, plot_spectra=True, savefigs=True):
+# paths for format_mask()
+Sentinel_template = '/home/joe/Desktop/S2_L2A/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/L2A_T22WEV_20160721T151912_B02_20m.jp2'
+mask_in = '/home/joe/Desktop/GIMP_MASK.tif'
+mask_out = '/home/joe/Desktop/GIMP_MASK.nc'
 
+
+# DEFINE FUNCTIONS
+def create_dataset(HCRF_file, img_path, plot_spectra=True, savefigs=True):
 # Sentinel 2 dataset
 # create 3D numpy array with dim1 = band, dims 2 and 3 = spatial x and y. Values are reflectance.
-
     S2vals = np.zeros([9,5490,5490])
     bands = ['02','03','04','05','05','07','08','11','12']
     for i in np.arange(0,len(bands),1):
@@ -344,7 +348,7 @@ def split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, plot_c
     XX = X.drop(['label'],axis=1)
     YY = X['label']
     X_train, X_test, Y_train, Y_test = model_selection.train_test_split(XX, YY, test_size=test_size)
-    clf = ParallelPostFit(RandomForestClassifier(n_estimators=n_trees, max_leaf_nodes=16, n_jobs=-1))
+    clf = RandomForestClassifier(n_estimators=n_trees, max_leaf_nodes=16, n_jobs=-1)
     clf.fit(X_train, Y_train)
 
     accuracy_RF = clf.score(X_train, Y_train)
@@ -411,7 +415,7 @@ def split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, plot_c
     return clf, conf_mx_RF, norm_conf_mx
 
 
-def format_mask (Sentinel,mask_in,mask_out):
+def format_mask (Sentinel_template,mask_in,mask_out):
     """
     Function reprojects GIMP mask to dimensions, resolution and spatial coords of the S2 images, enabling
     Boolean masking of land-ice area.
@@ -433,7 +437,7 @@ def format_mask (Sentinel,mask_in,mask_out):
     data_type = mask.GetRasterBand(1).DataType
     n_bands = mask.RasterCount
 
-    Sentinel = gdal.Open(Sentinel)
+    Sentinel = gdal.Open(Sentinel_template)
 
     Sentinel_proj = Sentinel.GetProjection()
     Sentinel_geotrans = Sentinel.GetGeoTransform()
@@ -457,7 +461,7 @@ def format_mask (Sentinel,mask_in,mask_out):
     nans = np.isnan(mask_array)
     mask_array[nans]=0
 
-    return new_mask, mask_array
+    return mask_array
 
 
 def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, save_netcdf = False):
@@ -595,10 +599,10 @@ def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, sa
     if save_netcdf:
         dataset.to_netcdf(savefig_path + "Classification_and_Albedo_Data.nc")
 
-    cmap1 = mpl.colors.ListedColormap(['white', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
-    cmap2 = 'Greys_r'
+    if plot_maps or savefigs:
 
-    if plot_maps:
+        cmap1 = mpl.colors.ListedColormap(['white', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
+        cmap2 = 'Greys_r'
 
         plt.figure(figsize=(30,30))
         plt.title("Classified ice surface and its albedo: SW Greenland Ice Sheet", fontsize = 28)
@@ -613,9 +617,7 @@ def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, sa
             plt.show()
 
     if savefigs:
-
-        plt.savefig(str(savefig_path + "confusion_matrices.jpg"), dpi=300)
-        plt.show()
+        plt.savefig(str(savefig_path + "Sentinel_Classified_Albedo.png"), dpi=300)
 
     print("\nTime taken to classify image = ", datetime.now() - startTime)
 
@@ -666,14 +668,13 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 S2vals, X = create_dataset(HCRF_file, img_path, plot_spectra=False, savefigs=False)
 
 #optimise and train model
-
-clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, plot_conf_mx = False, savefigs = False,
+clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.3, n_trees= 32, print_conf_mx = True, plot_conf_mx = False, savefigs = False,
                      show_model_performance = True, pickle_model=False)
-
-new_mask, mask_array = format_mask ('/home/joe/Desktop/S2_L2A/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/L2A_T22WEV_20160721T151912_B02_20m.jp2',
-                                    '/home/joe/Desktop/GIMP_MASK.tif','/home/joe/Desktop/GIMP_MASK.nc')
+#format mask
+mask_array = format_mask (Sentinel_template,mask_in,mask_out)
 
 # apply model to Sentinel2 image
-predicted, albedo, dataset =  ClassifyImages(S2vals,clf, mask_array, plot_maps = True, savefigs=False, save_netcdf=False)
+predicted, albedo, dataset =  ClassifyImages(S2vals,clf, mask_array, plot_maps = False, savefigs=True, save_netcdf=False)
 
-
+# calculate spatial stats
+albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)

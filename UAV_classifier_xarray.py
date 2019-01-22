@@ -341,7 +341,7 @@ def training_data_from_img(X, img_file, x_min, x_max, y_min, y_max, n_areas, are
     with xr.open_dataset(img_file) as uav:
         for i in range(n_areas):
             npix = (x_max[i]- x_min[i])*(y_max[i]- y_min[i])
-            print(npix)
+
             # slice areas defined by corner coordinates
             uavsubsetB1 = uav.Band1[x_min[i]:x_max[i], y_min[i]: y_max[i]]
             uavsubsetB2 = uav.Band2[x_min[i]:x_max[i], y_min[i]: y_max[i]]
@@ -685,8 +685,8 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 
 X = training_data_from_spectra(HCRF_file, plot_spectra=False, savefigs=False)
 
-# X, tempDF = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_max = x_max, y_min = y_min,
-#                                   y_max = y_max, area_labels = area_labels, n_areas=n_areas)
+X, tempDF = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_max = x_max, y_min = y_min,
+                                  y_max = y_max, area_labels = area_labels, n_areas=n_areas)
 
 
 clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.2, n_trees=32, print_conf_mx = False, plot_conf_mx = False,
