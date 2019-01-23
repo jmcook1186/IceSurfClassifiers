@@ -334,11 +334,26 @@ def create_dataset(HCRF_file, img_path, plot_spectra=True, savefigs=True):
 
     R['label'] = 'SN'
 
+
+    Zero = pd.DataFrame()
+    Zero['R140'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['R210'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['R315'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['R355'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['R390'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['R433'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['R515'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['R1260'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['R1840'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    Zero['label'] = 'Zero'
+
+
     X = X.append(Y, ignore_index=True)
     X = X.append(Z, ignore_index=True)
     X = X.append(P, ignore_index=True)
     X = X.append(Q, ignore_index=True)
     X = X.append(R, ignore_index=True)
+    X = X.append(Zero, ignore_index=True)
 
     return S2vals, X
 
@@ -377,14 +392,14 @@ def split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, plot_c
 
         fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(35,35))
         sn.heatmap(conf_mx_RF, annot=True, annot_kws={"size": 16},
-                   xticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite','Clean Ice', 'Light Algae', 'Heavy Algae'],
-                   yticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   xticklabels=['NaN', 'Snow', 'Water', 'Cryoconite','Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   yticklabels=['NaN', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
                    cbar_kws={"shrink": 0.4, 'label':'frequency'}, ax=ax1), ax1.tick_params(axis='both', rotation=45)
         ax1.set_title('Confusion Matrix'), ax1.set_aspect('equal')
 
         sn.heatmap(norm_conf_mx, annot=True, annot_kws={"size": 16}, cmap=plt.cm.gray,
-                   xticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
-                   yticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   xticklabels=['NaN', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   yticklabels=['NaN', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
                    cbar_kws={"shrink": 0.4, 'label':'Normalised Error'}, ax=ax2), ax2.tick_params(axis='both', rotation=45)
         ax2.set_title('Normalised Confusion Matrix'), ax2.set_aspect('equal')
         plt.tight_layout()
@@ -477,6 +492,7 @@ def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, sa
     S2valsT = S2vals.reshape(9, lenx * leny)  # reshape into 5 x 1D arrays
     S2valsT = S2valsT.transpose()  # transpose so that bands are read as features
 
+
     # create albedo array by applying Knap (1999) narrowband - broadband conversion
     albedo_array = np.array([0.356 * (S2vals[0]) + 0.13 * (S2vals[2]) + 0.373 * (
             S2vals[6]) + 0.085 * (S2vals[7]) + 0.072 * (S2vals[8]) - 0.0018])
@@ -492,6 +508,7 @@ def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, sa
     predicted[predicted == 'CI'] = float(4)
     predicted[predicted == 'LA'] = float(5)
     predicted[predicted == 'HA'] = float(6)
+    predicted[predicted == 'Zero'] = float(0)
 
     # ensure array data type is float (required for imshow)
     predicted = predicted.astype(float)
@@ -506,7 +523,11 @@ def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, sa
     predicted = np.ma.masked_where(mask_array==0, predicted)
     albedo = np.ma.masked_where(mask_array==0, albedo)
 
-    # collate predicted map, albeod map and projection info into xarray dataset
+    # mask out areas not covered by Sentinel tile, but not excluded by GIMP mask
+    predicted = np.ma.masked_where(predicted <=0, predicted)
+    albedo = np.ma.masked_where(albedo <=0, albedo)
+
+    # collate predicted map, albedo map and projection info into xarray dataset
     # 1) Retrieve projection info from uav datafile and add to netcdf
     srs = osr.SpatialReference()
     srs.ImportFromProj4('+init=epsg:32623')
@@ -520,7 +541,7 @@ def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, sa
     proj_info.attrs['false_northing'] = srs.GetProjParm('false_northing')
     proj_info.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
 
-    # 2) Create associated lat/lon coordinates DataArrays usig georaster (imports geo metadata without loading img)
+    # 2) Create associated lat/lon coordinates DataArrays using georaster (imports geo metadata without loading img)
     # see georaster docs at https: // media.readthedocs.org / pdf / georaster / latest / georaster.pdf
     S2 = georaster.SingleBandRaster('NETCDF:"%s":Band1' % (str(img_path+'B02.nc')),
                                     load_data=False)
@@ -604,14 +625,18 @@ def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, sa
         cmap1 = mpl.colors.ListedColormap(['white', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
         cmap2 = 'Greys_r'
 
-        plt.figure(figsize=(30,30))
+        plt.figure(figsize=(8,30))
         plt.title("Classified ice surface and its albedo: SW Greenland Ice Sheet", fontsize = 28)
 
         plt.subplot(211)
-        plt.imshow(predicted, cmap=cmap1), plt.grid(None), plt.colorbar(), plt.title("Area 1: Classified")
+        plt.imshow(predicted, cmap=cmap1), plt.grid(None), plt.colorbar(), plt.title("Classified Ice Surface",fontsize=16)
+        plt.grid(None), plt.xticks([0, 2745, 5490],labels=['-51.000235','-49.708602','-48.418656']),plt.xlabel('Longitude (decimal degrees, UTM Zone 22')
+        plt.yticks([0,2745, 5490],['67.615437','67.610307','67.594927']),plt.ylabel('Latitude (decimal degrees, UTM Zone 22)')
 
         plt.subplot(212)
-        plt.imshow(albedo, cmap=cmap2), plt.grid(None), plt.colorbar(), plt.title("Area 1: Albedo")
+        plt.imshow(albedo, cmap=cmap2), plt.grid(None), plt.colorbar(), plt.title("Ice Surface Albedo",fontsize=16)
+        plt.grid(None), plt.xticks([0, 2745, 5490],labels=['-51.000235','-49.708602','-48.418656']),plt.xlabel('Longitude (decimanl degrees, UTM Zone 22')
+        plt.yticks([0,2745, 5490],['67.615437','67.610307','67.594927']),plt.ylabel('Latitude (decimal degrees, UTM Zone 22)')
 
         if not savefigs:
             plt.show()
@@ -664,7 +689,7 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 
 # RUN FUNCTIONS
 
-# create dataset
+#create dataset
 S2vals, X = create_dataset(HCRF_file, img_path, plot_spectra=False, savefigs=False)
 
 #optimise and train model

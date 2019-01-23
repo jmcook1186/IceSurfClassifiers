@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0cb12377-5080-4dfb-bd45-a6a909b22a49" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Sentinel_Classifier_xarray.py" beforeDir="false" afterPath="$PROJECT_DIR$/Sentinel_Classifier_xarray.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UAV_classifier_xarray.py" beforeDir="false" afterPath="$PROJECT_DIR$/UAV_classifier_xarray.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -16,8 +16,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="7341">
-              <caret line="384" column="28" lean-forward="true" selection-start-line="384" selection-start-column="28" selection-end-line="384" selection-end-column="28" />
+            <state relative-caret-position="354">
+              <caret line="313" selection-start-line="313" selection-end-line="320" selection-end-column="21" />
               <folding>
                 <element signature="e#4232#4251#0" expanded="true" />
               </folding>
@@ -28,11 +28,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_xarray.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="216">
-              <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
-              <folding>
-                <element signature="e#5529#5547#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="288">
+              <caret line="627" selection-start-line="627" selection-end-line="639" />
             </state>
           </provider>
         </entry>
@@ -68,16 +65,17 @@
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="62" />
-    <option name="y" value="27" />
-    <option name="width" value="2498" />
-    <option name="height" value="1413" />
+    <option name="x" value="60" />
+    <option name="y" value="-5" />
+    <option name="width" value="2500" />
+    <option name="height" value="1445" />
   </component>
   <component name="ProjectView">
     <navigator proportions="" version="1">
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -94,7 +92,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -119,6 +116,9 @@
       <module name="IceSurfClassifiers" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
@@ -176,6 +176,9 @@
       <module name="IceSurfClassifiers" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
@@ -260,7 +263,7 @@
       <window_info anchor="bottom" id="Version Control" order="7" weight="0.32954547" />
       <window_info anchor="bottom" id="Terminal" order="8" weight="0.32911393" />
       <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.50242716" side_tool="true" weight="0.43829113" />
-      <window_info active="true" anchor="bottom" x="76" y="413" width="2470" height="608" id="Python Console" order="10" sideWeight="0.4975728" visible="true" weight="0.46044305" />
+      <window_info active="true" anchor="bottom" x="76" y="413" width="2470" height="608" id="Python Console" order="10" sideWeight="0.4975728" visible="true" weight="0.29509494" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -305,16 +308,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/xarray_test.py" />
     <entry file="file://$PROJECT_DIR$/new_train.py" />
-    <entry file="file://$PROJECT_DIR$/UAV_Classifier_Parallelized.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="11688">
-          <caret line="498" column="20" selection-start-line="498" selection-start-column="20" selection-end-line="498" selection-end-column="20" />
-          <folding>
-            <element signature="e#3926#3944#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/UAV_Classifier_Parallelized.py" />
     <entry file="file://$PROJECT_DIR$/machine_black_bloom_SENTINEL_20m.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1608">
@@ -323,30 +317,12 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/test.py" />
-    <entry file="file://$PROJECT_DIR$/S2_xarray.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="117">
-          <caret line="585" column="45" lean-forward="true" selection-end-line="663" />
-          <folding>
-            <element signature="e#4209#4227#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="189">
-          <caret line="413" selection-start-line="413" selection-end-line="414" selection-end-column="21" />
-          <folding>
-            <element signature="e#4095#4113#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/S2_xarray.py" />
+    <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py" />
     <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="7341">
-          <caret line="384" column="28" lean-forward="true" selection-start-line="384" selection-start-column="28" selection-end-line="384" selection-end-column="28" />
+        <state relative-caret-position="354">
+          <caret line="313" selection-start-line="313" selection-end-line="320" selection-end-column="21" />
           <folding>
             <element signature="e#4232#4251#0" expanded="true" />
           </folding>
@@ -355,11 +331,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_xarray.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="216">
-          <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
-          <folding>
-            <element signature="e#5529#5547#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="288">
+          <caret line="627" selection-start-line="627" selection-end-line="639" />
         </state>
       </provider>
     </entry>
