@@ -16,8 +16,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="354">
-              <caret line="313" selection-start-line="313" selection-end-line="320" selection-end-column="21" />
+            <state relative-caret-position="474">
+              <caret line="624" selection-start-line="624" selection-end-line="627" selection-end-column="71" />
               <folding>
                 <element signature="e#4232#4251#0" expanded="true" />
               </folding>
@@ -28,8 +28,11 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_xarray.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="288">
-              <caret line="627" selection-start-line="627" selection-end-line="639" />
+            <state relative-caret-position="480">
+              <caret line="648" lean-forward="true" selection-start-line="648" selection-end-line="648" />
+              <folding>
+                <element signature="e#5097#5115#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -75,7 +78,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -92,6 +94,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -218,9 +221,9 @@
       <list>
         <item itemvalue="Python.Sentinel_Classifier_xarray" />
         <item itemvalue="Python.Sentinel_Classifier_xarray" />
-        <item itemvalue="Python.UAV_classifier_xarray" />
-        <item itemvalue="Python.S2_xarray" />
-        <item itemvalue="Python.S2_xarray" />
+        <item itemvalue="Python.Sentinel_Classifier_xarray" />
+        <item itemvalue="Python.Sentinel_Classifier_xarray" />
+        <item itemvalue="Python.Sentinel_Classifier_xarray" />
       </list>
     </recent_temporary>
   </component>
@@ -247,7 +250,7 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="60" y="-5" width="2500" height="1445" extended-state="6" />
+    <frame x="59" y="-8" width="2502" height="1449" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" sideWeight="0.4984756" visible="true" weight="0.24959546" />
@@ -288,6 +291,17 @@
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
     </layout-to-restore>
   </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Sentinel_Classifier_xarray.py</url>
+          <line>743</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/Sentinel_classifier_parallelized.py" />
     <entry file="file://$PROJECT_DIR$/parallel_test.py" />
@@ -321,8 +335,8 @@
     <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_Parallelized.py" />
     <entry file="file://$PROJECT_DIR$/UAV_classifier_xarray.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="354">
-          <caret line="313" selection-start-line="313" selection-end-line="320" selection-end-column="21" />
+        <state relative-caret-position="474">
+          <caret line="624" selection-start-line="624" selection-end-line="627" selection-end-column="71" />
           <folding>
             <element signature="e#4232#4251#0" expanded="true" />
           </folding>
@@ -331,8 +345,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Sentinel_Classifier_xarray.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="288">
-          <caret line="627" selection-start-line="627" selection-end-line="639" />
+        <state relative-caret-position="480">
+          <caret line="648" lean-forward="true" selection-start-line="648" selection-end-line="648" />
+          <folding>
+            <element signature="e#5097#5115#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

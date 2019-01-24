@@ -104,19 +104,36 @@ import seaborn as sn
 from osgeo import gdal, osr
 import georaster
 
-# SET INPUT PATHS/VALUES
-# paths for create_dataset()
-HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
-savefig_path = '//home/joe/Desktop/'
-img_path = '/home/joe/Desktop/S2A_NetCDFs/'
-
-# paths for format_mask()
-Sentinel_template = '/home/joe/Desktop/S2_L2A/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/L2A_T22WEV_20160721T151912_B02_20m.jp2'
-mask_in = '/home/joe/Desktop/GIMP_MASK.tif'
-mask_out = '/home/joe/Desktop/GIMP_MASK.nc'
-
 
 # DEFINE FUNCTIONS
+def set_paths(virtual_machine = False):
+
+    if not virtual_machine:
+        HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+        savefig_path = '//home/joe/Desktop/'
+        img_path = '/home/joe/Desktop/S2A_NetCDFs/'
+
+        # paths for format_mask()
+        Sentinel_template = '/home/joe/Desktop/S2_L2A/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/L2A_T22WEV_20160721T151912_B02_20m.jp2'
+        mask_in = '/home/joe/Desktop/GIMP_MASK.tif'
+        mask_out = '/home/joe/Desktop/GIMP_MASK.nc'
+
+    else:
+        # Virtual Machine
+        # paths for create_dataset()
+        HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+        savefig_path = '//home/joe/Desktop/'
+        img_path = '/home/joe/Desktop/S2A_NetCDFs/'
+
+        # paths for format_mask()
+        Sentinel_template = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/L2A_T22WEV_20160721T151912_B02_20m.jp2'
+        mask_in = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.tif'
+        mask_out = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.nc'
+
+    return HCRF_file, savefig_path,img_path, Sentinel_template, mask_in, mask_out
+
+
+
 def create_dataset(HCRF_file, img_path, plot_spectra=True, savefigs=True):
 # Sentinel 2 dataset
 # create 3D numpy array with dim1 = band, dims 2 and 3 = spatial x and y. Values are reflectance.
@@ -622,29 +639,47 @@ def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, sa
 
     if plot_maps or savefigs:
 
-        cmap1 = mpl.colors.ListedColormap(['white', 'slategray', 'black', 'lightsteelblue', 'gold', 'orangered'])
-        cmap2 = 'Greys_r'
+        cmap1 = mpl.colors.ListedColormap(
+            ['purple', 'white', 'royalblue', 'black', 'lightskyblue', 'mediumseagreen', 'darkgreen'])
+        cmap1.set_under(color='white')  # make sure background is white
+        cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
+        cmap2.set_under(color='white')  # make sure background is white
 
-        plt.figure(figsize=(8,30))
-        plt.title("Classified ice surface and its albedo: SW Greenland Ice Sheet", fontsize = 28)
+        fig = plt.figure(figsize=(8, 30))
 
-        plt.subplot(211)
-        plt.imshow(predicted, cmap=cmap1), plt.grid(None), plt.colorbar(), plt.title("Classified Ice Surface",fontsize=16)
-        plt.grid(None), plt.xticks([0, 2745, 5490],labels=['-51.000235','-49.708602','-48.418656']),plt.xlabel('Longitude (decimal degrees, UTM Zone 22')
-        plt.yticks([0,2745, 5490],['67.615437','67.610307','67.594927']),plt.ylabel('Latitude (decimal degrees, UTM Zone 22)')
+        # first subplot = classified map
+        class_labels = ['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae']
+        ax1 = plt.subplot(211)
+        img = plt.imshow(predicted, cmap=cmap1,vmin=0, vmax=7)
+        cbar = fig.colorbar(mappable = img, ax=ax1)
 
-        plt.subplot(212)
-        plt.imshow(albedo, cmap=cmap2), plt.grid(None), plt.colorbar(), plt.title("Ice Surface Albedo",fontsize=16)
-        plt.grid(None), plt.xticks([0, 2745, 5490],labels=['-51.000235','-49.708602','-48.418656']),plt.xlabel('Longitude (decimanl degrees, UTM Zone 22')
-        plt.yticks([0,2745, 5490],['67.615437','67.610307','67.594927']),plt.ylabel('Latitude (decimal degrees, UTM Zone 22)')
+        n_classes = len(class_labels)
+        tick_locs = np.arange(0.5,len(class_labels),1)
+        cbar.set_ticks(tick_locs)
+        cbar.ax.set_yticklabels(class_labels, rotation=0, va='center')
+        cbar.set_label('Surface Class')
+        plt.title("Classified Surface Map\nProjection: UTM Zone 22"), ax1.set_aspect('equal')
+        plt.xticks([0, 2745, 5490],['-51.000235','-49.708602','-48.418656']),plt.xlabel('Longitude (decimal degrees)')
+        plt.yticks([0,2745, 5490],['67.615437','67.610307','67.594927']),plt.ylabel('Latitude (decimal degrees)')
+        plt.grid(None)
+
+        # second subplot = albedo map
+        ax2 = plt.subplot(212)
+        img2 = plt.imshow(albedo, cmap=cmap2, vmin=0, vmax=1),
+        cbar2 = plt.colorbar()
+        cbar2.set_label('Albedo')
+        plt.xticks([0, 2745, 5490],['-51.000235','-49.708602','-48.418656']),plt.xlabel('Longitude (decimal degrees)')
+        plt.yticks([0,2745, 5490],['67.615437','67.610307','67.594927']),plt.ylabel('Latitude (decimal degrees)')
+        plt.grid(None),plt.title("Albedo Map\nProjection: UTM Zone 22")
+        ax2.set_aspect('equal')
+
+
 
         if not savefigs:
             plt.show()
 
     if savefigs:
         plt.savefig(str(savefig_path + "Sentinel_Classified_Albedo.png"), dpi=300)
-
-    print("\nTime taken to classify image = ", datetime.now() - startTime)
 
     return predicted, albedo, dataset
 
@@ -689,6 +724,10 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 
 # RUN FUNCTIONS
 
+startTime = datetime.now()
+
+HCRF_file, savefig_path,img_path, Sentinel_template, mask_in, mask_out = set_paths(virtual_machine=False)
+
 #create dataset
 S2vals, X = create_dataset(HCRF_file, img_path, plot_spectra=False, savefigs=False)
 
@@ -703,3 +742,5 @@ predicted, albedo, dataset =  ClassifyImages(S2vals,clf, mask_array, plot_maps =
 
 # calculate spatial stats
 albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
+
+print('time taken to complete stack: ', datetime.now - startTime)
