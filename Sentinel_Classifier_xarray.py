@@ -104,6 +104,11 @@ import seaborn as sn
 from osgeo import gdal, osr
 import georaster
 
+# matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown (for
+# rapidly processing multiple images later)
+
+mpl.style.use('ggplot')
+plt.ioff()
 
 # DEFINE FUNCTIONS
 def set_paths(virtual_machine = False):
@@ -603,7 +608,7 @@ def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, sa
         'classified': (['x', 'y'], predictedxr),
         'albedo': (['x', 'y'], albedoxr),
         'mask': (['x','y'],mask_array),
-        'Projection(UTM)': proj_info,
+        'Projection': proj_info,
         'longitude': (['x', 'y'], lon_array),
         'latitude': (['x', 'y'], lat_array)
     })
@@ -645,35 +650,37 @@ def ClassifyImages(S2vals, clf, mask_array, plot_maps = True, savefigs=False, sa
         cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
         cmap2.set_under(color='white')  # make sure background is white
 
-        fig = plt.figure(figsize=(8, 30))
+        fig = plt.figure(figsize=(15, 30))
 
         # first subplot = classified map
         class_labels = ['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae']
         ax1 = plt.subplot(211)
         img = plt.imshow(predicted, cmap=cmap1,vmin=0, vmax=7)
-        cbar = fig.colorbar(mappable = img, ax=ax1)
+        cbar = fig.colorbar(mappable = img, ax=ax1, fraction=0.045)
 
         n_classes = len(class_labels)
         tick_locs = np.arange(0.5,len(class_labels),1)
         cbar.set_ticks(tick_locs)
-        cbar.ax.set_yticklabels(class_labels, rotation=0, va='center')
-        cbar.set_label('Surface Class')
-        plt.title("Classified Surface Map\nProjection: UTM Zone 22"), ax1.set_aspect('equal')
-        plt.xticks([0, 2745, 5490],['-51.000235','-49.708602','-48.418656']),plt.xlabel('Longitude (decimal degrees)')
-        plt.yticks([0,2745, 5490],['67.615437','67.610307','67.594927']),plt.ylabel('Latitude (decimal degrees)')
+        cbar.ax.set_yticklabels(class_labels, fontsize=26, rotation=0, va='center')
+        cbar.set_label('Surface Class',fontsize=22)
+        plt.title("Classified Surface Map\nProjection: UTM Zone 22", fontsize = 30), ax1.set_aspect('equal')
+        plt.xticks([0, 2745, 5490],['-51.000235','-49.708602','-48.418656'],fontsize=26, rotation=45),plt.xlabel('Longitude (decimal degrees)',fontsize=26)
+        plt.yticks([0,2745, 5490],['67.615437','67.610307','67.594927'],fontsize=26),plt.ylabel('Latitude (decimal degrees)',fontsize=26)
         plt.grid(None)
 
         # second subplot = albedo map
         ax2 = plt.subplot(212)
-        img2 = plt.imshow(albedo, cmap=cmap2, vmin=0, vmax=1),
-        cbar2 = plt.colorbar()
-        cbar2.set_label('Albedo')
-        plt.xticks([0, 2745, 5490],['-51.000235','-49.708602','-48.418656']),plt.xlabel('Longitude (decimal degrees)')
-        plt.yticks([0,2745, 5490],['67.615437','67.610307','67.594927']),plt.ylabel('Latitude (decimal degrees)')
-        plt.grid(None),plt.title("Albedo Map\nProjection: UTM Zone 22")
+        img2 = plt.imshow(albedo, cmap=cmap2, vmin=0, vmax=1)
+        cbar2 = plt.colorbar(mappable=img2, fraction=0.045)
+        cbar2.ax.set_yticklabels(labels=[0,0.2,0.4,0.6,0.8,1.0], fontsize=26)
+        cbar2.set_label('Albedo',fontsize=26)
+        plt.xticks([0, 2745, 5490],['-51.000235','-49.708602','-48.418656'],fontsize=26,rotation=45),plt.xlabel('Longitude (decimal degrees)',fontsize=26)
+        plt.yticks([0,2745, 5490],['67.615437','67.610307','67.594927'],fontsize=26),plt.ylabel('Latitude (decimal degrees)',fontsize=26)
+        plt.grid(None),plt.title("Albedo Map\nProjection: UTM Zone 22",fontsize=30)
         ax2.set_aspect('equal')
+        plt.tight_layout()
 
-
+        plt.savefig(str(savefig_path + "Sentinel_Classified_Albedo.png"), dpi=100)
 
         if not savefigs:
             plt.show()
@@ -726,6 +733,7 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 
 startTime = datetime.now()
 
+
 HCRF_file, savefig_path,img_path, Sentinel_template, mask_in, mask_out = set_paths(virtual_machine=False)
 
 #create dataset
@@ -743,4 +751,4 @@ predicted, albedo, dataset =  ClassifyImages(S2vals,clf, mask_array, plot_maps =
 # calculate spatial stats
 albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
 
-print('time taken to complete stack: ', datetime.now - startTime)
+print("\n time taken to complete stack: ", datetime.now() - startTime)
