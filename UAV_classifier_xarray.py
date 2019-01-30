@@ -119,15 +119,15 @@ savefig_path = '/home/joe/Desktop/'
 
 # set coordinates for generating training data from images
 
-x_min = [4810, 5120, 5185, 4036, 5050]
+x_min = [4810, 5120, 5185, 4036, 5050, 1080, 2006, 1470]
 
-x_max = [4850, 5160, 5200, 4052, 5075]
+x_max = [4850, 5160, 5200, 4052, 5075, 1145, 2025, 1486]
 
-y_min = [1070, 750, 810, 380, 1670]
+y_min = [1070, 750, 810, 380, 1670, 4780, 950, 4125]
 
-y_max = [1115, 790, 832, 415, 1720]
+y_max = [1115, 790, 832, 415, 1720, 4860, 964, 4127]
 
-area_labels = [1, 1, 1, 1, 1]
+area_labels = [1, 1, 1, 1, 1, 1, 1, 2]
 
 n_areas = len(x_min)
 
@@ -311,22 +311,12 @@ def training_data_from_spectra(HCRF_file, plot_spectra=True, savefigs=True):
 
     R['label'] = 1
 
-    Zero = pd.DataFrame()
-    Zero['Band1'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    Zero['Band2'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    Zero['Band3'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    Zero['Band4'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    Zero['Band5'] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-
-    Zero['label'] = 0
-
     # Join dataframes into one continuous DF
     X = X.append(Y, ignore_index=True)
     X = X.append(Z, ignore_index=True)
     X = X.append(P, ignore_index=True)
     X = X.append(Q, ignore_index=True)
     X = X.append(R, ignore_index=True)
-    X = X.append(Zero, ignore_index=True)
 
     return X
 
@@ -340,7 +330,6 @@ def training_data_from_img(X, img_file, x_min, x_max, y_min, y_max, n_areas, are
 
     with xr.open_dataset(img_file) as uav:
         for i in range(n_areas):
-            npix = (x_max[i]- x_min[i])*(y_max[i]- y_min[i])
 
             # slice areas defined by corner coordinates
             uavsubsetB1 = uav.Band1[x_min[i]:x_max[i], y_min[i]: y_max[i]]
@@ -423,14 +412,14 @@ def split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, plot_c
 
         fig, (ax1, ax2) = plt.subplots(1, 2,figsize=(35,35))
         sn.heatmap(conf_mx_RF, annot=True, annot_kws={"size": 16},
-                   xticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite','Clean Ice', 'Light Algae', 'Heavy Algae'],
-                   yticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   xticklabels=['Snow', 'Water', 'Cryoconite','Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   yticklabels=['Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
                    cbar_kws={"shrink": 0.4, 'label':'frequency'}, ax=ax1), ax1.tick_params(axis='both', rotation=45)
         ax1.set_title('Confusion Matrix'), ax1.set_aspect('equal')
 
         sn.heatmap(norm_conf_mx, annot=True, annot_kws={"size": 16}, cmap=plt.cm.gray,
-                   xticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
-                   yticklabels=['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   xticklabels=['Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
+                   yticklabels=['Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae'],
                    cbar_kws={"shrink": 0.4, 'label':'Normalised Error'}, ax=ax2), ax2.tick_params(axis='both', rotation=45)
         ax2.set_title('Normalised Confusion Matrix'), ax2.set_aspect('equal')
         plt.tight_layout()
@@ -452,7 +441,7 @@ def split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, plot_c
 
     if pickle_model:
         # pickle the classifier model for archiving or for reusing in another code
-        joblibfile = 'Sentinel2_classifier.pkl'
+        joblibfile = 'UAV_classifier.pkl'
         joblib.dump(clf, joblibfile)
 
         # to load this classifier into another code use the following syntax:
@@ -510,7 +499,6 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
             albedo[albedo < 0] = 0  # set any subzero pixels inside image area to 0
 
 
-
     # collate predicted map, albedo map and projection info into xarray dataset
     # 1) Retrieve projection info from uav datafile and add to netcdf
     srs = osr.SpatialReference()
@@ -554,7 +542,7 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     predictedxr.attrs['long_name'] = 'Surface classified using Random Forest'
     predictedxr.attrs['units'] = 'None'
     predictedxr.attrs[
-        'key'] = 'Unknown:0; Snow:1; Water:2; Cryoconite:3; Clean Ice:4; Light Algae:5; Heavy Algae:6'
+        'key'] = 'Snow:1; Water:2; Cryoconite:3; Clean Ice:4; Light Algae:5; Heavy Algae:6'
     predictedxr.attrs['grid_mapping'] = 'UTM'
 
     # add albedo map array and add metadata
@@ -598,7 +586,6 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     dataset.y.attrs['standard_name'] = 'projection_y_coordinate'
     dataset.y.attrs['point_spacing'] = 'even'
     dataset.y.attrs['axis'] = 'y'
-    print('time taken to create dataset: ',datetime.now()-startTime)
 
     # save dataset to netcdf if requested
     if save_netcdf:
@@ -608,22 +595,22 @@ def classify_images(clf, img_file, plot_maps = True, savefigs = False, save_netc
     if plot_maps or savefigs:
         # set color scheme for plots - custom for predicted
         cmap1 = mpl.colors.ListedColormap(
-            ['purple', 'white', 'royalblue', 'black', 'lightskyblue', 'mediumseagreen', 'darkgreen'])
+            ['white', 'royalblue', 'black', 'lightskyblue', 'mediumseagreen', 'darkgreen'])
         cmap1.set_under(color='white')  # make sure background is white
         cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
         cmap2.set_under(color='white')  # make sure background is white
 
         fig = plt.figure(figsize=(25, 25))
         plt.title("Classified ice surface and its albedos from UAV imagery: SW Greenland Ice Sheet", fontsize=28)
-        class_labels = ['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae']
+        class_labels = ['Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae']
 
         # first subplot = classified map
         ax1 = plt.subplot(211)
         img = dataset.classified.plot(cmap=cmap1, add_colorbar=False)
         cbar = fig.colorbar(mappable=img, ax=ax1)
         # workaround to get colorbar labels centrally positioned
-        n_classes = 7
-        tick_locs = (np.arange(n_classes) + 0.5) * (n_classes - 1) / n_classes
+        n_classes = 6
+        tick_locs = np.arange(1,len(class_labels),0.92)
         cbar.set_ticks(tick_locs)
         cbar.ax.set_yticklabels(class_labels, rotation=45, va='center')
         plt.title('Classified Surface Map (UTM coordinates)'), ax1.set_aspect('equal')
@@ -689,9 +676,9 @@ X, tempDF = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_
                                   y_max = y_max, area_labels = area_labels, n_areas=n_areas)
 
 
-clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.2, n_trees=32, print_conf_mx = False, plot_conf_mx = False,
+clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.3, n_trees=32, print_conf_mx = False, plot_conf_mx = False,
                                                    savefigs = False, show_model_performance = True, pickle_model=False)
 
-#predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = False)
+predicted, albedo = classify_images(clf, img_file, plot_maps = False, savefigs = True, save_netcdf = False)
 
-# albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
+albedoDF = albedo_report(predicted, albedo, save_albedo_data = False)
