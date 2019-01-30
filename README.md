@@ -1,8 +1,11 @@
 # IceSurfClassifiers
 
-This repositorey contains code in active development for automated classification of ice surfaces using machine learning algorithms trained using ground-based spectroscopy and applied to multispectral images from UAVs and satellites.
+This repository contains code in active development for automated classification of ice surfaces using scikit-learn classification algorithms trained using field spectroscopy and applied to multispectral images from UAVs and satellites.
 
-The training set comprises individual reflectance spectra obtained in summer 2016 and 2017 on the Greenland Ice Sheet, ca. 38km inland of the margin at Russell Glacier, near Kangerlussuaq as part of the National Environmental Research Council's Black and Bloom project. The spectra were obtained at solar noon +/- 2 hours under constant cloud conditions using an ASD field spec pro 3 with a fibre optic collimated with a 10degree lens levelled on a horizontal boom so that the sensor was pointd downwards, 50 cm over the sample surface. The measurements are all relative to a flat, clean Spectralon panel. Each sample was qualitatively assigned to a category (high algal biomass, low algal biomass, clean ice, snow, water, cryoconite) based on a visual inspection of the surface. For sites in a designated "sacrifical zone", immediately after the spectral reflectance data was collected, the sample surface was chipped into a sterile sampling bag and returned to the laboratory for impurity analysis. 
+The training set comprises individual reflectance spectra obtained in summer 2016 and 2017 on the Greenland Ice Sheet, ca. 38km inland of the margin at Russell Glacier, near Kangerlussuaq as part of the National Environmental Research Council's Black and Bloom project. The spectra were obtained at solar noon +/- 2 hours under constant cloud conditions using an ASD field spec pro 3 with a fibre optic collimated with a 10 degree lens levelled on a horizontal boom so that the sensor was pointd downwards, 50 cm over the sample surface. The measurements are all relative to a flat, clean Spectralon panel. Each sample was qualitatively assigned to a category (high algal biomass, low algal biomass, clean ice, snow, water, cryoconite) based on a visual inspection of the surface. For sites in a designated "sacrifical zone", immediately after the spectral reflectance data was collected, the sample surface was chipped into a sterile sampling bag and returned to the laboratory for impurity analysis. 
+
+
+### UAV Imagery ### 
 
 The 200 x 200m area immediately adjacent to and including the "sacrificial zone" was then imaged using a Micasense Red-Edge camera gimbal-mounted onto a custom quadcopter. The retrieved images had a ground resolution of 5cm and were radiometrically calibrated according to micasense guidance. A Micasense reflectance panel and a Spectralon standard were visible in every image.
 
@@ -12,12 +15,33 @@ The algorithms provided in this repository train a set of supervised classifiers
 
 Once trained, the model is applied to the drone imagery, with the reflectance at each wavelength providing features leading to an estimate of the surface type for each individual pixel.
 
-The same process was followed for supervised classification of Sentinel-2 satellite remote sensing data covering a much larger area around the field site. These were downloaded from earth-explorer.usgs.gov. Sentinel 2 has slightly bwtter spectral resolution that the rededge camera, so the model is trained on 9 wavelengths rather than 5. 
+For the UAV images there is an additional option to extend the training data by selecting areas in UAV images wthat are homogenous and the surfce classification known with certainty, e.g. clearly identifiable snow packs or ponds.
+
+### Prerequisites ###
+
+These scripts are written in Python 3.5 and require several packages with co-dependencies. Suggest the following fresh environment configuration:
+
+conda create --name IceSurfClassifiers python=3.5 matplotlib scikit-learn xarray gdal rasterio numpy pandas seaborn
+
+then conda install -c conda-forge georaster, sklearn_xarray
+
+There is also preprocessing required for the UAV and Sentinel imagery. The UAV imagery requires stitching, georeferencing and radiometric calibration folowing the Micasense protocols.
+Sentinel-2 imagery requires atmospheric correction and consistent ground resolution achieved usi Sen2Cor, plus downloading of the appropriate mask from the Greenland Ice Mapping Project.
+Detailed instructions are provided in the script annotations.
+
+
+
+### Sentinel 2 Imagery ###
+
+The same process was followed for supervised classification of Sentinel-2 satellite remote sensing data covering a much larger area around the field site. These were downloaded from earth-explorer.usgs.gov. Sentinel 2 has greater spectral resolution that the rededge camera, so the model is trained on 9 wavelengths rather than 5. 
 
 Further details are available in the code annotations.
 
 
+For Sentinel 2 image data, the classified map and albedo map are masked using the Greenland Ice Mapping Project land/ice mask to exclude non-ice areas from the spatial analysis.
+
+
 # Permissions
 
-There are no permissions associated with this code, it is unpublished and still under development. please do not use without explicit permission from the author. 
+There are no permissions associated with this code, it is unpublished and still under development. please do not use without explicit permission from the author. There is no warranty or guarantee of fitness for any specific purpose.
 
