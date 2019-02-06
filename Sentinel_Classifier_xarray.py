@@ -840,24 +840,24 @@ plt.ioff()
 def set_paths(virtual_machine = False):
 
     if not virtual_machine:
-        savefig_path = '//home/joe/Desktop/'
-        img_path = '/home/joe/Desktop/S2A_NetCDFs/KGR/'
+        savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
+        img_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/KGR/'
         HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
         # paths for format_mask()
-        Sentinel_template = '/home/joe/Desktop/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/L2A_T22WEV_20160721T151912_B02_20m.jp2'
-        mask_in = '/home/joe/Desktop/GIMP_MASK.tif'
-        mask_out = '/home/joe/Desktop/GIMP_MASK.nc'
+        Sentinel_template = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/L2A_T22WEV_20160721T151912_B02_20m.jp2'
+        mask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.tif'
+        mask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
 
     else:
         # Virtual Machine
         # paths for create_dataset()
-        savefig_path = '//home/joe/Desktop/'
-        img_path = '/home/joe/Desktop/S2A_NetCDFs/KGR/'
-        HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+        savefig_path = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Sentinel_Outputs/'
+        img_path = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/'
+        HCRF_file = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
         # paths for format_mask()
         Sentinel_template = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/L2A_T22WEV_20160721T151912_B02_20m.jp2'
         mask_path = ['/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/']
-        mask_in = 'GIMP_MASK.tif, GIMP_MASK2.tif'
+        mask_in = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.tif'
         mask_out = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.nc'
 
     return HCRF_file, savefig_path,img_path, Sentinel_template, mask_in, mask_out
@@ -1459,11 +1459,11 @@ S2vals, X = create_dataset(HCRF_file, img_path, plot_spectra=False, savefigs=Fal
 mask_array = format_mask (Sentinel_template,mask_in,mask_out)
 
 #optimise and train model
-clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.3, n_trees= 32, print_conf_mx = True, plot_conf_mx = False, savefigs = False,
+clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.3, n_trees= 32, print_conf_mx = True, plot_conf_mx = True, savefigs = True,
                      show_model_performance = True, pickle_model=False)
 
 # apply model to Sentinel2 image
-predicted, albedo, dataset =  ClassifyImages(S2vals,clf, mask_array, plot_maps = False, savefigs=True, save_netcdf=False)
+predicted, albedo, dataset =  ClassifyImages(S2vals,clf, mask_array, plot_maps = False, savefigs=True, save_netcdf=True)
 
 
 # calculate spatial stats
