@@ -118,8 +118,10 @@ def set_paths(virtual_machine = False):
     function sets load and save paths
     paths are different for local or virtual machine
 
-    """
+    :param virtual_machine: Boolean to control paths depending whether script is run locally or on VM
+    :return: paths
 
+    """
     if not virtual_machine:
         mask_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/'
         savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
@@ -151,12 +153,13 @@ def set_paths(virtual_machine = False):
 
 
 def load_model_and_images(img_path):
-
     """
     function loads classifier from file and loads L2A image into numpy NDarray
 
-    """
+    :param img_path: path to S2 L2A image saved as NetCDF
+    :return: clf: classifier loaded in from .pkl file; S2vals: 9D numpy array containing pixel reflectance values
 
+    """
     S2vals = np.zeros([9,5490,5490])
     bands = ['02','03','04','05','05','07','08','11','12']
     for i in np.arange(0,len(bands),1):
@@ -179,13 +182,10 @@ def format_mask (Sentinel_template, mask_in, mask_out):
     Function reprojects GIMP mask to dimensions, resolution and spatial coords of the S2 images, enabling
     Boolean masking of land-ice area.
 
-    INPUTS:
-    Sentinel = Sentinel image to use as projection template
-    mask_in = file path to mask file
-    mask_out = file path to save reprojected mask
-
-    OUTPUTS:
-    reprojected mask in .tif format
+    :param Sentinel_template: Sentinel image (unprocessed L1C .jp2) to use as template for projection
+    :param mask_in: filepath to merged mask
+    :param mask_out: filepath to save reprojected mask
+    :return: mask_array: Boolean array of reprojected mask - projection and resolution consistent with S2 image
 
     """
     mask = gdal.Open(mask_in)
@@ -226,8 +226,16 @@ def ClassifyImages(S2vals, clf, mask_array, area_label, savefigs=False, save_net
     """
     function deploys classifier to Sentinel 2 image and masks out non-ice areas
 
-    """
+    :param S2vals: array containing pixelwise reflectance values for S2 images
+    :param clf: trained classifier
+    :param mask_array: Boolean array where 0 = non-ice area, 1 = ice sheet
+    :param area_label: String identifier that labels each tile
+    :param savefigs: Boolean to control whether figures are saved to file
+    :param save_netcdf: Boolean to control whether classified surface, albedo, coordinates and metadata/attributes are
+    saved to a NetCDF file
 
+    :return: predicted (array of predicted classes), albedo (array of albedo estimates), dataset (netCDF of all data)
+    """
     # get dimensions of each band layer
     lenx, leny = np.shape(S2vals[0])
 
@@ -408,7 +416,14 @@ def ClassifyImages(S2vals, clf, mask_array, area_label, savefigs=False, save_net
 def albedo_report(predicted, albedo, masterDF, merge_tile_albedo = True, save_albedo_data = False):
 
     """
-    function calculates albedo and classification statistics and saves to file
+    Function calculates albedo and classification statistics and saves to file
+
+    :param predicted: array containing pixel-wise surface classification
+    :param albedo: array containing pixel-wise albedo estimate
+    :param masterDF: pandas dataframe for appending albedo data for each site into single continuous dataset
+    :param merge_tile_albedo: Boolean to control whether individual site albedo and classes are concatenated into masterDF
+    :param save_albedo_data: Boolean to control whether summary stats for each individual tile are saved to file
+    :return: masterDf - pandad dataframe containing concatenated albedo data for all sites
 
     """
     # match albedo to predicted class using indexes
@@ -449,17 +464,24 @@ def albedo_report(predicted, albedo, masterDF, merge_tile_albedo = True, save_al
           np.round(SNpercent,2)*100,'%\n', 'WAT coverage = ', np.round(WATpercent,2)*100,'%\n', 'Total Algal Coverage = ',
           np.round(HApercent+LApercent,2)*100)
 
-    return albedoDF, masterDF
+    return masterDF
 
 
-def process_merged_albedo_data(masterDF, savefiles = True):
+def merged_albedo_report(masterDF, print_stats_to_console = True, save_stats = True, save_raw = True):
 
     """
     function calculates summary stats for classifications and albedo for all the tiles merged into a single dataset
-    NB this function is quite slow (~1min) because querying the large masterDF file using groupby is fairly
+    NB this function is quite slow (>1min) because querying the large masterDF file using groupby is fairly
     computationally expensive
 
+    :param masterDF: pandas dataframe to contain concatenated albedo data from all sites
+    :param print_stats_to_console: Boolean to control whether albedo stats are printed to console
+    :param save_stats: Boolean to control whether albedo summary stats are saved to file
+    :param save_raw: Boolean to control whether the entire masterDF dataset is saved to file (slow)
+    :return: none
+
     """
+
     # analyses and saves albedo and coverage stats for all tiles merged into single dataset
     # coverage statistics
     HApercent = (masterDF['pred'][masterDF['pred']==6].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
@@ -469,25 +491,44 @@ def process_merged_albedo_data(masterDF, savefiles = True):
     WATpercent = (masterDF['pred'][masterDF['pred'] == 2].count()) / (masterDF['pred'][masterDF['pred'] != 0].count())
     SNpercent = (masterDF['pred'][masterDF['pred']==1].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
 
-    # report to console
-    print('\n MERGED ALBEDO STATS:')
-    print('\n Surface type counts: \n', masterDF.groupby(['pred']).count())
-    print('\n Summary Statistics for ALBEDO of merged tiles: \n',masterDF.groupby(['pred']).describe()['albedo'])
+    percent_cover = pd.DataFrame(columns=(['class','percent_cover']))
+    percent_cover['class'] = ['HA','LA','CI','CC','WAT','SN']
+    percent_cover['percent_cover'] = [HApercent,LApercent,CIpercent,CCpercent,WATpercent,SNpercent]
+    counts = masterDF.groupby(['pred']).count()
+    summary = masterDF.groupby(['pred']).describe()['albedo']
 
-    print('\n "Percent coverage by surface type: \n')
-    print(' HA coverage = ',np.round(HApercent,2)*100,'%\n','LA coverage = ',np.round(LApercent,2)*100,'%\n','CI coverage = ',
-          np.round(CIpercent,2)*100,'%\n', 'CC coverage = ',np.round(CCpercent,2)*100,'%\n', 'SN coverage = ',
-          np.round(SNpercent,2)*100,'%\n', 'WAT coverage = ', np.round(WATpercent,2)*100,'%\n', 'Total Algal Coverage = ',
-          np.round(HApercent+LApercent,2)*100)
+    if print_stats_to_console:
+        # report to console
+        print('\n MERGED ALBEDO STATS:')
+        print('\n Surface type counts: \n', counts)
+        print('\n Summary Statistics for ALBEDO of merged tiles: \n',summary)
+        print('\n "Percent coverage by surface type: \n')
+        print(' HA coverage = ',np.round(HApercent,2)*100,'%\n','LA coverage = ',np.round(LApercent,2)*100,'%\n','CI coverage = ',
+              np.round(CIpercent,2)*100,'%\n', 'CC coverage = ',np.round(CCpercent,2)*100,'%\n', 'SN coverage = ',
+              np.round(SNpercent,2)*100,'%\n', 'WAT coverage = ', np.round(WATpercent,2)*100,'%\n', 'Total Algal Coverage = ',
+              np.round(HApercent+LApercent,2)*100)
 
-    if savefiles == True:
+    if save_stats == True:
+        percent_cover.to_csv(savefigpath+'percent_coverage_MERGED')
+        counts.to_csv(savefig_path+'Surface_Type_Counts_MERGED.csv')
+        summary.to_csv(savefig_path+'Albedo_summary_statsMERGED.csv')
+
+    if save_raw == True:
         masterDF.to_csv(savefig_path + 'RawAlbedoData_MERGED.csv')
-        masterDF.groupby(['pred']).count().to_csv(savefig_path+'Surface_Type_Counts_MERGED.csv')
-        masterDF.groupby(['pred']).describe()['albedo'].to_csv(savefig_path+'Albedo_summary_statsMERGED.csv')
 
     return
 
 
+"""
+************************************************************************
+********************* RUN FUNCTIONS IN LOOP ****************************
+************************************************************************
+
+Set up loop to iterate through tiles
+The functions set_paths() and merged_albedo_report() are outside of the loop
+other functions are called iteratively
+
+"""
 # RUN FUNCTIONS
 # ITERATE THROUGH IMAGES
 
@@ -509,8 +550,8 @@ for i in np.arange(0,len(area_labels),1):
     predicted, albedo, dataset = ClassifyImages(S2vals, clf, mask_array, area_label, savefigs=True, save_netcdf=True)
 
     # calculate spatial stats
-    albedoDF, masterDF = albedo_report(predicted, albedo, masterDF, merge_tile_albedo = True, save_albedo_data = True)
+    masterDF = albedo_report(predicted, albedo, masterDF, merge_tile_albedo = True, save_albedo_data = True)
 
     print('\n FINISHED RUNNING AREA: ','*** ', area_label, ' ****')
 
-process_merged_albedo_data(masterDF, savefiles = True)
+merged_albedo_report(masterDF, print_stats_to_console = True, save_stats = True, save_raw = False)
