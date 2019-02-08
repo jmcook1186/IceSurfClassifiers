@@ -431,12 +431,8 @@ def albedo_report(predicted, albedo, masterDF, merge_tile_albedo = True, save_al
 
     if merge_tile_albedo:
         masterDF = masterDF.append(albedoDF, ignore_index=True)
-        if save_albedo_data:
-            masterDF.to_csv(savefig_path+'Raw_albedo_data_MERGED.csv')
-            masterDF.groupby(['pred']).count().to_csv(savefig_path+'Surface_Type_Counts_MERGED.csv')
-            masterDF.groupby(['pred']).describe()['albedo'].to_csv(savefig_path+'Albedo_summary_stats_MERGED.csv')
 
-    elif save_albedo_data:
+    if save_albedo_data:
         albedoDF.to_csv(savefig_path + 'RawAlbedoData_{}.csv'.format(area_label))
         albedoDF.groupby(['pred']).count().to_csv(savefig_path+'Surface_Type_Counts_{}.csv'.format(area_label))
         albedoDF.groupby(['pred']).describe()['albedo'].to_csv(savefig_path+'Albedo_summary_stats_{}.csv'.format(area_label))
@@ -453,13 +449,47 @@ def albedo_report(predicted, albedo, masterDF, merge_tile_albedo = True, save_al
           np.round(SNpercent,2)*100,'%\n', 'WAT coverage = ', np.round(WATpercent,2)*100,'%\n', 'Total Algal Coverage = ',
           np.round(HApercent+LApercent,2)*100)
 
-    return albedoDF
+    return albedoDF, masterDF
 
 
+def process_merged_albedo_data(masterDF, savefiles = True):
 
+    """
+    function calculates summary stats for classifications and albedo for all the tiles merged into a single dataset
+    NB this function is quite slow (~1min) because querying the large masterDF file using groupby is fairly
+    computationally expensive
+
+    """
+    # analyses and saves albedo and coverage stats for all tiles merged into single dataset
+    # coverage statistics
+    HApercent = (masterDF['pred'][masterDF['pred']==6].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
+    LApercent = (masterDF['pred'][masterDF['pred']==5].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
+    CIpercent = (masterDF['pred'][masterDF['pred']==4].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
+    CCpercent = (masterDF['pred'][masterDF['pred']==3].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
+    WATpercent = (masterDF['pred'][masterDF['pred'] == 2].count()) / (masterDF['pred'][masterDF['pred'] != 0].count())
+    SNpercent = (masterDF['pred'][masterDF['pred']==1].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
+
+    # report to console
+    print('\n MERGED ALBEDO STATS:')
+    print('\n Surface type counts: \n', masterDF.groupby(['pred']).count())
+    print('\n Summary Statistics for ALBEDO of merged tiles: \n',masterDF.groupby(['pred']).describe()['albedo'])
+
+    print('\n "Percent coverage by surface type: \n')
+    print(' HA coverage = ',np.round(HApercent,2)*100,'%\n','LA coverage = ',np.round(LApercent,2)*100,'%\n','CI coverage = ',
+          np.round(CIpercent,2)*100,'%\n', 'CC coverage = ',np.round(CCpercent,2)*100,'%\n', 'SN coverage = ',
+          np.round(SNpercent,2)*100,'%\n', 'WAT coverage = ', np.round(WATpercent,2)*100,'%\n', 'Total Algal Coverage = ',
+          np.round(HApercent+LApercent,2)*100)
+
+    if savefiles == True:
+        masterDF.to_csv(savefig_path + 'RawAlbedoData_MERGED.csv')
+        masterDF.groupby(['pred']).count().to_csv(savefig_path+'Surface_Type_Counts_MERGED.csv')
+        masterDF.groupby(['pred']).describe()['albedo'].to_csv(savefig_path+'Albedo_summary_statsMERGED.csv')
+
+    return
 
 
 # RUN FUNCTIONS
+# ITERATE THROUGH IMAGES
 
 savefig_path,img_paths, Sentinel_templates, mask_in, mask_out, area_labels, masterDF = set_paths(virtual_machine=False)
 
@@ -479,7 +509,8 @@ for i in np.arange(0,len(area_labels),1):
     predicted, albedo, dataset = ClassifyImages(S2vals, clf, mask_array, area_label, savefigs=True, save_netcdf=True)
 
     # calculate spatial stats
-    albedoDF = albedo_report(predicted, albedo, masterDF, merge_tile_albedo = True, save_albedo_data = True)
+    albedoDF, masterDF = albedo_report(predicted, albedo, masterDF, merge_tile_albedo = True, save_albedo_data = True)
 
-    print('\n NOW RUNNING: ','*** ', area_label, ' ****')
+    print('\n FINISHED RUNNING AREA: ','*** ', area_label, ' ****')
 
+process_merged_albedo_data(masterDF, savefiles = True)
