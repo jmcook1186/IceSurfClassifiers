@@ -134,25 +134,32 @@ def set_paths(virtual_machine = False):
                              str(mask_path+'MaskTemplate_ILL2.jp2'),str(mask_path+'MaskTemplate_ILL3.jp2')]
         mask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
         mask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+        pickle_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl'
         area_labels = ['KGR','ILL1','ILL2','ILL3']
         masterDF = pd.DataFrame(columns=(['pred','albedo']))
 
     else:
         # Virtual Machine
         # paths for create_dataset()
-        savefig_path = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Sentinel_Outputs/'
-        img_path = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/'
-
+        mask_path = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/'
+        savefig_path = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Outputs/'
+        img_paths = ['/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/KGR/',
+                   '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/ILL1/',
+                   '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/ILL2/',
+                    '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/ILL3/']
         # paths for format_mask()
-        Sentinel_template = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/'
-        mask_in = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.tif'
-        mask_out = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.nc'
-        area_labels = ['KGR', 'ILL1', 'ILL2', 'ILL3']
+        Sentinel_templates = [str(mask_path+'MaskTemplate_KGR.jp2'),str(mask_path+'MaskTemplate_ILL1.jp2'),
+                             str(mask_path+'MaskTemplate_ILL2.jp2'),str(mask_path+'MaskTemplate_ILL3.jp2')]
+        mask_in = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/entinel_Resources/Mask/merged_mask.tif'
+        mask_out = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+        pickle_path = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl'
+        area_labels = ['KGR','ILL1','ILL2','ILL3']
+        masterDF = pd.DataFrame(columns=(['pred','albedo']))
 
-    return savefig_path, img_paths, Sentinel_templates, mask_in, mask_out, area_labels, masterDF
+    return savefig_path, img_paths, Sentinel_templates, mask_in, mask_out, area_labels, masterDF, pickle_path
 
 
-def load_model_and_images(img_path):
+def load_model_and_images(img_path,pickle_path):
     """
     function loads classifier from file and loads L2A image into numpy NDarray
 
@@ -172,7 +179,7 @@ def load_model_and_images(img_path):
     S2vals = S2vals/10000 # correct unit from S2 L2A data to reflectance between 0-1
 
     #load pickled model
-    clf = joblib.load('/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl')
+    clf = joblib.load(pickle_path)
 
     return S2vals, clf
 
@@ -532,7 +539,7 @@ other functions are called iteratively
 # RUN FUNCTIONS
 # ITERATE THROUGH IMAGES
 
-savefig_path,img_paths, Sentinel_templates, mask_in, mask_out, area_labels, masterDF = set_paths(virtual_machine=False)
+savefig_path,img_paths, Sentinel_templates, mask_in, mask_out, area_labels, masterDF, pickle_path = set_paths(virtual_machine=False)
 
 for i in np.arange(0,len(area_labels),1):
 
@@ -541,7 +548,7 @@ for i in np.arange(0,len(area_labels),1):
     Sentinel_template = Sentinel_templates[i]
 
     #create dataset
-    S2vals, clf = load_model_and_images(img_path)
+    S2vals, clf = load_model_and_images(img_path,pickle_path)
 
     #format mask
     mask_array = format_mask (Sentinel_template,mask_in,mask_out)
