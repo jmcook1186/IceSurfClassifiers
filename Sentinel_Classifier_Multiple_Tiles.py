@@ -176,7 +176,7 @@ def load_model_and_images(img_path,pickle_path):
         S2BXvals = S2BXvals.astype(float)
         S2vals[i,:,:] = S2BXvals
 
-    S2vals = S2vals/10000 # correct unit from S2 L2A data to reflectance between 0-1
+    S2vals /=10000 # correct unit from S2 L2A data to reflectance between 0-1
 
     #load pickled model
     clf = joblib.load(pickle_path)
@@ -249,7 +249,6 @@ def ClassifyImages(S2vals, clf, mask_array, area_label, savefigs=False, save_net
     # convert image bands into single 5-dimensional numpy array
     S2valsT = S2vals.reshape(9, lenx * leny)  # reshape into 5 x 1D arrays
     S2valsT = S2valsT.transpose()  # transpose so that bands are read as features
-
 
     # create albedo array by applying Knap (1999) narrowband - broadband conversion
     albedo_array = np.array([0.356 * (S2vals[0]) + 0.13 * (S2vals[2]) + 0.373 * (
@@ -400,8 +399,8 @@ def ClassifyImages(S2vals, clf, mask_array, area_label, savefigs=False, save_net
         cbar.ax.set_yticklabels(class_labels, fontsize=26, rotation=0, va='center')
         cbar.set_label('Surface Class',fontsize=22)
         plt.title("Classified Surface Map\nProjection: UTM Zone 23", fontsize = 30), ax1.set_aspect('equal')
-        plt.xticks([0, 2745, 5490],xtickNames,fontsize=26, rotation=45),plt.xlabel('Longitude (decimal degrees)',fontsize=26)
-        plt.yticks([0,2745, 5490],ytickNames,fontsize=26),plt.ylabel('Latitude (decimal degrees)',fontsize=26)
+        plt.xticks([0, 2745, 5490], xtickNames, fontsize=26, rotation=45), plt.xlabel('Longitude (decimal degrees)', fontsize=26)
+        plt.yticks([0,2745, 5490], ytickNames, fontsize=26), plt.ylabel('Latitude (decimal degrees)', fontsize=26)
         plt.grid(None)
 
         # second subplot = albedo map
@@ -409,10 +408,10 @@ def ClassifyImages(S2vals, clf, mask_array, area_label, savefigs=False, save_net
         img2 = plt.imshow(albedo, cmap=cmap2, vmin=0, vmax=1)
         cbar2 = plt.colorbar(mappable=img2, fraction=0.045)
         cbar2.ax.set_yticklabels(labels=[0,0.2,0.4,0.6,0.8,1.0], fontsize=26)
-        cbar2.set_label('Albedo',fontsize=26)
-        plt.xticks([0, 2745, 5490],xtickNames,fontsize=26, rotation=45),plt.xlabel('Longitude (decimal degrees)',fontsize=26)
-        plt.yticks([0,2745, 5490],ytickNames,fontsize=26),plt.ylabel('Latitude (decimal degrees)',fontsize=26)
-        plt.grid(None),plt.title("Albedo Map\nProjection: UTM Zone 23, 1 pixel = 20 x 20 m",fontsize=30)
+        cbar2.set_label('Albedo', fontsize=26)
+        plt.xticks([0, 2745, 5490], xtickNames, fontsize=26, rotation=45), plt.xlabel('Longitude (decimal degrees)', fontsize=26)
+        plt.yticks([0,2745, 5490], ytickNames, fontsize=26), plt.ylabel('Latitude (decimal degrees)', fontsize=26)
+        plt.grid(None), plt.title("Albedo Map\nProjection: UTM Zone 23, 1 pixel = 20 x 20 m", fontsize=30)
         ax2.set_aspect('equal')
         plt.tight_layout()
 
@@ -516,7 +515,7 @@ def merged_albedo_report(masterDF, print_stats_to_console = True, save_stats = T
               np.round(HApercent+LApercent,2)*100)
 
     if save_stats == True:
-        percent_cover.to_csv(savefigpath+'percent_coverage_MERGED')
+        percent_cover.to_csv(savefig_path+'percent_coverage_MERGED')
         counts.to_csv(savefig_path+'Surface_Type_Counts_MERGED.csv')
         summary.to_csv(savefig_path+'Albedo_summary_statsMERGED.csv')
 
