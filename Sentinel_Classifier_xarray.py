@@ -77,7 +77,13 @@ cores. The performance of the trained model is calculated and displayed. The cla
 
 The third function (format_mask) reprojects the GIMP mask to an identical coordinate system, pixel size and spatial
 extent to the Sentinel 2 images and returns a Boolean numpy array that will later be used to mask out non-ice areas
-of the classificed map and albedo map
+of the classificed map and albedo map. Then, the cloud mask is produced from the cloud probability map provided as part
+of the sen2cor output, found in QI_DATA/*CLD.jp2. The jp2 is opened as a raster using rasterio. The raster contains
+values between 0-100 representing the probability of each pixel being obscured by cloud. In the set_paths() function
+there is a user-defined threshold ("cloudProbThreshold"). This is used to turn the probability map into a boolean mask
+where pixel values above the threshold are assumed to be cloud  (1) and values below the threshold are assumed to be
+clear(0). The boolean array is then used to mask the classified and albedo maps in the classify_mages() function.
+
 
 The fourth function applies the trained classifier to the sentinel 2 images and masks out non-ice areas, then applies
 Liang et al(2002) narrowband to broadband conversion formula, producing a NetCDF file containing all the data arrays and
@@ -97,6 +103,8 @@ did not resolve the issue. I have therefore continued developing this code with 
 numpy as necessary, understanding that this necessitates running the script on a fairly powerful machine with >32GB RAM.
 
 """
+# TODO: Try loading jp2s into numpy using rasterio instead of additional out-of-script gdal steps
+# TODO: organise paths for easier iteration
 
 ###########################################################################################
 ############################# IMPORT MODULES #########################################
@@ -113,44 +121,38 @@ import xarray as xr
 import seaborn as sn
 from osgeo import gdal, osr
 import georaster
+import rasterio
 
 # matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown (for
 # rapidly processing multiple images later)
 
 mpl.style.use('ggplot')
+plt.ioff()
 
 # DEFINE FUNCTIONS
 def set_paths(virtual_machine = False):
 
     if not virtual_machine:
+        hcrf_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+        mask_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/'
         savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
         img_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/KGR/'
-        hcrf_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
         # paths for format_mask()
-        Sentinel_template = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/L2A_T22WEV_20160721T151912_B02_20m.jp2'
-        mask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GimpIceMask_15m_tile1_1_v1_1.tif'
-        mask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+        Sentinel_template = str(mask_path+'MaskTemplate_KGR.jp2')
+        Icemask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
+        Icemask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+        cloudmaskpath ='/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.nc'
+        cloudProbThreshold = 50
+        pickle_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl'
 
-    else:
-        # Virtual Machine
-        # paths for create_dataset()
-        savefig_path = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Sentinel_Outputs/'
-        img_path = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/'
-        hcrf_file = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
-        # paths for format_mask()
-        Sentinel_template = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/L2A_T22WEV_20160721T151912_B02_20m.jp2'
-        mask_path = ['/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/']
-        mask_in = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.tif'
-        mask_out = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.nc'
-
-    return hcrf_file, savefig_path,img_path, Sentinel_template, mask_in, mask_out
+    return hcrf_file, savefig_path, img_path, Sentinel_template, Icemask_in, Icemask_out, cloudmaskpath, cloudProbThreshold
 
 
 def create_dataset(hcrf_file, img_path, save_spectra_plots=True):
 # Sentinel 2 dataset
 # create 3D numpy array with dim1 = band, dims 2 and 3 = spatial x and y. Values are reflectance.
     S2vals = np.zeros([9,5490,5490])
-    bands = ['02','03','04','05','06','07','08','11','12']
+    bands = ['02','03','04','05','05','07','08','11','12']
     for i in np.arange(0,len(bands),1):
         S2BX = xr.open_dataset(str(img_path+'B'+bands[i]+'.nc'))
         S2BXarr = S2BX.to_array()
@@ -491,7 +493,7 @@ def split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, save_c
     return clf
 
 
-def format_mask (Sentinel_template,mask_in,mask_out):
+def format_mask (Sentinel_template, Icemask_in, Icemask_out, cloudmaskpath, cloudProbThreshold):
     """
     Function reprojects GIMP mask to dimensions, resolution and spatial coords of the S2 images, enabling
     Boolean masking of land-ice area.
@@ -506,7 +508,7 @@ def format_mask (Sentinel_template,mask_in,mask_out):
     reprojected mask in .tif format
 
     """
-    mask = gdal.Open(mask_in)
+    mask = gdal.Open(Icemask_in)
 
     mask_proj = mask.GetProjection()
     mask_geotrans = mask.GetGeoTransform()
@@ -520,7 +522,7 @@ def format_mask (Sentinel_template,mask_in,mask_out):
     w = Sentinel.RasterXSize
     h = Sentinel.RasterYSize
 
-    mask_filename = mask_out
+    mask_filename = Icemask_out
     new_mask = gdal.GetDriverByName('NETCDF').Create(mask_filename,
                                                 w, h, n_bands, data_type)
     new_mask.SetGeoTransform(Sentinel_geotrans)
@@ -532,16 +534,25 @@ def format_mask (Sentinel_template,mask_in,mask_out):
 
     # open netCDF mask and extract values to numpy array
     maskxr = xr.open_dataset(mask_out)
-    mask_array = np.array(maskxr.Band1.values)
+    icemask = np.array(maskxr.Band1.values)
 
     #replace nans with 0 to create binary numerical array
-    nans = np.isnan(mask_array)
-    mask_array[nans]=0
+    nans = np.isnan(icemask)
+    icemask[nans]=0
 
-    return mask_array
+    # set up second mask for clouds
+    arrs = []
+    with rasterio.open(cloudmaskpath) as f:
+        arrs.append(f.read(1))
+    cloudmask = np.array(arrs, dtype=arrs[0].dtype)
+    cloudmask=np.squeeze(cloudmask,0)
+    cloudmask[cloudmask > cloudProbThreshold]= 1
+    cloudmask[cloudmask < cloudProbThreshold] = 0
+
+    return icemask, cloudmask
 
 
-def ClassifyImages(S2vals, clf, mask_array, savefigs=False, save_netcdf = False):
+def ClassifyImages(S2vals, clf, icemask, cloudmask, savefigs=False, save_netcdf = False):
 
     # get dimensions of each band layer
     lenx, leny = np.shape(S2vals[0])
@@ -574,9 +585,13 @@ def ClassifyImages(S2vals, clf, mask_array, savefigs=False, save_netcdf = False)
     predicted = np.reshape(predicted, [lenx, leny])
     albedo = np.reshape(albedo_array, [lenx, leny])
 
+    # apply cloud mask to ignore pixels obscured by cloud
+    predicted = np.ma.masked_where(cloudmask==1, predicted)
+    albedo = np.ma.masked_where(cloudmask==1, albedo)
+
     # apply GIMP mask to ignore non-ice surfaces
-    predicted = np.ma.masked_where(mask_array==0, predicted)
-    albedo = np.ma.masked_where(mask_array==0, albedo)
+    predicted = np.ma.masked_where(icemask==0, predicted)
+    albedo = np.ma.masked_where(icemask==0, albedo)
 
     # mask out areas not covered by Sentinel tile, but not excluded by GIMP mask
     predicted = np.ma.masked_where(predicted <=0, predicted)
@@ -640,7 +655,8 @@ def ClassifyImages(S2vals, clf, mask_array, savefigs=False, save_netcdf = False)
     dataset = xr.Dataset({
         'classified': (['x', 'y'], predictedxr),
         'albedo': (['x', 'y'], albedoxr),
-        'mask': (['x','y'],mask_array),
+        'Icemask': (['x','y'],icemask),
+        'Cloudmask': (['x', 'y'], cloudmask),
         'Projection': proj_info,
         'longitude': (['x', 'y'], lon_array),
         'latitude': (['x', 'y'], lat_array)})
@@ -757,20 +773,20 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
 
 
 # RUN AND TIME FUNCTIONS
-hcrf_file, savefig_path, img_path, Sentinel_template, mask_in, mask_out = set_paths(virtual_machine=False)
+hcrf_file, savefig_path, img_path, Sentinel_template, mask_in, mask_out, cloudmaskpath, cloudProbThreshold = set_paths(virtual_machine=False)
 
 #create dataset
 S2vals, X = create_dataset(hcrf_file, img_path, save_spectra_plots=False)
 
 # format mask
-mask_array = format_mask (Sentinel_template,mask_in,mask_out)
+icemask, cloudmask = format_mask (Sentinel_template,mask_in,mask_out,cloudmaskpath,cloudProbThreshold)
 
 #optimise and train model
 clf = split_train_test(X, test_size=0.2, n_trees= 32, print_conf_mx = True,
                                                  save_confmx_figs = True, show_model_performance = True,
-                                                 pickle_model=True)
+                                                 pickle_model=False)
 # apply model to Sentinel2 image
-predicted, albedo, dataset =  ClassifyImages(S2vals, clf, mask_array, savefigs=True, save_netcdf=True)
+predicted, albedo, dataset =  ClassifyImages(S2vals, clf, icemask, cloudmask, savefigs=True, save_netcdf=True)
 
 # calculate spatial stats
 albedoDF = albedo_report(predicted, albedo, save_albedo_data = True)
