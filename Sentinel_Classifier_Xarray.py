@@ -87,10 +87,6 @@ The final function calculates spatial statistics for the classified surface and 
 
 """
 
-# TODO: investigate rasterio function in xarray (xr.open_rasterio())
-# TODO: Add cloud mask
-# TODO: Apply to multiple tiles
-
 ###########################################################################################
 ############################# IMPORT MODULES #########################################
 
@@ -107,7 +103,6 @@ import xarray as xr
 import seaborn as sn
 from osgeo import gdal, osr
 import georaster
-import xarray.plot as xplt
 
 # matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown (for
 # rapidly processing multiple images later)
@@ -121,29 +116,31 @@ def set_paths(virtual_machine=False):
 
     if not virtual_machine:
         savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
-        img_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/KGR/'
+        img_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/'
+        img_stub = 'L2A_T22WEV_20160721T151912_'
         hcrf_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
         # paths for format_mask()
         Sentinel_template = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/L2A_T22WEV_20160721T151912_B02_20m.jp2'
         mask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GimpIceMask_15m_tile1_1_v1_1.tif'
-        mask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+        mask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.tiff'
 
     else:
         # Virtual Machine
         # paths for create_dataset()
         savefig_path = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Sentinel_Outputs/'
-        img_path = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/'
+        img_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/'
+        img_stub = 'L2A_T22WEV_20160721T151912_'
         hcrf_file = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
         # paths for format_mask()
         Sentinel_template = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/L2A_T22WEV_20160721T151912_B02_20m.jp2'
         mask_path = ['/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/']
         mask_in = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.tif'
-        mask_out = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.nc'
+        mask_out = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/GIMP_MASK.tif'
 
-    return hcrf_file, savefig_path, img_path, Sentinel_template, mask_in, mask_out
+    return hcrf_file, savefig_path, img_path, img_stub, Sentinel_template, mask_in, mask_out
 
 
-def format_mask(Sentinel_template, mask_in, mask_out):
+def format_mask(img_path, img_stub, mask_in, mask_out):
     """
     Function reprojects GIMP mask to dimensions, resolution and spatial coords of the S2 images, enabling
     Boolean masking of land-ice area.
@@ -165,7 +162,7 @@ def format_mask(Sentinel_template, mask_in, mask_out):
     data_type = mask.GetRasterBand(1).DataType
     n_bands = mask.RasterCount
 
-    Sentinel = gdal.Open(Sentinel_template)
+    Sentinel = gdal.Open(img_path+img_stub+'B02_20m.jp2')
 
     Sentinel_proj = Sentinel.GetProjection()
     Sentinel_geotrans = Sentinel.GetGeoTransform()
@@ -173,51 +170,51 @@ def format_mask(Sentinel_template, mask_in, mask_out):
     h = Sentinel.RasterYSize
 
     mask_filename = mask_out
-    new_mask = gdal.GetDriverByName('NETCDF').Create(mask_filename,
+    new_mask = gdal.GetDriverByName('GTiff').Create(mask_filename,
                                                      w, h, n_bands, data_type)
     new_mask.SetGeoTransform(Sentinel_geotrans)
     new_mask.SetProjection(Sentinel_proj)
 
     gdal.ReprojectImage(mask, new_mask, mask_proj,
                         Sentinel_proj, gdal.GRA_NearestNeighbour)
+
     new_mask = None  # Flush disk
 
-    # open netCDF mask and extract values to numpy array
-    maskxr = xr.open_dataset(mask_out)
-    maskxr = maskxr.fillna(0)
-    mask_array = xr.DataArray(maskxr.Band1.values)
+    maskxr = xr.open_rasterio(mask_out)
+    mask_squeezed = xr.DataArray.squeeze(maskxr,'band')
+    mask_array = xr.DataArray(mask_squeezed.values)
 
     return mask_array
 
 
-def create_dataset(hcrf_file, mask_array, img_path, save_spectra=True):
+def create_dataset(hcrf_file, mask_array, img_path, img_stub, save_spectra=True):
     # Sentinel 2 dataset
     # create 3D numpy array with dim1 = band, dims 2 and 3 = spatial x and y. Values are reflectance.
 
-    daB2 = xr.open_dataset(str(img_path+'B02.nc'),chunks={'x':2000,'y':2000})
-    daB3 = xr.open_dataset(str(img_path+'B03.nc'),chunks={'x':2000,'y':2000})
-    daB4 = xr.open_dataset(str(img_path+'B04.nc'),chunks={'x':2000,'y':2000})
-    daB5 = xr.open_dataset(str(img_path+'B05.nc'),chunks={'x':2000,'y':2000})
-    daB6 = xr.open_dataset(str(img_path+'B06.nc'),chunks={'x':2000,'y':2000})
-    daB7 = xr.open_dataset(str(img_path+'B07.nc'),chunks={'x':2000,'y':2000})
-    daB8 = xr.open_dataset(str(img_path+'B08.nc'),chunks={'x':2000,'y':2000})
-    daB11 = xr.open_dataset(str(img_path+'B11.nc'),chunks={'x':2000,'y':2000})
-    daB12 = xr.open_dataset(str(img_path+'B12.nc'),chunks={'x':2000,'y':2000})
+    daB2 = xr.open_rasterio(str(img_path+img_stub+'B02_20m.jp2'),chunks={'x':2000,'y':2000})
+    daB3 = xr.open_rasterio(str(img_path+img_stub+'B03_20m.jp2'),chunks={'x':2000,'y':2000})
+    daB4 = xr.open_rasterio(str(img_path+img_stub+'B04_20m.jp2'),chunks={'x':2000,'y':2000})
+    daB5 = xr.open_rasterio(str(img_path+img_stub+'B05_20m.jp2'),chunks={'x':2000,'y':2000})
+    daB6 = xr.open_rasterio(str(img_path+img_stub+'B06_20m.jp2'),chunks={'x':2000,'y':2000})
+    daB7 = xr.open_rasterio(str(img_path+img_stub+'B07_20m.jp2'),chunks={'x':2000,'y':2000})
+    daB8 = xr.open_rasterio(str(img_path+img_stub+'B8A_20m.jp2'),chunks={'x':2000,'y':2000})
+    daB11 = xr.open_rasterio(str(img_path+img_stub+'B11_20m.jp2'),chunks={'x':2000,'y':2000})
+    daB12 = xr.open_rasterio(str(img_path+img_stub+'B12_20m.jp2'),chunks={'x':2000,'y':2000})
 
-    S2vals = xr.Dataset({'B02': (('y','x'),daB2.Band1.values), 'B03': (('y', 'x'), daB3.Band1.values),
-    'B04': (('y', 'x'), daB4.Band1.values),'B05': (('y', 'x'), daB5.Band1.values),'B06': (('y', 'x'), daB6.Band1.values),
-    'B07': (('y', 'x'), daB7.Band1.values),'B08': (('y', 'x'), daB8.Band1.values),'B11': (('y', 'x'), daB11.Band1.values),
-    'B12': (('y', 'x'), daB12.Band1.values),'mask': (('y', 'x'), mask_array)})
+    daB2 = xr.DataArray.squeeze(daB2,dim='band')
+    daB3 = xr.DataArray.squeeze(daB3,dim='band')
+    daB4 = xr.DataArray.squeeze(daB4,dim='band')
+    daB5 = xr.DataArray.squeeze(daB5,dim='band')
+    daB6 = xr.DataArray.squeeze(daB6,dim='band')
+    daB7 = xr.DataArray.squeeze(daB7,dim='band')
+    daB8 = xr.DataArray.squeeze(daB8,dim='band')
+    daB11 = xr.DataArray.squeeze(daB11,dim='band')
+    daB12 = xr.DataArray.squeeze(daB12,dim='band')
 
-    S2vals.B02.values/=10000
-    S2vals.B03.values/=10000
-    S2vals.B04.values/=10000
-    S2vals.B05.values/=10000
-    S2vals.B06.values/=10000
-    S2vals.B07.values/=10000
-    S2vals.B08.values/=10000
-    S2vals.B11.values/=10000
-    S2vals.B12.values/=10000
+    S2vals = xr.Dataset({'B02': (('y','x'),daB2.values/10000), 'B03': (('y', 'x'), daB3.values/10000),
+    'B04': (('y', 'x'), daB4.values/10000),'B05': (('y', 'x'), daB5.values/10000),'B06': (('y', 'x'), daB6.values/10000),
+    'B07': (('y', 'x'), daB7.values/10000),'B08': (('y', 'x'), daB8.values/10000),'B11': (('y', 'x'), daB11.values/10000),
+    'B12': (('y', 'x'), daB12.values/10000),'mask': (('y', 'x'), mask_array)})
 
     S2vals.to_netcdf(savefig_path + "S2vals.nc",mode='w')
     S2vals=None
@@ -532,6 +529,7 @@ def split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, savefi
                    cbar_kws={"shrink": 0.4, 'label': 'Normalised Error'}, ax=ax2), ax2.tick_params(axis='both',
                                                                                                    rotation=45)
         ax2.set_title('Normalised Confusion Matrix'), ax2.set_aspect('equal')
+
         plt.tight_layout()
         plt.savefig(str(savefig_path + "final_model_confusion_matrices_testset.png"))
         plt.close()
@@ -553,7 +551,7 @@ def split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, savefi
 
     return clf
 
-def ClassifyImages(clf, savefigs=False):
+def ClassifyImages(clf, img_path, img_stub, savefigs=False):
 
     with xr.open_dataset(savefig_path + "S2vals.nc",chunks={'x':2000,'y':2000}) as S2vals:
         # Set index for reducing data
@@ -585,9 +583,9 @@ def ClassifyImages(clf, savefigs=False):
         mask2 = (S2vals.mask.values ==1) & (concat.sum(dim='bands')>0)
 
         # collate predicted map, albedo map and projection info into xarray dataset
-        # 1) Retrieve projection info from uav datafile and add to netcdf
+        # 1) Retrieve projection info from S2 datafile and add to netcdf
         srs = osr.SpatialReference()
-        srs.ImportFromProj4('+init=epsg:32623')
+        srs.ImportFromProj4('+init=epsg:32622') # Get info for UTM zone 22N
         proj_info = xr.DataArray(0, encoding={'dtype': np.dtype('int8')})
         proj_info.attrs['projected_crs_name'] = srs.GetAttrValue('projcs')
         proj_info.attrs['grid_mapping_name'] = 'UTM'
@@ -599,12 +597,12 @@ def ClassifyImages(clf, savefigs=False):
         proj_info.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
 
         # 2) Create associated lat/lon coordinates DataArrays using georaster (imports geo metadata without loading img)
-        # see georaster docs at https: // media.readthedocs.org / pdf / georaster / latest / georaster.pdf
-        S2 = georaster.SingleBandRaster('NETCDF:"%s":Band1' % (str(img_path + 'B02.nc')), load_data=False)
+        # see georaster docs at https:/media.readthedocs.org/pdf/georaster/latest/georaster.pdf
+        S2 = georaster.SingleBandRaster(img_path + img_stub + 'B02_20m.jp2', load_data=False)
         lon, lat = S2.coordinates(latlon=True)
         S2 = None
 
-        S2 = xr.open_dataset((str(img_path + 'B02.nc')), chunks={'x': 2000, 'y': 2000})
+        S2 = xr.open_rasterio(img_path + img_stub + 'B02_20m.jp2', chunks={'x': 2000, 'y': 2000})
         coords_geo = {'y': S2['y'], 'x': S2['x']}
         S2 = None
 
@@ -690,16 +688,17 @@ def ClassifyImages(clf, savefigs=False):
 
         fig, axes = plt.subplots(figsize=(10,8), ncols=1, nrows=2)
         predictedxr.plot(ax=axes[0], cmap=cmap1, vmin=0, vmax=6)
-        plt.grid(None)
+        plt.ylabel('Latitude (UTM Zone 22N)'), plt.xlabel('Longitude (UTM Zone 22N)')
+        plt.title('Greenland Ice Sheet from Sentinel 2 classified using Random Forest Classifier (top) and albedo (bottom)')
         axes[0].set_aspect('equal')
 
         albedoxr.plot(ax=axes[1], cmap=cmap2, vmin=0, vmax=1)
-        plt.grid(None)
+        plt.ylabel('Latitude (UTM Zone 22N)'), plt.xlabel('Longitude (UTM Zone 22N)')
         axes[1].set_aspect('equal')
+        plt.grid(None)
 
-        fig.tight_layout
+        fig.tight_layout()
 
-    if savefigs:
         plt.savefig(str(savefig_path + "Sentinel_Classified_Albedo.png"), dpi=300)
 
     return
@@ -746,19 +745,19 @@ def albedo_report(save_albedo_data=False):
 
 
 #RUN AND TIME FUNCTIONS
-hcrf_file, savefig_path, img_path, Sentinel_template, mask_in, mask_out = set_paths(virtual_machine=False)
+hcrf_file, savefig_path, img_path, img_stub, Sentinel_template, mask_in, mask_out = set_paths(virtual_machine=False)
 
 #format mask
-mask_array = format_mask(Sentinel_template, mask_in, mask_out)
+mask_array = format_mask(img_path, img_stub, mask_in, mask_out)
 
 #create dataset
-X = create_dataset(hcrf_file, mask_array, img_path, save_spectra=False)
+X = create_dataset(hcrf_file, mask_array, img_path, img_stub, save_spectra=False)
 
 #optimise and train model
 clf = split_train_test(X, test_size=0.3, n_trees=32, print_conf_mx=True, savefigs=True, show_model_performance=True, pickle_model=True)
 
 # apply model to Sentinel2 image
-ClassifyImages(clf, savefigs=True)
+ClassifyImages(clf, img_path, img_stub, savefigs=True)
 
 # calculate spatial stats
-#albedoDF = albedo_report(save_albedo_data=True)
+albedoDF = albedo_report(save_albedo_data=True)
