@@ -546,7 +546,7 @@ def format_mask (Sentinel_template, Icemask_in, Icemask_out, cloudmaskpath, clou
         arrs.append(f.read(1))
     cloudmask = np.array(arrs, dtype=arrs[0].dtype)
     cloudmask=np.squeeze(cloudmask,0)
-    cloudmask[cloudmask > cloudProbThreshold]= 1
+    cloudmask[cloudmask >= cloudProbThreshold]= 1
     cloudmask[cloudmask < cloudProbThreshold] = 0
 
     return icemask, cloudmask

@@ -83,8 +83,6 @@ Created on Thu Mar  8 14:32:24 2018
 
 """
 
-
-
 import pandas as pd
 import xarray as xr
 import sklearn_xarray
@@ -97,7 +95,7 @@ from sklearn.externals import joblib
 from datetime import datetime
 import matplotlib as mpl
 import georaster
-from osgeo import gdal, osr
+from osgeo import osr
 import seaborn as sn
 
 # matplotlib settings: use ggplot style and turn interactive mode off so that plots can be saved and not shown (for
@@ -111,14 +109,14 @@ def setup(virtual_machine = False, expanded_training_set=True):
 
     # Set paths to training data and image files
     if not virtual_machine:
-        HCRF_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+        hcrf_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
         img_file = '/home/joe/Code/IceSurfClassifiers/UAV_Resources/uav_data.nc'
         savefig_path = '/home/joe/Code/IceSurfClassifiers/UAV_Outputs/'
     else:
     # VIRTUAL MACHINE
-        img_file = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/uav_data.nc'
-        HCRF_file = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
-        savefig_path = '/data/home/tothepoles/Desktop/'
+        img_file = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/UAV_Resources/uav_data.nc'
+        hcrf_file = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
+        savefig_path = '/data/home/tothepoles/IceSurfClassifiers/UAV_Outputs/'
 
     if expanded_training_set:
         # set coordinates for generating training data from images
@@ -135,13 +133,13 @@ def setup(virtual_machine = False, expanded_training_set=True):
 
         n_areas = len(x_min)
 
-    return HCRF_file, img_file, savefig_path, x_min, x_max, y_min, y_max, area_labels, n_areas
+    return hcrf_file, img_file, savefig_path, x_min, x_max, y_min, y_max, area_labels, n_areas
 
 
-def training_data_from_spectra(HCRF_file, plot_spectra=True, savefigs=True):
+def training_data_from_spectra(hcrf_file, plot_spectra=True, savefigs=True):
     # Read in raw HCRF data to DataFrame. Pulls in HCRF data from 2016 and 2017
 
-    hcrf_master = pd.read_csv(HCRF_file)
+    hcrf_master = pd.read_csv(hcrf_file)
     HA_hcrf = pd.DataFrame()
     LA_hcrf = pd.DataFrame()
     CI_hcrf = pd.DataFrame()
@@ -382,13 +380,12 @@ def split_train_test(X, test_size=0.2, n_trees= 64, print_conf_mx = True, plot_c
     X_test_xr = xr.DataArray(X_test, dims=('samples','bands'), coords={'bands':features.columns})
     Y_test_xr = xr.DataArray(Y_test, dims=('samples','label'))
 
-
     # Define classifier
     clf = sklearn_xarray.wrap(
         RandomForestClassifier(n_estimators=n_trees, max_leaf_nodes=None, n_jobs=-1),
         sample_dim='samples', reshapes='bands')
 
-    # fot classifier to training data
+    # fit classifier to training data
     clf.fit(X_train_xr, Y_train_xr)
 
     # test model performance
@@ -672,13 +669,12 @@ def albedo_report(predicted, albedo, save_albedo_data = False):
     return albedoDF
 
 
-HCRF_file, img_file, savefig_path, x_min, x_max, y_min, y_max, area_labels, n_areas = setup(virtual_machine=False, expanded_training_set = True)
+hcrf_file, img_file, savefig_path, x_min, x_max, y_min, y_max, area_labels, n_areas = setup(virtual_machine=False, expanded_training_set = True)
 
-X = training_data_from_spectra(HCRF_file, plot_spectra=False, savefigs=True)
+X = training_data_from_spectra(hcrf_file, plot_spectra=False, savefigs=True)
 
 X = training_data_from_img(X = X, img_file = img_file, x_min = x_min, x_max = x_max, y_min = y_min,
                                   y_max = y_max, area_labels = area_labels, n_areas=n_areas, run_func=False)
-
 
 clf, conf_mx_RF, norm_conf_mx = split_train_test(X, test_size=0.3, n_trees=32, print_conf_mx = False, plot_conf_mx = False,
                                                    savefigs = True, show_model_performance = True, pickle_model=True)

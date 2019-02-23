@@ -124,17 +124,16 @@ def set_paths(virtual_machine = False):
 
     """
     if not virtual_machine:
-        mask_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/'
         savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
-        img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/KGR/',
-                   '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/ILL1/',
-                   '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/ILL2/',
-                    '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/ILL3/']
+        img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/',
+                   '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
+                   '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/IMG_DATA/R20m/',
+                    '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/']
+        img_stubs = ['L2A_T22WEV_20160721T151912_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_',
+                                                                                                                'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_']
         # paths for format_mask()
-        Sentinel_templates = [str(mask_path+'MaskTemplate_KGR.jp2'),str(mask_path+'MaskTemplate_ILL1.jp2'),
-                             str(mask_path+'MaskTemplate_ILL2.jp2'),str(mask_path+'MaskTemplate_ILL3.jp2')]
-        mask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
-        mask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+        Icemask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
+        Icemask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
         cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.nc',
                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEB_20m.jp2',
@@ -156,8 +155,8 @@ def set_paths(virtual_machine = False):
         # paths for format_mask()
         Sentinel_templates = [str(mask_path+'MaskTemplate_KGR.jp2'),str(mask_path+'MaskTemplate_ILL1.jp2'),
                              str(mask_path+'MaskTemplate_ILL2.jp2'),str(mask_path+'MaskTemplate_ILL3.jp2')]
-        mask_in = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
-        mask_out = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+        Icemask_in = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
+        Icemask_out = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
         cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.nc',
                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEB_20m.jp2',
@@ -167,10 +166,63 @@ def set_paths(virtual_machine = False):
         area_labels = ['KGR','ILL1','ILL2','ILL3']
         masterDF = pd.DataFrame(columns=(['pred','albedo']))
 
-    return savefig_path, img_paths, Sentinel_templates, mask_in, mask_out, area_labels, masterDF, pickle_path, cloudmaskpaths, cloudProbThreshold
+    return savefig_path, img_paths, img_stubs, Icemask_in, Icemask_out, area_labels, masterDF, pickle_path, cloudmaskpaths, cloudProbThreshold
 
 
-def load_model_and_images(img_path,pickle_path):
+def format_mask(img_path, img_stub, Icemask_in, Icemask_out, cloudmaskpath, cloudProbThreshold):
+    """
+    Function reprojects GIMP mask to dimensions, resolution and spatial coords of the S2 images, enabling
+    Boolean masking of land-ice area.
+
+    INPUTS:
+    Sentinel = Sentinel image to use as projection template
+    mask_in = file path to mask file
+    mask_out = file path to save reprojected mask
+    res = resolution to save mask
+
+    OUTPUTS:
+    reprojected mask in .tif format
+
+    """
+    mask = gdal.Open(Icemask_in)
+
+    mask_proj = mask.GetProjection()
+    mask_geotrans = mask.GetGeoTransform()
+    data_type = mask.GetRasterBand(1).DataType
+    n_bands = mask.RasterCount
+
+    Sentinel = gdal.Open(img_path+img_stub+'B02_20m.jp2')
+
+    Sentinel_proj = Sentinel.GetProjection()
+    Sentinel_geotrans = Sentinel.GetGeoTransform()
+    w = Sentinel.RasterXSize
+    h = Sentinel.RasterYSize
+
+    mask_filename = Icemask_out
+    new_mask = gdal.GetDriverByName('GTiff').Create(mask_filename,
+                                                     w, h, n_bands, data_type)
+    new_mask.SetGeoTransform(Sentinel_geotrans)
+    new_mask.SetProjection(Sentinel_proj)
+
+    gdal.ReprojectImage(mask, new_mask, mask_proj,
+                        Sentinel_proj, gdal.GRA_NearestNeighbour)
+
+    new_mask = None  # Flush disk
+
+    maskxr = xr.open_rasterio(Icemask_out)
+    mask_squeezed = xr.DataArray.squeeze(maskxr,'band')
+    Icemask = xr.DataArray(mask_squeezed.values)
+
+    # set up second mask for clouds
+    Cloudmask = xr.open_rasterio(cloudmaskpath)
+    Cloudmask = xr.DataArray.squeeze(Cloudmask,'band')
+    # set pixels where probability of cloud < threshold to 0
+    Cloudmask = Cloudmask.where(Cloudmask.values <= cloudProbThreshold, 0)
+
+    return Icemask, Cloudmask
+
+
+def load_model_and_images(Icemask, Cloudmask, img_path, img_stub, pickle_path):
     """
     function loads classifier from file and loads L2A image into numpy NDarray
 
@@ -178,324 +230,250 @@ def load_model_and_images(img_path,pickle_path):
     :return: clf: classifier loaded in from .pkl file; S2vals: 9D numpy array containing pixel reflectance values
 
     """
-    S2vals = np.zeros([9,5490,5490])
-    bands = ['02','03','04','05','05','07','08','11','12']
-    for i in np.arange(0,len(bands),1):
-        S2BX = xr.open_dataset(str(img_path+'B'+bands[i]+'.nc'))
-        S2BXarr = S2BX.to_array()
-        S2BXvals = np.array(S2BXarr.variable.values[1])
-        S2BXvals = S2BXvals.astype(float)
-        S2vals[i,:,:] = S2BXvals
 
-    S2vals /=10000 # correct unit from S2 L2A data to reflectance between 0-1
+    # Sentinel 2 dataset
+    # create xarray dataset with all bands loaded from jp2s. Values are reflectance.
+
+    daB2 = xr.open_rasterio(str(img_path + img_stub + 'B02_20m.jp2'), chunks={'x': 2000, 'y': 2000})
+    daB3 = xr.open_rasterio(str(img_path + img_stub + 'B03_20m.jp2'), chunks={'x': 2000, 'y': 2000})
+    daB4 = xr.open_rasterio(str(img_path + img_stub + 'B04_20m.jp2'), chunks={'x': 2000, 'y': 2000})
+    daB5 = xr.open_rasterio(str(img_path + img_stub + 'B05_20m.jp2'), chunks={'x': 2000, 'y': 2000})
+    daB6 = xr.open_rasterio(str(img_path + img_stub + 'B06_20m.jp2'), chunks={'x': 2000, 'y': 2000})
+    daB7 = xr.open_rasterio(str(img_path + img_stub + 'B07_20m.jp2'), chunks={'x': 2000, 'y': 2000})
+    daB8 = xr.open_rasterio(str(img_path + img_stub + 'B8A_20m.jp2'), chunks={'x': 2000, 'y': 2000})
+    daB11 = xr.open_rasterio(str(img_path + img_stub + 'B11_20m.jp2'), chunks={'x': 2000, 'y': 2000})
+    daB12 = xr.open_rasterio(str(img_path + img_stub + 'B12_20m.jp2'), chunks={'x': 2000, 'y': 2000})
+
+    daB2 = xr.DataArray.squeeze(daB2, dim='band')
+    daB3 = xr.DataArray.squeeze(daB3, dim='band')
+    daB4 = xr.DataArray.squeeze(daB4, dim='band')
+    daB5 = xr.DataArray.squeeze(daB5, dim='band')
+    daB6 = xr.DataArray.squeeze(daB6, dim='band')
+    daB7 = xr.DataArray.squeeze(daB7, dim='band')
+    daB8 = xr.DataArray.squeeze(daB8, dim='band')
+    daB11 = xr.DataArray.squeeze(daB11, dim='band')
+    daB12 = xr.DataArray.squeeze(daB12, dim='band')
+
+    S2vals = xr.Dataset({'B02': (('y', 'x'), daB2.values / 10000), 'B03': (('y', 'x'), daB3.values / 10000),
+                         'B04': (('y', 'x'), daB4.values / 10000), 'B05': (('y', 'x'), daB5.values / 10000),
+                         'B06': (('y', 'x'), daB6.values / 10000),
+                         'B07': (('y', 'x'), daB7.values / 10000), 'B08': (('y', 'x'), daB8.values / 10000),
+                         'B11': (('y', 'x'), daB11.values / 10000),
+                         'B12': (('y', 'x'), daB12.values / 10000), 'Icemask': (('y', 'x'), Icemask),
+                         'Cloudmask': (('y', 'x'), Cloudmask)})
+
+    S2vals.to_netcdf(savefig_path + "S2vals.nc", mode='w')
+    S2vals = None
+    daB2 = None
+    daB3 = None
+    daB4 = None
+    daB5 = None
+    daB6 = None
+    daB7 = None
+    daB8 = None
+    daB11 = None
+    daB12 = None
 
     #load pickled model
     clf = joblib.load(pickle_path)
 
-    return S2vals, clf
+    return clf
 
 
-def format_mask (Sentinel_template, mask_in, mask_out, cloudmaskpath, cloudProbThreshold):
-    """
-    Function reprojects GIMP mask to dimensions, resolution and spatial coords of the S2 images, enabling
-    Boolean masking of land-ice area.
+def ClassifyImages(clf, img_path, img_stub, area_label, savefigs=False):
 
-    :param Sentinel_template: Sentinel image (unprocessed L1C .jp2) to use as template for projection
-    :param mask_in: filepath to merged mask
-    :param mask_out: filepath to save reprojected mask
-    :return: icemask: Boolean array of reprojected ice cover mask - projection and resolution consistent with S2 image
-             cloudmask: Boolean array of pixels where probability of cloud occurrence > cloudProbThreshold
+    with xr.open_dataset(savefig_path + "S2vals.nc",chunks={'x':2000,'y':2000}) as S2vals:
+        # Set index for reducing data
+        band_idx = pd.Index([1, 2, 3, 4, 5, 6, 7, 8, 9], name='bands')
 
-    """
-    mask = gdal.Open(mask_in)
+        # concatenate the bands into a single dimension ('bands_idx') in the data array
+        concat = xr.concat([S2vals.B02, S2vals.B03, S2vals.B04, S2vals.B05, S2vals.B06, S2vals.B07,
+                            S2vals.B08, S2vals.B11, S2vals.B12], band_idx)
 
-    mask_proj = mask.GetProjection()
-    mask_geotrans = mask.GetGeoTransform()
-    data_type = mask.GetRasterBand(1).DataType
-    n_bands = mask.RasterCount
+        # stack the values into a 1D array
+        stacked = concat.stack(allpoints=['y', 'x'])
 
-    Sentinel = gdal.Open(Sentinel_template)
+        # Transpose and rename so that DataArray has exactly the same layout/labels as the training DataArray.
+        # mask out nan areas not masked out by GIMP
+        stackedT = stacked.T
+        stackedT = stackedT.rename({'allpoints': 'samples'})
 
-    Sentinel_proj = Sentinel.GetProjection()
-    Sentinel_geotrans = Sentinel.GetGeoTransform()
-    w = Sentinel.RasterXSize
-    h = Sentinel.RasterYSize
+        # apply classifier
+        predicted = clf.predict(stackedT)
 
-    mask_filename = mask_out
-    new_mask = gdal.GetDriverByName('NETCDF').Create(mask_filename,
-                                                w, h, n_bands, data_type)
-    new_mask.SetGeoTransform(Sentinel_geotrans)
-    new_mask.SetProjection(Sentinel_proj)
+        # Unstack back to x,y grid
+        predicted = predicted.unstack(dim='samples')
 
-    gdal.ReprojectImage(mask, new_mask, mask_proj,
-                         Sentinel_proj, gdal.GRA_NearestNeighbour)
-    new_mask = None  # Flush disk
+        #calculate albeod using Liang et al (2002) equation
+        albedo = xr.DataArray(0.356 * (concat.values[1]) + 0.13 * (concat.values[3]) + 0.373 * \
+                       (concat.values[6]) + 0.085 * (concat.values[7]) + 0.072 * (concat.values[8]) - 0.0018)
 
-    # open netCDF mask and extract values to numpy array
-    maskxr = xr.open_dataset(mask_out)
-    icemask = np.array(maskxr.Band1.values)
-    #replace nans with 0 to create binary numerical array
-    nans = np.isnan(icemask)
-    icemask[nans]=0
+        #update mask so that both GIMP mask and areas not sampled by S2 but not masked by GIMP both = 0
+        mask2 = (S2vals.Icemask.values ==1) & (concat.sum(dim='bands')>0) & (S2vals.Cloudmask.values == 0)
 
-    arrs = []
-    with rasterio.open(cloudmaskpath) as f:
-        arrs.append(f.read(1))
-    cloudmask = np.array(arrs, dtype=arrs[0].dtype)
-    cloudmask=np.squeeze(cloudmask,0)
-    cloudmask[cloudmask > cloudProbThreshold]= 1
-    cloudmask[cloudmask < cloudProbThreshold] = 0
+        # collate predicted map, albedo map and projection info into xarray dataset
+        # 1) Retrieve projection info from S2 datafile and add to netcdf
+        srs = osr.SpatialReference()
+        srs.ImportFromProj4('+init=epsg:32622') # Get info for UTM zone 22N
+        proj_info = xr.DataArray(0, encoding={'dtype': np.dtype('int8')})
+        proj_info.attrs['projected_crs_name'] = srs.GetAttrValue('projcs')
+        proj_info.attrs['grid_mapping_name'] = 'UTM'
+        proj_info.attrs['scale_factor_at_central_origin'] = srs.GetProjParm('scale_factor')
+        proj_info.attrs['standard_parallel'] = srs.GetProjParm('latitude_of_origin')
+        proj_info.attrs['straight_vertical_longitude_from_pole'] = srs.GetProjParm('central_meridian')
+        proj_info.attrs['false_easting'] = srs.GetProjParm('false_easting')
+        proj_info.attrs['false_northing'] = srs.GetProjParm('false_northing')
+        proj_info.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
 
-    return icemask, cloudmask
+        # 2) Create associated lat/lon coordinates DataArrays using georaster (imports geo metadata without loading img)
+        # see georaster docs at https:/media.readthedocs.org/pdf/georaster/latest/georaster.pdf
+        S2 = georaster.SingleBandRaster(img_path + img_stub + 'B02_20m.jp2', load_data=False)
+        lon, lat = S2.coordinates(latlon=True)
+        S2 = None
 
+        S2 = xr.open_rasterio(img_path + img_stub + 'B02_20m.jp2', chunks={'x': 2000, 'y': 2000})
+        coords_geo = {'y': S2['y'], 'x': S2['x']}
+        S2 = None
 
-def ClassifyImages(S2vals, clf, icemask, cloudmask, area_label, savefigs=False, save_netcdf = False):
-    """
-    function deploys classifier to Sentinel 2 image and masks out non-ice areas
+        lon_array = xr.DataArray(lon, coords=coords_geo, dims=['y', 'x'],
+                                 encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
+        lon_array.attrs['grid_mapping'] = 'UTM'
+        lon_array.attrs['units'] = 'degrees'
+        lon_array.attrs['standard_name'] = 'longitude'
 
-    :param S2vals: array containing pixelwise reflectance values for S2 images
-    :param clf: trained classifier
-    :param icemask: Boolean array where 0 = non-ice area, 1 = ice sheet
-    :param cloudmask: Boolean array where 0 = cloud free, 1 = cloud
-    :param area_label: String identifier that labels each tile
-    :param savefigs: Boolean to control whether figures are saved to file
-    :param save_netcdf: Boolean to control whether classified surface, albedo, coordinates and metadata/attributes are
-    saved to a NetCDF file
+        lat_array = xr.DataArray(lat, coords=coords_geo, dims=['y', 'x'],
+                                 encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
+        lat_array.attrs['grid_mapping'] = 'UTM'
+        lat_array.attrs['units'] = 'degrees'
+        lat_array.attrs['standard_name'] = 'latitude'
 
-    :return: predicted (array of predicted classes), albedo (array of albedo estimates), dataset (netCDF of all data)
-    """
-    # get dimensions of each band layer
-    lenx, leny = np.shape(S2vals[0])
+        # 3) add predicted map array and add metadata
+        predictedxr = xr.DataArray(predicted.values, coords=coords_geo, dims=['y', 'x'])
+        predictedxr = predictedxr.fillna(0)
+        predictedxr = predictedxr.where(mask2>0)
+        predictedxr.encoding = {'dtype': 'int16', 'zlib': True, '_FillValue': -9999}
+        predictedxr.name = 'Surface Class'
+        predictedxr.attrs['long_name'] = 'Surface classified using Random Forest'
+        predictedxr.attrs['units'] = 'None'
+        predictedxr.attrs[
+            'key'] = 'Snow:1; Water:2; Cryoconite:3; Clean Ice:4; Light Algae:5; Heavy Algae:6'
+        predictedxr.attrs['grid_mapping'] = 'UTM'
 
-    # convert image bands into single 5-dimensional numpy array
-    S2valsT = S2vals.reshape(9, lenx * leny)  # reshape into 5 x 1D arrays
-    S2valsT = S2valsT.transpose()  # transpose so that bands are read as features
+        # add albedo map array and add metadata
+        albedoxr = xr.DataArray(albedo.values, coords=coords_geo, dims=['y', 'x'])
+        albedoxr = albedoxr.fillna(0)
+        albedoxr = albedoxr.where(mask2 > 0)
+        albedoxr.encoding = {'dtype': 'int16', 'scale_factor': 0, 'zlib': True, '_FillValue': -9999}
+        albedoxr.name = 'Surface albedo computed after Knap et al. (1999) narrowband-to-broadband conversion'
+        albedoxr.attrs['units'] = 'dimensionless'
+        albedoxr.attrs['grid_mapping'] = 'UTM'
 
-    # create albedo array by applying Knap (1999) narrowband - broadband conversion
-    albedo_array = np.array([0.356 * (S2vals[0]) + 0.13 * (S2vals[2]) + 0.373 * (
-            S2vals[6]) + 0.085 * (S2vals[7]) + 0.072 * (S2vals[8]) - 0.0018])
+        # collate data arrays into a dataset
+        dataset = xr.Dataset({
 
-    # apply ML algorithm to 4-value array for each pixel - predict surface type
-    predicted = clf.predict(S2valsT)
-    predicted = np.array(predicted)
+            'classified': (['x', 'y'], predictedxr),
+            'albedo':(['x','y'],albedoxr),
+            'mask': (['x', 'y'], S2vals.Icemask.values),
+            'Projection': proj_info,
+            'longitude': (['x', 'y'], lon_array),
+            'latitude': (['x', 'y'], lat_array)
+        })
 
-    # convert surface class (string) to a numeric value for plotting
-    predicted[predicted == 'SN'] = float(1)
-    predicted[predicted == 'WAT'] = float(2)
-    predicted[predicted == 'CC'] = float(3)
-    predicted[predicted == 'CI'] = float(4)
-    predicted[predicted == 'LA'] = float(5)
-    predicted[predicted == 'HA'] = float(6)
-    predicted[predicted == 'Zero'] = float(0)
+        # add metadata for dataset
+        dataset.attrs['Conventions'] = 'CF-1.4'
+        dataset.attrs['Author'] = 'Joseph Cook (University of Sheffield, UK)'
+        dataset.attrs[
+            'title'] = 'Classified surface and albedo maps produced from Sentinel-2 ' \
+                       'imagery of the SW Greenland Ice Sheet'
 
-    # ensure array data type is float (required for imshow)
-    predicted = predicted.astype(float)
+        # Additional geo-referencing
+        dataset.attrs['nx'] = len(dataset.x)
+        dataset.attrs['ny'] = len(dataset.y)
+        dataset.attrs['xmin'] = float(dataset.x.min())
+        dataset.attrs['ymax'] = float(dataset.y.max())
+        dataset.attrs['spacing'] = 20
 
-    # reshape 1D array back into original image dimensions
-    predicted = np.reshape(predicted, [lenx, leny])
-    albedo = np.reshape(albedo_array, [lenx, leny])
+        # NC conventions metadata for dimensions variables
+        dataset.x.attrs['units'] = 'meters'
+        dataset.x.attrs['standard_name'] = 'projection_x_coordinate'
+        dataset.x.attrs['point_spacing'] = 'even'
+        dataset.x.attrs['axis'] = 'x'
 
-    # apply cloud mask to ignore pixels obscured by cloud
-    predicted = np.ma.masked_where(cloudmask==1, predicted)
-    albedo = np.ma.masked_where(cloudmask==1, albedo)
+        dataset.y.attrs['units'] = 'meters'
+        dataset.y.attrs['standard_name'] = 'projection_y_coordinate'
+        dataset.y.attrs['point_spacing'] = 'even'
+        dataset.y.attrs['axis'] = 'y'
 
-    # apply GIMP mask to ignore non-ice surfaces
-    predicted = np.ma.masked_where(icemask==0, predicted)
-    albedo = np.ma.masked_where(icemask==0, albedo)
-
-    # mask out areas not covered by Sentinel tile, but not excluded by GIMP mask
-    predicted = np.ma.masked_where(predicted <=0, predicted)
-    albedo = np.ma.masked_where(albedo <=0, albedo)
-
-    # collate predicted map, albedo map and projection info into xarray dataset
-    # 1) Retrieve projection info from uav datafile and add to netcdf
-    srs = osr.SpatialReference()
-    srs.ImportFromProj4('+init=epsg:32623')
-    proj_info = xr.DataArray(0, encoding={'dtype': np.dtype('int8')})
-    proj_info.attrs['projected_crs_name'] = srs.GetAttrValue('projcs')
-    proj_info.attrs['grid_mapping_name'] = 'UTM'
-    proj_info.attrs['scale_factor_at_central_origin'] = srs.GetProjParm('scale_factor')
-    proj_info.attrs['standard_parallel'] = srs.GetProjParm('latitude_of_origin')
-    proj_info.attrs['straight_vertical_longitude_from_pole'] = srs.GetProjParm('central_meridian')
-    proj_info.attrs['false_easting'] = srs.GetProjParm('false_easting')
-    proj_info.attrs['false_northing'] = srs.GetProjParm('false_northing')
-    proj_info.attrs['latitude_of_projection_origin'] = srs.GetProjParm('latitude_of_origin')
-
-    # 2) Create associated lat/lon coordinates DataArrays using georaster (imports geo metadata without loading img)
-    # see georaster docs at https: // media.readthedocs.org / pdf / georaster / latest / georaster.pdf
-    S2 = georaster.SingleBandRaster('NETCDF:"%s":Band1' % (str(img_path+'B02.nc')),
-                                    load_data=False)
-    lon, lat = S2.coordinates(latlon=True)
-    S2 = None  # close file
-    S2 = xr.open_dataset((str(img_path+'B02.nc')), chunks={'x': 2000, 'y': 2000})
-    coords_geo = {'y': S2['y'], 'x': S2['x']}
-    S2 = None  # close file
-
-    lon_array = xr.DataArray(lon, coords=coords_geo, dims=['y', 'x'],
-                             encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
-    lon_array.attrs['grid_mapping'] = 'UTM'
-    lon_array.attrs['units'] = 'degrees'
-    lon_array.attrs['standard_name'] = 'longitude'
-
-    lat_array = xr.DataArray(lat, coords=coords_geo, dims=['y', 'x'],
-                             encoding={'_FillValue': -9999., 'dtype': 'int16', 'scale_factor': 0.000000001})
-    lat_array.attrs['grid_mapping'] = 'UTM'
-    lat_array.attrs['units'] = 'degrees'
-    lat_array.attrs['standard_name'] = 'latitude'
-
-    # 3) add predicted map array and add metadata
-    predictedxr = xr.DataArray(predicted, coords=coords_geo, dims=['y', 'x'])
-    predictedxr.encoding = {'dtype': 'int16', 'zlib': True, '_FillValue': -9999}
-    predictedxr.name = 'Surface Class'
-    predictedxr.attrs['long_name'] = 'Surface classified using Random Forest'
-    predictedxr.attrs['units'] = 'None'
-    predictedxr.attrs[
-        'key'] = 'Unknown:0; Snow:1; Water:2; Cryoconite:3; Clean Ice:4; Light Algae:5; Heavy Algae:6'
-    predictedxr.attrs['grid_mapping'] = 'UTM'
-
-    # add albedo map array and add metadata
-    albedoxr = xr.DataArray(albedo, coords=coords_geo, dims=['y', 'x'])
-    albedoxr.encoding = {'dtype': 'int16', 'scale_factor': 0, 'zlib': True, '_FillValue': -9999}
-    albedoxr.name = 'Surface albedo computed after Knap et al. (1999) narrowband-to-broadband conversion'
-    albedoxr.attrs['units'] = 'dimensionless'
-    albedoxr.attrs['grid_mapping'] = 'UTM'
-
-    # collate data arrays into a dataset
-    dataset = xr.Dataset({
-
-        'classified': (['x', 'y'], predictedxr),
-        'albedo': (['x', 'y'], albedoxr),
-        'IceMask': (['x','y'],icemask),
-        'CloudMask': (['x', 'y'], cloudmask),
-        'Projection': proj_info,
-        'longitude': (['x', 'y'], lon_array),
-        'latitude': (['x', 'y'], lat_array)
-    })
-
-    # add metadata for dataset
-    dataset.attrs['Conventions'] = 'CF-1.4'
-    dataset.attrs['Author'] = 'Joseph Cook (University of Sheffield, UK)'
-    dataset.attrs[
-        'title'] = 'Classified surface and albedo maps produced from Sentinel-2 ' \
-                   'imagery of the Greenland Ice Sheet: {}'.format(area_label)
-
-    # Additional geo-referencing
-    dataset.attrs['nx'] = len(dataset.x)
-    dataset.attrs['ny'] = len(dataset.y)
-    dataset.attrs['xmin'] = float(dataset.x.min())
-    dataset.attrs['ymax'] = float(dataset.y.max())
-    dataset.attrs['spacing'] = 20
-
-    # NC conventions metadata for dimensions variables
-    dataset.x.attrs['units'] = 'meters'
-    dataset.x.attrs['standard_name'] = 'projection_x_coordinate'
-    dataset.x.attrs['point_spacing'] = 'even'
-    dataset.x.attrs['axis'] = 'x'
-
-    dataset.y.attrs['units'] = 'meters'
-    dataset.y.attrs['standard_name'] = 'projection_y_coordinate'
-    dataset.y.attrs['point_spacing'] = 'even'
-    dataset.y.attrs['axis'] = 'y'
-
-    # save dataset to netcdf if requested
-    if save_netcdf:
-        dataset.to_netcdf(savefig_path + "Classification_and_Albedo_Data_{}.nc".format(area_label))
+        dataset.to_netcdf(savefig_path + "{}_Classification_and_Albedo_Data.nc".format(area_label), mode='w')
+        dataset=None
 
     if savefigs:
+
         cmap1 = mpl.colors.ListedColormap(
             ['purple', 'white', 'royalblue', 'black', 'lightskyblue', 'mediumseagreen', 'darkgreen'])
         cmap1.set_under(color='white')  # make sure background is white
         cmap2 = plt.get_cmap('Greys_r')  # reverse greyscale for albedo
         cmap2.set_under(color='white')  # make sure background is white
-        ytickNames = [str(dataset.latitude[0,0].values),str(dataset.latitude[0,2750].values),str(dataset.latitude[-1,-1].values)]
-        xtickNames = [str(dataset.longitude[0,0].values),str(dataset.longitude[0,2750].values),str(dataset.longitude[-1,-1].values)]
-        fig = plt.figure(figsize=(15, 30))
 
-        # first subplot = classified map
-        class_labels = ['Unknown', 'Snow', 'Water', 'Cryoconite', 'Clean Ice', 'Light Algae', 'Heavy Algae']
-        ax1 = plt.subplot(211)
-        img = plt.imshow(predicted, cmap=cmap1,vmin=0, vmax=7)
-        cbar = fig.colorbar(mappable = img, ax=ax1, fraction=0.045)
+        fig, axes = plt.subplots(figsize=(10,8), ncols=1, nrows=2)
+        predictedxr.plot(ax=axes[0], cmap=cmap1, vmin=0, vmax=6)
+        plt.ylabel('Latitude (UTM Zone 22N)'), plt.xlabel('Longitude (UTM Zone 22N)')
+        plt.title('Greenland Ice Sheet from Sentinel 2 classified using Random Forest Classifier (top) and albedo (bottom)')
+        axes[0].set_aspect('equal')
 
-        n_classes = len(class_labels)
-        tick_locs = np.arange(0.5,len(class_labels),1)
-        cbar.set_ticks(tick_locs)
-        cbar.ax.set_yticklabels(class_labels, fontsize=26, rotation=0, va='center')
-        cbar.set_label('Surface Class',fontsize=22)
-        plt.title("Classified Surface Map\nProjection: UTM Zone 23", fontsize = 30), ax1.set_aspect('equal')
-        plt.xticks([0, 2745, 5490], xtickNames, fontsize=26, rotation=45), plt.xlabel('Longitude (decimal degrees)', fontsize=26)
-        plt.yticks([0,2745, 5490], ytickNames, fontsize=26), plt.ylabel('Latitude (decimal degrees)', fontsize=26)
+        albedoxr.plot(ax=axes[1], cmap=cmap2, vmin=0, vmax=1)
+        plt.ylabel('Latitude (UTM Zone 22N)'), plt.xlabel('Longitude (UTM Zone 22N)')
+        axes[1].set_aspect('equal')
         plt.grid(None)
 
-        # second subplot = albedo map
-        ax2 = plt.subplot(212)
-        img2 = plt.imshow(albedo, cmap=cmap2, vmin=0, vmax=1)
-        cbar2 = plt.colorbar(mappable=img2, fraction=0.045)
-        cbar2.ax.set_yticklabels(labels=[0,0.2,0.4,0.6,0.8,1.0], fontsize=26)
-        cbar2.set_label('Albedo', fontsize=26)
-        plt.xticks([0, 2745, 5490], xtickNames, fontsize=26, rotation=45), plt.xlabel('Longitude (decimal degrees)', fontsize=26)
-        plt.yticks([0,2745, 5490], ytickNames, fontsize=26), plt.ylabel('Latitude (decimal degrees)', fontsize=26)
-        plt.grid(None), plt.title("Albedo Map\nProjection: UTM Zone 23, 1 pixel = 20 x 20 m", fontsize=30)
-        ax2.set_aspect('equal')
-        plt.tight_layout()
+        fig.tight_layout()
 
-        plt.savefig(str(savefig_path + "Sentinel_Classified_Albedo_{}.png".format(area_label)), dpi=300)
+        plt.savefig(str(savefig_path + "{}_Sentinel_Classified_Albedo.png".format(area_label)), dpi=300)
 
-    return predicted, albedo, dataset
+    return
 
-def albedo_report(predicted, albedo, masterDF, merge_tile_albedo = True, save_albedo_data = False):
 
-    """
-    Function calculates albedo and classification statistics and saves to file
-
-    :param predicted: array containing pixel-wise surface classification
-    :param albedo: array containing pixel-wise albedo estimate
-    :param masterDF: pandas dataframe for appending albedo data for each site into single continuous dataset
-    :param merge_tile_albedo: Boolean to control whether individual site albedo and classes are concatenated into masterDF
-    :param save_albedo_data: Boolean to control whether summary stats for each individual tile are saved to file
-    :return: masterDf - pandad dataframe containing concatenated albedo data for all sites
-
-    """
+def albedo_report(masterDF, area_label, merge_tile_albedo=True, save_albedo_data=False):
     # match albedo to predicted class using indexes
-    predicted = np.array(predicted).ravel()
-    albedo = np.array(albedo).ravel()
 
-    albedoDF = pd.DataFrame()
-    albedoDF['pred'] = predicted
-    albedoDF['albedo'] = albedo
-    albedoDF = albedoDF.dropna()
+    with xr.open_dataset(savefig_path + "{}_Classification_and_Albedo_Data.nc".format(area_label), chunks={'x':2000,'y':2000}) as dataset:
+        predicted = np.array(dataset.classified.values).ravel()
+        albedo = np.array(dataset.albedo.values).ravel()
 
-    #coverage statistics
-    HApercent = (albedoDF['pred'][albedoDF['pred']==6].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
-    LApercent = (albedoDF['pred'][albedoDF['pred']==5].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
-    CIpercent = (albedoDF['pred'][albedoDF['pred']==4].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
-    CCpercent = (albedoDF['pred'][albedoDF['pred']==3].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
-    WATpercent = (albedoDF['pred'][albedoDF['pred'] == 2].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
-    SNpercent = (albedoDF['pred'][albedoDF['pred']==1].count()) / (albedoDF['pred'][albedoDF['pred']!=0].count())
+        albedoDF = pd.DataFrame()
+        albedoDF['pred'] = predicted
+        albedoDF['albedo'] = albedo
+        albedoDF = albedoDF.dropna()
 
+        # coverage statistics
+        HApercent = (albedoDF['pred'][albedoDF['pred'] == 6].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
+        LApercent = (albedoDF['pred'][albedoDF['pred'] == 5].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
+        CIpercent = (albedoDF['pred'][albedoDF['pred'] == 4].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
+        CCpercent = (albedoDF['pred'][albedoDF['pred'] == 3].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
+        WATpercent = (albedoDF['pred'][albedoDF['pred'] == 2].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
+        SNpercent = (albedoDF['pred'][albedoDF['pred'] == 1].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
 
-    if merge_tile_albedo:
-        masterDF = masterDF.append(albedoDF, ignore_index=True)
+        if save_albedo_data:
+            albedoDF.to_csv(savefig_path + 'RawAlbedoData_{}.csv'.format(area_label))
+            albedoDF.groupby(['pred']).count().to_csv(savefig_path + 'Surface_Type_Counts_{}.csv'.format(area_label))
+            albedoDF.groupby(['pred']).describe()['albedo'].to_csv(savefig_path + 'Albedo_summary_stats_{}.csv'.format(area_label))
 
-    if save_albedo_data:
-        albedoDF.to_csv(savefig_path + 'RawAlbedoData_{}.csv'.format(area_label))
-        albedoDF.groupby(['pred']).count().to_csv(savefig_path+'Surface_Type_Counts_{}.csv'.format(area_label))
-        albedoDF.groupby(['pred']).describe()['albedo'].to_csv(savefig_path+'Albedo_summary_stats_{}.csv'.format(area_label))
+        # report summary stats
+        print('\n Surface type counts: \n', albedoDF.groupby(['pred']).count())
+        print('\n Summary Statistics for ALBEDO of each surface type: \n', albedoDF.groupby(['pred']).describe()['albedo'])
 
-    # report summary stats
-    print('\n INDIVIDUAL TILE STATS:')
-    print('\n {}'.format(area_label))
-    print('\n Surface type counts: \n', albedoDF.groupby(['pred']).count())
-    print('\n Summary Statistics for ALBEDO of each surface type: \n',albedoDF.groupby(['pred']).describe()['albedo'])
+        print('\n "Percent coverage by surface type: \n')
+        print(' HA coverage = ', np.round(HApercent, 2) * 100, '%\n', 'LA coverage = ', np.round(LApercent, 2) * 100, '%\n',
+              'CI coverage = ',
+              np.round(CIpercent, 2) * 100, '%\n', 'CC coverage = ', np.round(CCpercent, 2) * 100, '%\n', 'SN coverage = ',
+              np.round(SNpercent, 2) * 100, '%\n', 'WAT coverage = ', np.round(WATpercent, 2) * 100, '%\n',
+              'Total Algal Coverage = ',
+              np.round(HApercent + LApercent, 2) * 100)
 
-    print('\n "Percent coverage by surface type: \n')
-    print(' HA coverage = ',np.round(HApercent,2)*100,'%\n','LA coverage = ',np.round(LApercent,2)*100,'%\n','CI coverage = ',
-          np.round(CIpercent,2)*100,'%\n', 'CC coverage = ',np.round(CCpercent,2)*100,'%\n', 'SN coverage = ',
-          np.round(SNpercent,2)*100,'%\n', 'WAT coverage = ', np.round(WATpercent,2)*100,'%\n', 'Total Algal Coverage = ',
-          np.round(HApercent+LApercent,2)*100)
+        if merge_tile_albedo:
+            masterDF = masterDF.append(albedoDF, ignore_index=True)
 
     return masterDF
-
 
 def merged_albedo_report(masterDF, print_stats_to_console = True, save_stats = True, save_raw = True):
 
@@ -539,7 +517,7 @@ def merged_albedo_report(masterDF, print_stats_to_console = True, save_stats = T
               np.round(HApercent+LApercent,2)*100)
 
     if save_stats == True:
-        percent_cover.to_csv(savefig_path+'percent_coverage_MERGED')
+        percent_cover.to_csv(savefig_path+'percent_coverage_MERGED.csv')
         counts.to_csv(savefig_path+'Surface_Type_Counts_MERGED.csv')
         summary.to_csv(savefig_path+'Albedo_summary_statsMERGED.csv')
 
@@ -562,26 +540,27 @@ other functions are called iteratively
 # RUN FUNCTIONS
 # ITERATE THROUGH IMAGES
 
-savefig_path,img_paths, Sentinel_templates, mask_in, mask_out, area_labels, masterDF, pickle_path, cloudmaskpaths, cloudProbThreshold = set_paths(virtual_machine=False)
+savefig_path,img_paths, img_stubs, Icemask_in, Icemask_out, area_labels, masterDF, pickle_path, \
+cloudmaskpaths, cloudProbThreshold = set_paths(virtual_machine=False)
 
 for i in np.arange(0,len(area_labels),1):
 
     area_label = area_labels[i]
     img_path = img_paths[i]
-    Sentinel_template = Sentinel_templates[i]
+    img_stub = img_stubs[i]
     cloudmaskpath = cloudmaskpaths[i]
 
-    #create dataset
-    S2vals, clf = load_model_and_images(img_path,pickle_path)
-
     #format mask
-    icemask, cloudmask = format_mask(Sentinel_template,mask_in,mask_out, cloudmaskpath, cloudProbThreshold)
+    Icemask, Cloudmask = format_mask(img_path, img_stub, Icemask_in, Icemask_out, cloudmaskpath, cloudProbThreshold)
+
+    #create dataset
+    clf = load_model_and_images(Icemask, Cloudmask, img_path, img_stub, pickle_path)
 
     # apply model to Sentinel2 image
-    predicted, albedo, dataset = ClassifyImages(S2vals, clf, icemask, cloudmask, area_label, savefigs=True, save_netcdf=True)
+    ClassifyImages(clf, img_path, img_stub, area_label, savefigs=True)
 
     # calculate spatial stats
-    masterDF = albedo_report(predicted, albedo, masterDF, merge_tile_albedo = True, save_albedo_data = True)
+    masterDF = albedo_report(masterDF, area_label, merge_tile_albedo= True, save_albedo_data=False)
 
     print('\n FINISHED RUNNING AREA: ','*** ', area_label, ' ****')
 
