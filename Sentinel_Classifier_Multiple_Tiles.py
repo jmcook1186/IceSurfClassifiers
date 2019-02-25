@@ -38,23 +38,12 @@ Sen2Cor details:
 L2A processor path =  '/home/joe/Sen2Cor/Sen2Cor-02.05.05-Linux64/bin/L2A_Process'
 Default configuration file = '/home/joe/sen2cor/2.5/cfg/L2A_GIPP.xml'
 
-With file downloaded from EarthExplorer on desktop, L1C to L2A processing achieved using command:
+With file downloaded from EarthExplorer on desktop, L1C to L2A processing achieved using optional function
+process_L1C_to_L2A(). This iterates through the files named in L1Cfiles and saves processed files to the working directory.
+These files were downloaded from SentinelHub - there were processing problems with the same files downloaded from
+earthexplorer.usgs.gov.
 
->> /home/joe/Sen2Cor/Sen2Cor-02.05.05-Linux64/bin/L2A_Process ...
->> /home/joe/Desktop/S2A_MSIL1C_20160721T151912_N0204_R068_T22WEV_20160721T151913.SAFE
-
-Then reformat the jp2 images for each band into netCDF files using gdal:
-
->> source activate IceSurfClassifiers
->> cd /home/joe/Desktop/S2A_MSIL2A_20160721T151912_N0204_R068_T22WEV_20160721T151913.SAFE/GRANULE/L2A_T22WEV_A005642_
-   20160721T151913/IMG_DATA/R20m/
-
->> gdal_translate L2A_T22WEV_20160721T151912_B02_20m.jp2 /home/joe/Desktop/S2A_NetCDFs/B02.nc
-
-repeat for each band. The final processed files are then available in the desktop folder 'S2A_NetCDFs/Site/' and saved
-as B02.nc, B03.nc etc. These netcdfs are then used as input data in this script.
-
-The resulting NetCDF files are then used as input data for this script.
+The processed jp2s are then used as input data in this script.
 
 3) The GIMP mask downloaded from https://nsidc.org/data/nsidc-0714/versions/1 must be saved to the working directory.
 Ensure the downloaded tile is the correct one for the section of ice sheet being examined. In this code the sections
@@ -66,11 +55,7 @@ gdal_merge.py GimpIceMask_15m_tile1_1_v1_1.tif GimpIceMask_15m_tile1_2_v1_1.tif 
 merged_mask.tif
 
 The merged mask is then reprojected to match the sentinel 2 tile and cropped to the relevant area in the function
-format_mask()
-
-A template for trimming the mask is required - these are specific to each tile, so #templates = #tiles.
-An unprocessed, L1C band image is ideal. In this version I have arbitrarily chosen the *B02.jp2 image from each tile and
-renamed as MaskTemplate_SITE.jp2 for clarity.
+format_mask().
 
 
 *** FUNCTIONS***
@@ -79,18 +64,20 @@ This script is divided into several functions. The first function (set_paths) or
 and save locations. The area labels are also set so that the script can keep track of which figure/savefile belongs
 with each tile.
 
-The second function (load_model_and_images) simply loads in the classifier as clf and processes the L2A images into
-numpy arrays
-
-The third function (format_mask) reprojects the GIMP mask to an identical coordinate system, pixel size and spatial
+The second function (format_mask) reprojects the GIMP mask to an identical coordinate system, pixel size and spatial
 extent to the Sentinel 2 images and returns a Boolean numpy array that will later be used to mask out non-ice areas
 of the classificed map and albedo map
 
-The fourth function applies the trained classifier to the sentinel 2 images and masks out non-ice areas, then applies
+The third function (load_model_and_images) simply loads in the classifier as clf and processes the L2A images into
+numpy arrays
+
+The fourth function (classify_images) applies the trained classifier to the sentinel 2 images and masks out non-ice areas, then applies
 Liang et al(2002) narrowband to broadband conversion formula, producing a NetCDF file containing all the data arrays and
 metadata along with a plot of each map.
 
-The final function calculates spatial statistics for the classified surface and albedo maps.
+The fifth function (albedo_report) calculates spatial statistics for the classified surface and albedo maps. The final
+function (merged_albedo_report) appends the albedo data from all the sites into one dataset and provides coverage and albedo statistics for the
+total area imaged.
 
 """
 
@@ -106,14 +93,32 @@ from sklearn.externals import joblib
 import xarray as xr
 from osgeo import gdal, osr
 import georaster
-import rasterio
+import os
 
 # matplotlib settings: use ggplot style and turn interactive mode off
 mpl.style.use('ggplot')
 plt.ioff()
 
 # DEFINE FUNCTIONS
-def set_paths(virtual_machine = False):
+
+def process_L1C_to_L2A(L1C_path, L1Cfiles):
+    """
+    This function is takes the downloaded L1C products from SentinelHub and converts them to L2A product using Sen2Cor.
+    This is achieved as a batch job by iterating through the file names (L1Cfiles) stored in L1Cpath
+    Running this script will save the L2A products to the working directory
+
+    :return: None
+
+    """
+    for L1C in L1Cfiles:
+        cmd = str(
+            '/home/joe/Sen2Cor/Sen2Cor-02.05.05-Linux64/bin/L2A_Process ' + L1C_path + '{} --resolution=20'.format(
+                L1C))
+        os.system(cmd)
+
+    return
+
+def set_paths(year = 2017):
 
     """
     function sets load and save paths
@@ -122,49 +127,55 @@ def set_paths(virtual_machine = False):
     :param virtual_machine: Boolean to control paths depending whether script is run locally or on VM
     :return: paths and some key variables
 
-    """
-    if not virtual_machine:
-        savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
-        img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/',
-                   '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
-                   '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/IMG_DATA/R20m/',
-                    '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/']
-        img_stubs = ['L2A_T22WEV_20160721T151912_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_',
-                                                                                                                'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_']
-        # paths for format_mask()
-        Icemask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
-        Icemask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
-        cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.nc',
-                        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
-                        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEB_20m.jp2',
-                        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEC_20m.jp2']
-        cloudProbThreshold = 50
-        pickle_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl'
-        area_labels = ['KGR','ILL1','ILL2','ILL3']
-        masterDF = pd.DataFrame(columns=(['pred','albedo']))
 
-    else:
-        # Virtual Machine
-        # paths for create_dataset()
-        mask_path = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/'
-        savefig_path = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Outputs/'
-        img_paths = ['/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/KGR/',
-                   '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/ILL1/',
-                   '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/ILL2/',
-                    '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2A_NetCDFs/ILL3/']
-        # paths for format_mask()
-        Sentinel_templates = [str(mask_path+'MaskTemplate_KGR.jp2'),str(mask_path+'MaskTemplate_ILL1.jp2'),
-                             str(mask_path+'MaskTemplate_ILL2.jp2'),str(mask_path+'MaskTemplate_ILL3.jp2')]
-        Icemask_in = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
-        Icemask_out = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
-        cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.nc',
-                        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
-                        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEB_20m.jp2',
-                        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEC_20m.jp2']
-        cloudProbThreshold = 50
-        pickle_path = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl'
-        area_labels = ['KGR','ILL1','ILL2','ILL3']
-        masterDF = pd.DataFrame(columns=(['pred','albedo']))
+
+    """
+    if year==2016:
+        img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/IMG_DATA/R20m/',
+                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
+                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/',
+                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/',
+                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/IMG_DATA/R20m/',
+                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T22_WES/GRANULE/L2A_T22WES_A005699_20160725T145918/IMG_DATA/R20m']
+
+
+
+        img_stubs = ['S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_','L2A_T22WEV_20160721T151912_', 'L2A_T21XWB_20160726T160902_','L2A_T22WES_20160725T145922_']
+        cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEB_20m.jp2',
+        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
+        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEC_20m.jp2',
+        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.jp2',
+        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/QI_DATA/L2A_T21XWB_20160726T160902_CLD_20m.jp2',
+        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T22_WES/GRANULE/L2A_T22WES_A005699_20160725T145918/QI_DATA/L2A_T22WES_20160725T145922_CLD_20m.jp2']
+
+
+
+
+
+    elif year == 2017:
+        img_paths = [
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEA_20170726T151917.SAFE/GRANULE/L2A_T22WEA_A010933_20170726T151917/IMG_DATA/R20m/',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WED_20170726T151917.SAFE/GRANULE/L2A_T22WED_A010933_20170726T151917/IMG_DATA/R20m/',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170724T161901_N0205_R040_T21XWB_20170724T162148.SAFE/GRANULE/L2A_T21XWB_A010905_20170724T162148/IMG_DATA/R20m/',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEC_20170726T151917.SAFE/GRANULE/L2A_T22WEC_A010933_20170726T151917/IMG_DATA/R20m/',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEV_20170726T151917.SAFE/GRANULE/L2A_T22WEV_A010933_20170726T151917/IMG_DATA/R20m/']
+        img_stubs = ['L2A_T22WEA_20170726T151911_', 'L2A_T22WED_20170726T151911_', 'L2A_T21XWB_20170724T161901_', 'L2A_T22WEC_20170726T151911_', 'L2A_T22WEV_20170726T151911_']
+        cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEA_20170726T151917.SAFE/GRANULE/L2A_T22WEA_A010933_20170726T151917/QI_DATA/L2A_T22WEA_20170726T151911_CLD_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WED_20170726T151917.SAFE/GRANULE/L2A_T22WED_A010933_20170726T151917/QI_DATA/L2A_T22WED_20170726T151911_CLD_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170724T161901_N0205_R040_T21XWB_20170724T162148.SAFE/GRANULE/L2A_T21XWB_A010905_20170724T162148/QI_DATA/L2A_T21XWB_20170724T161901_CLD_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEC_20170726T151917.SAFE/GRANULE/L2A_T22WEC_A010933_20170726T151917/QI_DATA/L2A_T22WEC_20170726T151911_CLD_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEV_20170726T151917.SAFE/GRANULE/L2A_T22WEV_A010933_20170726T151917/QI_DATA/L2A_T22WEV_20170726T151911_CLD_20m.jp2']
+
+    cloudProbThreshold = 50
+    savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
+
+    # paths for format_mask()
+    Icemask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
+    Icemask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+
+    pickle_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl'
+    area_labels = ['T22WEA','T22WED','T21XWB','T22WEC', 'T22WEV']
+    masterDF = pd.DataFrame(columns=(['pred','albedo']))
 
     return savefig_path, img_paths, img_stubs, Icemask_in, Icemask_out, area_labels, masterDF, pickle_path, cloudmaskpaths, cloudProbThreshold
 
@@ -427,13 +438,12 @@ def ClassifyImages(clf, img_path, img_stub, area_label, savefigs=False):
         plt.grid(None)
 
         fig.tight_layout()
-
         plt.savefig(str(savefig_path + "{}_Sentinel_Classified_Albedo.png".format(area_label)), dpi=300)
+        plt.close()
 
     return
 
-
-def albedo_report(masterDF, area_label, merge_tile_albedo=True, save_albedo_data=False):
+def albedo_report(masterDF, area_label, save_albedo_data=False):
     # match albedo to predicted class using indexes
 
     with xr.open_dataset(savefig_path + "{}_Classification_and_Albedo_Data.nc".format(area_label), chunks={'x':2000,'y':2000}) as dataset:
@@ -446,11 +456,11 @@ def albedo_report(masterDF, area_label, merge_tile_albedo=True, save_albedo_data
         albedoDF = albedoDF.dropna()
 
         # coverage statistics
-        HApercent = (albedoDF['pred'][albedoDF['pred'] == 6].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
-        LApercent = (albedoDF['pred'][albedoDF['pred'] == 5].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
-        CIpercent = (albedoDF['pred'][albedoDF['pred'] == 4].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
-        CCpercent = (albedoDF['pred'][albedoDF['pred'] == 3].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
-        WATpercent = (albedoDF['pred'][albedoDF['pred'] == 2].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
+        HApercent = (albedoDF['pred'][albedoDF['pred'] == 6].count()) / (albedoDF['pred'][albedoDF['pred'] != 1].count())
+        LApercent = (albedoDF['pred'][albedoDF['pred'] == 5].count()) / (albedoDF['pred'][albedoDF['pred'] != 1].count())
+        CIpercent = (albedoDF['pred'][albedoDF['pred'] == 4].count()) / (albedoDF['pred'][albedoDF['pred'] != 1].count())
+        CCpercent = (albedoDF['pred'][albedoDF['pred'] == 3].count()) / (albedoDF['pred'][albedoDF['pred'] != 1].count())
+        WATpercent = (albedoDF['pred'][albedoDF['pred'] == 2].count()) / (albedoDF['pred'][albedoDF['pred'] != 1].count())
         SNpercent = (albedoDF['pred'][albedoDF['pred'] == 1].count()) / (albedoDF['pred'][albedoDF['pred'] != 0].count())
 
         if save_albedo_data:
@@ -470,8 +480,7 @@ def albedo_report(masterDF, area_label, merge_tile_albedo=True, save_albedo_data
               'Total Algal Coverage = ',
               np.round(HApercent + LApercent, 2) * 100)
 
-        if merge_tile_albedo:
-            masterDF = masterDF.append(albedoDF, ignore_index=True)
+        masterDF = masterDF.append(albedoDF, ignore_index=True)
 
     return masterDF
 
@@ -492,11 +501,11 @@ def merged_albedo_report(masterDF, print_stats_to_console = True, save_stats = T
 
     # analyses and saves albedo and coverage stats for all tiles merged into single dataset
     # coverage statistics
-    HApercent = (masterDF['pred'][masterDF['pred']==6].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
-    LApercent = (masterDF['pred'][masterDF['pred']==5].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
-    CIpercent = (masterDF['pred'][masterDF['pred']==4].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
-    CCpercent = (masterDF['pred'][masterDF['pred']==3].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
-    WATpercent = (masterDF['pred'][masterDF['pred'] == 2].count()) / (masterDF['pred'][masterDF['pred'] != 0].count())
+    HApercent = (masterDF['pred'][masterDF['pred']==6].count()) / (masterDF['pred'][masterDF['pred']!=1].count())
+    LApercent = (masterDF['pred'][masterDF['pred']==5].count()) / (masterDF['pred'][masterDF['pred']!=1].count())
+    CIpercent = (masterDF['pred'][masterDF['pred']==4].count()) / (masterDF['pred'][masterDF['pred']!=1].count())
+    CCpercent = (masterDF['pred'][masterDF['pred']==3].count()) / (masterDF['pred'][masterDF['pred']!=1].count())
+    WATpercent = (masterDF['pred'][masterDF['pred'] == 2].count()) / (masterDF['pred'][masterDF['pred'] != 1].count())
     SNpercent = (masterDF['pred'][masterDF['pred']==1].count()) / (masterDF['pred'][masterDF['pred']!=0].count())
 
     percent_cover = pd.DataFrame(columns=(['class','percent_cover']))
@@ -538,10 +547,24 @@ other functions are called iteratively
 
 """
 # RUN FUNCTIONS
-# ITERATE THROUGH IMAGES
 
+## Uncomment block to batch process L1C files to L2A
+
+# L1C_path = '/data/home/tothepoles/PycharmProjects/IceSurfClassifiers/'
+# L1Cfiles = ['S2A_MSIL1C_20170724T161901_N0205_R040_T21XWB_20170724T162148.SAFE',
+#             'S2A_MSIL1C_20170726T151911_N0205_R068_T22WEA_20170726T151917.SAFE',
+#             'S2A_MSIL1C_20170726T151911_N0205_R068_T22WEC_20170726T151917.SAFE',
+#             'S2A_MSIL1C_20170726T151911_N0205_R068_T22WED_20170726T151917.SAFE',
+#             'S2A_MSIL1C_20170726T151911_N0205_R068_T22WEV_20170726T151917.SAFE']
+#
+# process_L1C_to_L2A(L1C_path, L1Cfiles)
+
+
+# ITERATE THROUGH IMAGES
+import datetime
 savefig_path,img_paths, img_stubs, Icemask_in, Icemask_out, area_labels, masterDF, pickle_path, \
-cloudmaskpaths, cloudProbThreshold = set_paths(virtual_machine=False)
+cloudmaskpaths, cloudProbThreshold = set_paths(year=2016)
+StartTime = datetime.datetime.now() #start timer
 
 for i in np.arange(0,len(area_labels),1):
 
@@ -560,8 +583,12 @@ for i in np.arange(0,len(area_labels),1):
     ClassifyImages(clf, img_path, img_stub, area_label, savefigs=True)
 
     # calculate spatial stats
-    masterDF = albedo_report(masterDF, area_label, merge_tile_albedo= True, save_albedo_data=False)
+    masterDF = albedo_report(masterDF, area_label, save_albedo_data=False)
 
     print('\n FINISHED RUNNING AREA: ','*** ', area_label, ' ****')
 
 merged_albedo_report(masterDF, print_stats_to_console = True, save_stats = True, save_raw = False)
+
+runTime = datetime.datetime.now() - StartTime # stop timer
+
+print('Total time taken to run script = ', runTime)
