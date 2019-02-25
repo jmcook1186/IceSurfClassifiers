@@ -111,8 +111,11 @@ def set_paths(virtual_machine=False):
 
     if not virtual_machine:
         savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
-        img_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/'
-        img_stub = 'L2A_T22WEV_20160721T151912_'
+        # img_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/'
+        # img_stub = 'L2A_T22WEV_20160721T151912_'
+        img_path = '/home/joe/Code/IceSurfClassifiers/2017_Sentinel/'
+        img_stub = ''
+
         hcrf_file = '/home/joe/Code/IceSurfClassifiers/Training_Data/HCRF_master_machine_snicar.csv'
         # paths for format_mask()
         Icemask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GimpIceMask_15m_tile1_1_v1_1.tif'
