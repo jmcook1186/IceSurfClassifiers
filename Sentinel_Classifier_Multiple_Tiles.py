@@ -118,7 +118,7 @@ def process_L1C_to_L2A(L1C_path, L1Cfiles):
 
     return
 
-def set_paths(year = 2017):
+def set_paths(year = '2017'):
 
     """
     function sets load and save paths
@@ -130,7 +130,7 @@ def set_paths(year = 2017):
 
 
     """
-    if year==2016:
+    if year=='2016':
         img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/IMG_DATA/R20m/',
                      '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
                      '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/',
@@ -147,12 +147,23 @@ def set_paths(year = 2017):
         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.jp2',
         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/QI_DATA/L2A_T21XWB_20160726T160902_CLD_20m.jp2',
         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T22_WES/GRANULE/L2A_T22WES_A005699_20160725T145918/QI_DATA/L2A_T22WES_20160725T145922_CLD_20m.jp2']
+        area_labels = ['T22WEB', 'T22WEA', 'T22WEC', 'T22WEV', 'T21XWB', 'T22WES']
+
+    elif year=='2016common':
+        img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
+                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/',
+                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/',
+                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/IMG_DATA/R20m/']
+
+        img_stubs = ['S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_','L2A_T22WEV_20160721T151912_', 'L2A_T21XWB_20160726T160902_']
+        cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
+        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEC_20m.jp2',
+        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.jp2',
+        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/QI_DATA/L2A_T21XWB_20160726T160902_CLD_20m.jp2']
+        area_labels = ['T22WEA', 'T22WEC', 'T22WEV', 'T21XWB']
 
 
-
-
-
-    elif year == 2017:
+    elif year == '2017':
         img_paths = [
             '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEA_20170726T151917.SAFE/GRANULE/L2A_T22WEA_A010933_20170726T151917/IMG_DATA/R20m/',
             '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WED_20170726T151917.SAFE/GRANULE/L2A_T22WED_A010933_20170726T151917/IMG_DATA/R20m/',
@@ -165,6 +176,7 @@ def set_paths(year = 2017):
             '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170724T161901_N0205_R040_T21XWB_20170724T162148.SAFE/GRANULE/L2A_T21XWB_A010905_20170724T162148/QI_DATA/L2A_T21XWB_20170724T161901_CLD_20m.jp2',
             '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEC_20170726T151917.SAFE/GRANULE/L2A_T22WEC_A010933_20170726T151917/QI_DATA/L2A_T22WEC_20170726T151911_CLD_20m.jp2',
             '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEV_20170726T151917.SAFE/GRANULE/L2A_T22WEV_A010933_20170726T151917/QI_DATA/L2A_T22WEV_20170726T151911_CLD_20m.jp2']
+        area_labels = ['T22WEA', 'T22WED', 'T21XWB', 'T22WEC', 'T22WEV']
 
     cloudProbThreshold = 50
     savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
@@ -174,7 +186,6 @@ def set_paths(year = 2017):
     Icemask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
 
     pickle_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl'
-    area_labels = ['T22WEA','T22WED','T21XWB','T22WEC', 'T22WEV']
     masterDF = pd.DataFrame(columns=(['pred','albedo']))
 
     return savefig_path, img_paths, img_stubs, Icemask_in, Icemask_out, area_labels, masterDF, pickle_path, cloudmaskpaths, cloudProbThreshold
@@ -563,7 +574,7 @@ other functions are called iteratively
 # ITERATE THROUGH IMAGES
 import datetime
 savefig_path,img_paths, img_stubs, Icemask_in, Icemask_out, area_labels, masterDF, pickle_path, \
-cloudmaskpaths, cloudProbThreshold = set_paths(year=2016)
+cloudmaskpaths, cloudProbThreshold = set_paths(year='2016common')
 StartTime = datetime.datetime.now() #start timer
 
 for i in np.arange(0,len(area_labels),1):
