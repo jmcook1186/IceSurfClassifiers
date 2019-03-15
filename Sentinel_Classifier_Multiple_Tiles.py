@@ -1,9 +1,12 @@
 """
+
 *** INFO ***
+************
 
 code written by Joseph Cook (University of Sheffield), 2018. Correspondence to joe.cook@sheffield.ac.uk
 
 *** OVERVIEW ***
+****************
 
 This code loads a trained classifier from a .pkl file, then deploys it to classify Sentinel 2
 imagery into various surface categories:
@@ -20,8 +23,54 @@ before spatial stats are calculated.
 This script repeats this process for numerous images from the W coast of Greenland. The tiles used are from the Western
 margin of the ice sheet on 21st July 2016 and **only tiles without significant cloud cover** are used.
 
+*** Environment ***
+*******************
+
+This script requires specific versions of packages with occasionally awkward co-dependencies. I recommend a fresh
+environment configured as follows:
+
+conda create -n IceSurfClassifiers python=3.6 numpy matplotlib scikit-learn pandas gdal rasterio seaborn dask
+
+then
+
+source activate IceSurfClassifiers
+conda install -c condaforge xarray
+conda install -c condaforge georaster
+pip install sklearn-xarray
+
+
+*** Folder Structure ***
+************************
+
+I work with the following folder structures, making it very easy to track inputs/outputs:
+
+IceSurfClassifiers
+|-- SentinelResources                                               # Folder containing all L2A images and pickled model
+|          |--Mask                                                  # Folder containing all mask files as TIFs
+|          |--S2_L2A                                                # Folder containing all Sentinel2 level 2A products
+|               |--2016                                             # Folder containing L2A products for 2016
+|               |     |--tiles                                      # each individual tile in separate folders
+|               |          |--IMG_DATA                              # image data
+|               |                |--20m                             # 20 m ground resolution
+|               |                |   |--individual band images      # each individual S2 band
+|               |                |--QI_DATA                         # Quality control images
+|               |                    |-- cloud layer                # Cloud layer (*CLD.tif)
+|               |--2017                                             # as above but for 2017 images
+|                    |--tiles
+|                          |--IMG_DATA
+|                               |--20m
+|                               |    |--individual band images
+|                               |--QI_DATA
+|                                    |-- cloud layer
+|
+|-- SentinelOutputs                                                 # Empty folder where all plots & datasets are saved
+|-- SentinelClassifier_multiple_tiles.py                            # This script
+|-- README.md                                                       # README file
+
+
 
 *** PREREQUISITES ***
+*********************
 
 1) A trained model pickled and saved to the working directory (the individual image processing scripts can be used to
 train, pickle and save classifiers)
@@ -59,6 +108,7 @@ format_mask().
 
 
 *** FUNCTIONS***
+****************
 
 This script is divided into several functions. The first function (set_paths) organises the paths to each of the load
 and save locations. The area labels are also set so that the script can keep track of which figure/savefile belongs
@@ -118,7 +168,7 @@ def process_L1C_to_L2A(L1C_path, L1Cfiles):
 
     return
 
-def set_paths(year = '2017'):
+def set_paths(year = '2017', machine='local'):
 
     """
     function sets load and save paths
@@ -130,63 +180,122 @@ def set_paths(year = '2017'):
 
 
     """
-    if year=='2016':
-        img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/IMG_DATA/R20m/',
-                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
-                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/',
-                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/',
-                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/IMG_DATA/R20m/',
-                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T22_WES/GRANULE/L2A_T22WES_A005699_20160725T145918/IMG_DATA/R20m']
+    if machine = 'local':
+        if year=='2016':
+            img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/IMG_DATA/R20m/',
+                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
+                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/',
+                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/',
+                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/IMG_DATA/R20m/',
+                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T22_WES/GRANULE/L2A_T22WES_A005699_20160725T145918/IMG_DATA/R20m']
 
 
 
-        img_stubs = ['S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_','L2A_T22WEV_20160721T151912_', 'L2A_T21XWB_20160726T160902_','L2A_T22WES_20160725T145922_']
-        cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEB_20m.jp2',
-        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
-        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEC_20m.jp2',
-        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.jp2',
-        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/QI_DATA/L2A_T21XWB_20160726T160902_CLD_20m.jp2',
-        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T22_WES/GRANULE/L2A_T22WES_A005699_20160725T145918/QI_DATA/L2A_T22WES_20160725T145922_CLD_20m.jp2']
-        area_labels = ['T22WEB', 'T22WEA', 'T22WEC', 'T22WEV', 'T21XWB', 'T22WES']
+            img_stubs = ['S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_','L2A_T22WEV_20160721T151912_', 'L2A_T21XWB_20160726T160902_','L2A_T22WES_20160725T145922_']
+            cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEB_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEC_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/QI_DATA/L2A_T21XWB_20160726T160902_CLD_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T22_WES/GRANULE/L2A_T22WES_A005699_20160725T145918/QI_DATA/L2A_T22WES_20160725T145922_CLD_20m.jp2']
+            area_labels = ['T22WEB', 'T22WEA', 'T22WEC', 'T22WEV', 'T21XWB', 'T22WES']
 
-    elif year=='2016common':
-        img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
-                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/',
-                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/',
-                     '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/IMG_DATA/R20m/']
+        elif year=='2016common':
+            img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
+                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/',
+                         '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/']
 
-        img_stubs = ['S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_','L2A_T22WEV_20160721T151912_', 'L2A_T21XWB_20160726T160902_']
-        cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
-        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEC_20m.jp2',
-        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.jp2',
-        '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/QI_DATA/L2A_T21XWB_20160726T160902_CLD_20m.jp2']
-        area_labels = ['T22WEA', 'T22WEC', 'T22WEV', 'T21XWB']
+            img_stubs = ['S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_','L2A_T22WEV_20160721T151912_']
+            cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEC_20m.jp2',
+            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.jp2']
+            area_labels = ['T22WEA', 'T22WEC', 'T22WEV']
 
 
-    elif year == '2017':
-        img_paths = [
-            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEA_20170726T151917.SAFE/GRANULE/L2A_T22WEA_A010933_20170726T151917/IMG_DATA/R20m/',
-            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WED_20170726T151917.SAFE/GRANULE/L2A_T22WED_A010933_20170726T151917/IMG_DATA/R20m/',
-            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170724T161901_N0205_R040_T21XWB_20170724T162148.SAFE/GRANULE/L2A_T21XWB_A010905_20170724T162148/IMG_DATA/R20m/',
-            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEC_20170726T151917.SAFE/GRANULE/L2A_T22WEC_A010933_20170726T151917/IMG_DATA/R20m/',
-            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEV_20170726T151917.SAFE/GRANULE/L2A_T22WEV_A010933_20170726T151917/IMG_DATA/R20m/']
-        img_stubs = ['L2A_T22WEA_20170726T151911_', 'L2A_T22WED_20170726T151911_', 'L2A_T21XWB_20170724T161901_', 'L2A_T22WEC_20170726T151911_', 'L2A_T22WEV_20170726T151911_']
-        cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEA_20170726T151917.SAFE/GRANULE/L2A_T22WEA_A010933_20170726T151917/QI_DATA/L2A_T22WEA_20170726T151911_CLD_20m.jp2',
-            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WED_20170726T151917.SAFE/GRANULE/L2A_T22WED_A010933_20170726T151917/QI_DATA/L2A_T22WED_20170726T151911_CLD_20m.jp2',
-            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170724T161901_N0205_R040_T21XWB_20170724T162148.SAFE/GRANULE/L2A_T21XWB_A010905_20170724T162148/QI_DATA/L2A_T21XWB_20170724T161901_CLD_20m.jp2',
-            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEC_20170726T151917.SAFE/GRANULE/L2A_T22WEC_A010933_20170726T151917/QI_DATA/L2A_T22WEC_20170726T151911_CLD_20m.jp2',
-            '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEV_20170726T151917.SAFE/GRANULE/L2A_T22WEV_A010933_20170726T151917/QI_DATA/L2A_T22WEV_20170726T151911_CLD_20m.jp2']
-        area_labels = ['T22WEA', 'T22WED', 'T21XWB', 'T22WEC', 'T22WEV']
+        elif year == '2017':
+            img_paths = [
+                '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEA_20170726T151917.SAFE/GRANULE/L2A_T22WEA_A010933_20170726T151917/IMG_DATA/R20m/',
+                '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WED_20170726T151917.SAFE/GRANULE/L2A_T22WED_A010933_20170726T151917/IMG_DATA/R20m/',
+                '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEC_20170726T151917.SAFE/GRANULE/L2A_T22WEC_A010933_20170726T151917/IMG_DATA/R20m/',
+                '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEV_20170726T151917.SAFE/GRANULE/L2A_T22WEV_A010933_20170726T151917/IMG_DATA/R20m/']
+            img_stubs = ['L2A_T22WEA_20170726T151911_', 'L2A_T22WED_20170726T151911_', 'L2A_T22WEC_20170726T151911_', 'L2A_T22WEV_20170726T151911_']
 
-    cloudProbThreshold = 50
-    savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
+            cloudmaskpaths =['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEA_20170726T151917.SAFE/GRANULE/L2A_T22WEA_A010933_20170726T151917/QI_DATA/L2A_T22WEA_20170726T151911_CLD_20m.jp2',
+                '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WED_20170726T151917.SAFE/GRANULE/L2A_T22WED_A010933_20170726T151917/QI_DATA/L2A_T22WED_20170726T151911_CLD_20m.jp2',
+                '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEC_20170726T151917.SAFE/GRANULE/L2A_T22WEC_A010933_20170726T151917/QI_DATA/L2A_T22WEC_20170726T151911_CLD_20m.jp2',
+                '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEV_20170726T151917.SAFE/GRANULE/L2A_T22WEV_A010933_20170726T151917/QI_DATA/L2A_T22WEV_20170726T151911_CLD_20m.jp2']
+            area_labels = ['T22WEA', 'T22WED', 'T22WEC', 'T22WEV']
 
-    # paths for format_mask()
-    Icemask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
-    Icemask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+        cloudProbThreshold = 50
+        savefig_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Outputs/'
 
-    pickle_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl'
-    masterDF = pd.DataFrame(columns=(['pred','albedo']))
+        # paths for format_mask()
+        Icemask_in = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
+        Icemask_out = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+
+        pickle_path = '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl'
+        masterDF = pd.DataFrame(columns=(['pred','albedo']))
+
+    elif machine == 'virtual':
+        if year == '2016':
+            img_paths = ['/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/IMG_DATA/R20m/',
+                         '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
+                         '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/',
+                         '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/',
+                         '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/IMG_DATA/R20m/',
+                         '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T22_WES/GRANULE/L2A_T22WES_A005699_20160725T145918/IMG_DATA/R20m']
+
+
+
+            img_stubs = ['S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_','L2A_T22WEV_20160721T151912_', 'L2A_T21XWB_20160726T160902_','L2A_T22WES_20160725T145922_']
+            cloudmaskpaths =['/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEB_20m.jp2',
+               '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
+               '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEC_20m.jp2',
+               '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.jp2',
+               '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/QI_DATA/L2A_T21XWB_20160726T160902_CLD_20m.jp2',
+               '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T22_WES/GRANULE/L2A_T22WES_A005699_20160725T145918/QI_DATA/L2A_T22WES_20160725T145922_CLD_20m.jp2']
+            area_labels = ['T22WEB', 'T22WEA', 'T22WEC', 'T22WEV', 'T21XWB', 'T22WES']
+
+        elif year=='2016common':
+
+            img_paths = ['/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
+                         '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/IMG_DATA/R20m/',
+                         '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/IMG_DATA/R20m/',
+                         '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/IMG_DATA/R20m/']
+
+            img_stubs = ['S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_', 'S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_','L2A_T22WEV_20160721T151912_', 'L2A_T21XWB_20160726T160902_']
+            cloudmaskpaths =['/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEA_20m.jp2',
+            '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL3/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEC_N02_04/QI_DATA/S2A_USER_CLD_L2A_TL_MTI__20160721T202530_A005642_T22WEC_20m.jp2',
+            '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_KGR/GRANULE/L2A_T22WEV_A005642_20160721T151913/QI_DATA/L2A_T22WEV_20160721T151912_CLD_20m.jp2',
+            '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/T21XWB/GRANULE/L2A_T21XWB_A005714_20160726T160905/QI_DATA/L2A_T21XWB_20160726T160902_CLD_20m.jp2']
+            area_labels = ['T22WEA', 'T22WEC', 'T22WEV', 'T21XWB']
+
+
+        elif year == '2017':
+            img_paths = [
+                '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEA_20170726T151917.SAFE/GRANULE/L2A_T22WEA_A010933_20170726T151917/IMG_DATA/R20m/',
+                '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WED_20170726T151917.SAFE/GRANULE/L2A_T22WED_A010933_20170726T151917/IMG_DATA/R20m/',
+                '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170724T161901_N0205_R040_T21XWB_20170724T162148.SAFE/GRANULE/L2A_T21XWB_A010905_20170724T162148/IMG_DATA/R20m/',
+                '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEC_20170726T151917.SAFE/GRANULE/L2A_T22WEC_A010933_20170726T151917/IMG_DATA/R20m/',
+                '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEV_20170726T151917.SAFE/GRANULE/L2A_T22WEV_A010933_20170726T151917/IMG_DATA/R20m/']
+            img_stubs = ['L2A_T22WEA_20170726T151911_', 'L2A_T22WED_20170726T151911_', 'L2A_T21XWB_20170724T161901_', 'L2A_T22WEC_20170726T151911_', 'L2A_T22WEV_20170726T151911_']
+            cloudmaskpaths =['/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEA_20170726T151917.SAFE/GRANULE/L2A_T22WEA_A010933_20170726T151917/QI_DATA/L2A_T22WEA_20170726T151911_CLD_20m.jp2',
+                '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WED_20170726T151917.SAFE/GRANULE/L2A_T22WED_A010933_20170726T151917/QI_DATA/L2A_T22WED_20170726T151911_CLD_20m.jp2',
+                '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170724T161901_N0205_R040_T21XWB_20170724T162148.SAFE/GRANULE/L2A_T21XWB_A010905_20170724T162148/QI_DATA/L2A_T21XWB_20170724T161901_CLD_20m.jp2',
+                '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEC_20170726T151917.SAFE/GRANULE/L2A_T22WEC_A010933_20170726T151917/QI_DATA/L2A_T22WEC_20170726T151911_CLD_20m.jp2',
+                '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2017/S2A_MSIL2A_20170726T151911_N0205_R068_T22WEV_20170726T151917.SAFE/GRANULE/L2A_T22WEV_A010933_20170726T151917/QI_DATA/L2A_T22WEV_20170726T151911_CLD_20m.jp2']
+            area_labels = ['T22WEA', 'T22WED', 'T21XWB', 'T22WEC', 'T22WEV']
+
+        cloudProbThreshold = 50
+        savefig_path = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Outputs/'
+
+        # paths for format_mask()
+        Icemask_in = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/merged_mask.tif'
+        Icemask_out = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Mask/GIMP_MASK.nc'
+
+        pickle_path = '/home/tothepoles/PycharmProjects/IceSurfClassifiers/Sentinel_Resources/Sentinel2_classifier.pkl'
+        masterDF = pd.DataFrame(columns=(['pred','albedo']))
+
 
     return savefig_path, img_paths, img_stubs, Icemask_in, Icemask_out, area_labels, masterDF, pickle_path, cloudmaskpaths, cloudProbThreshold
 
@@ -441,13 +550,13 @@ def ClassifyImages(clf, img_path, img_stub, area_label, savefigs=False):
         predictedxr.plot(ax=axes[0], cmap=cmap1, vmin=0, vmax=6)
         plt.ylabel('Latitude (UTM Zone 22N)'), plt.xlabel('Longitude (UTM Zone 22N)')
         plt.title('Greenland Ice Sheet from Sentinel 2 classified using Random Forest Classifier (top) and albedo (bottom)')
+        axes[0].grid(None)
         axes[0].set_aspect('equal')
 
         albedoxr.plot(ax=axes[1], cmap=cmap2, vmin=0, vmax=1)
         plt.ylabel('Latitude (UTM Zone 22N)'), plt.xlabel('Longitude (UTM Zone 22N)')
         axes[1].set_aspect('equal')
-        plt.grid(None)
-
+        axes[1].grid(None)
         fig.tight_layout()
         plt.savefig(str(savefig_path + "{}_Sentinel_Classified_Albedo.png".format(area_label)), dpi=300)
         plt.close()
@@ -574,7 +683,7 @@ other functions are called iteratively
 # ITERATE THROUGH IMAGES
 import datetime
 savefig_path,img_paths, img_stubs, Icemask_in, Icemask_out, area_labels, masterDF, pickle_path, \
-cloudmaskpaths, cloudProbThreshold = set_paths(year='2016common')
+cloudmaskpaths, cloudProbThreshold = set_paths(year='2017', machine='local')
 StartTime = datetime.datetime.now() #start timer
 
 for i in np.arange(0,len(area_labels),1):
