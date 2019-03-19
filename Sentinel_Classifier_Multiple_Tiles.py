@@ -180,7 +180,7 @@ def set_paths(year = '2017', machine='local'):
 
 
     """
-    if machine = 'local':
+    if machine == 'local':
         if year=='2016':
             img_paths = ['/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2A_L2A_ILL2/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEB_N02_04/IMG_DATA/R20m/',
                          '/home/joe/Code/IceSurfClassifiers/Sentinel_Resources/S2_L2A/2016/S2_L2A_ILL1/GRANULE/S2A_USER_MSI_L2A_TL_MTI__20160721T202530_A005642_T22WEA_N02_04/IMG_DATA/R20m/',
