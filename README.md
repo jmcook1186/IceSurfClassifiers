@@ -17,6 +17,8 @@ Once trained, the model is applied to the drone imagery, with the reflectance at
 
 For the UAV images there is an additional option to extend the training data by selecting areas in UAV images wthat are homogenous and the surfce classification known with certainty, e.g. clearly identifiable snow packs or ponds.
 
+
+
 ### Prerequisites ###
 
 These scripts are written in Python 3.5 and require several packages with co-dependencies. Suggest the following fresh environment configuration:
@@ -39,6 +41,17 @@ Further details are available in the code annotations.
 
 
 For Sentinel 2 image data, the classified map and albedo map are masked using the Greenland Ice Mapping Project land/ice mask to exclude non-ice areas from the spatial analysis.
+
+
+### Example Outputs ###
+
+The figures below show example outputs from the UAV and Sentinel-2 classifiers respectively. The UAV image was collected over a 200 x 200m area on the Greenland Ice Sheet surface in 2017. The Sentinel 2 image is for a tile North of the UAV area. The Sentinel-2 code provided here outputs a similar plot for all requested tiles.
+
+![Example output plot from UAV classifiers code](https://raw.githubusercontent.com/jmcook1186/IceSurfClassifiers/master/UAV_Classifier_Example_Plot.png/s=200)
+
+![Example output plot from Sentinel2 classifier code](https://raw.githubusercontent.com/jmcook1186/IceSurfClassifiers/master/Sentinel_Classifier_Example_Plot.png/s=200)
+
+
 
 ### Permissions ###
 
