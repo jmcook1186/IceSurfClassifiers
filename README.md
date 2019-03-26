@@ -47,11 +47,10 @@ For Sentinel 2 image data, the classified map and albedo map are masked using th
 
 The figures below show example outputs from the UAV and Sentinel-2 classifiers respectively. The UAV image was collected over a 200 x 200m area on the Greenland Ice Sheet surface in 2017. The Sentinel 2 image is for a tile North of the UAV area. The Sentinel-2 code provided here outputs a similar plot for all requested tiles.
 
-![Example output plot from UAV classifiers code](https://raw.githubusercontent.com/jmcook1186/IceSurfClassifiers/master/UAV_Classifier_Example_Plot.png/s=200)
 
-![Example output plot from Sentinel2 classifier code](https://raw.githubusercontent.com/jmcook1186/IceSurfClassifiers/master/Sentinel_Classifier_Example_Plot.png/s=200)
+![Example output plot from UAV classifiers code](master/UAV_Classifier_Example_Plot.png?raw=true/s=100 "Title")
 
-
+![Example output plot from UAV classifiers code](master/Sentinel_Classifier_Example_Plot.png?raw=true/s=100 "Title")
 
 ### Permissions ###
 
