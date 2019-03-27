@@ -4,6 +4,8 @@ This repository contains code for automated classification and estimation of alb
 
 The training set comprises individual reflectance spectra obtained in summer 2016 and 2017 on the Greenland Ice Sheet, ca. 38km inland of the margin at Russell Glacier, near Kangerlussuaq as part of the National Environmental Research Council's Black and Bloom project. The spectra were obtained at solar noon +/- 2 hours under constant cloud conditions using an ASD field spec pro 3 with a fibre optic collimated with a 10 degree lens levelled on a horizontal boom so that the sensor was pointd downwards, 50 cm over the sample surface. The measurements are all relative to a flat, clean Spectralon panel. Each sample was qualitatively assigned to a category (high algal biomass, low algal biomass, clean ice, snow, water, cryoconite) based on a visual inspection of the surface. For sites in a designated "sacrifical zone", immediately after the spectral reflectance data was collected, the sample surface was chipped into a sterile sampling bag and returned to the laboratory for impurity analysis. 
 
+Note that due to the large file sizes, the input images are not provided in this repository. Suitable Sentinel-2 images are freely available from various online sourcs including sentinelhub and earthexplorer.usgs.gov. Advice on downloading the relevant files and organising into correct folder structures is provided in the script annotations.
+
 
 ### UAV Imagery ### 
 
