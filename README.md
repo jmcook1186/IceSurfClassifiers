@@ -1,6 +1,6 @@
 # IceSurfClassifiers
 
-This repository contains code for automated classification of ice surfaces using scikit-learn classification algorithms trained using field spectroscopy and applied to multispectral images from UAVs and satellites.
+This repository contains code for automated classification and estimation of albedo for ice surfaces using scikit-learn classificatiers trained using field spectroscopy and applied to multispectral images from UAVs and satellites.
 
 The training set comprises individual reflectance spectra obtained in summer 2016 and 2017 on the Greenland Ice Sheet, ca. 38km inland of the margin at Russell Glacier, near Kangerlussuaq as part of the National Environmental Research Council's Black and Bloom project. The spectra were obtained at solar noon +/- 2 hours under constant cloud conditions using an ASD field spec pro 3 with a fibre optic collimated with a 10 degree lens levelled on a horizontal boom so that the sensor was pointd downwards, 50 cm over the sample surface. The measurements are all relative to a flat, clean Spectralon panel. Each sample was qualitatively assigned to a category (high algal biomass, low algal biomass, clean ice, snow, water, cryoconite) based on a visual inspection of the surface. For sites in a designated "sacrifical zone", immediately after the spectral reflectance data was collected, the sample surface was chipped into a sterile sampling bag and returned to the laboratory for impurity analysis. 
 
@@ -17,6 +17,7 @@ Once trained, the model is applied to the drone imagery, with the reflectance at
 
 For the UAV images there is an additional option to extend the training data by selecting areas in UAV images wthat are homogenous and the surfce classification known with certainty, e.g. clearly identifiable snow packs or ponds.
 
+In addition to classification, the script calculates the surface albedo pixelwise from the reflectance of each spectral band using a narrowband to broadband conversion (Knap et al. 1999). Spatial statistics are reported to the console and saved to csv.
 
 
 ### Prerequisites ###
@@ -40,7 +41,7 @@ The same process was followed for supervised classification of Sentinel-2 satell
 Further details are available in the code annotations.
 
 
-For Sentinel 2 image data, the classified map and albedo map are masked using the Greenland Ice Mapping Project land/ice mask to exclude non-ice areas from the spatial analysis.
+For Sentinel 2 image data, the classified map and albedo map are masked using the Greenland Ice Mapping Project land/ice mask to exclude non-ice areas from the spatial analysis. Albedo data is collated for all tiles and reported to the console and saved to csv as a single summary dataset. Albedo data for individual tiles is an optional output.
 
 
 ### Example Outputs ###
@@ -54,4 +55,4 @@ The figures below show example outputs from the UAV and Sentinel-2 classifiers r
 
 ### Permissions ###
 
-The code is provided without warranty or guarantee of any kind.
+This code is provided without warranty or guarantee of any kind. Usage should cite the doi for v1.0 release of this repository and the paper Cook et al. 2019: Glacier algae accelerate melt rates on the Western Greenland Ice Sheet.
