@@ -1,0 +1,12 @@
+
+Sentinel_Resources/
+
+Sentinel_Outputs/
+
+UAV_Outputs/
+
+UAV_Resources/
+
+\.ipynb_checkpoints/
+
+\.idea/
