@@ -57,4 +57,6 @@ The figures below show example outputs from the UAV and Sentinel-2 classifiers r
 
 ### Permissions ###
 
-This code is provided without warranty or guarantee of any kind. Usage should cite the doi for v1.0 release of this repository and the paper Cook et al. 2019: Glacier algae accelerate melt rates on the Western Greenland Ice Sheet.
+This code is provided without warranty or guarantee of any kind. Usage should cite the doi for v1.0 release of this repository (doi:10.5281/zenodo.2598122) and the paper:
+
+Cook, J. M., Tedstone, A. J., Williamson, C., McCutcheon, J., Hodson, A. J., Dayal, A., Skiles, M., Hofer, S., Bryant, R., McAree, O., McGonigle, A., Ryan, J., Anesio, A. M., Irvine-Fynn, T. D. L., Hubbard, A., Hanna, E., Flanner, M., Mayanna, S., Benning, L. G., van As, D., Yallop, M., McQuaid, J., Gribbin, T., and Tranter, M.: Glacier algae accelerate melt rates on the western Greenland Ice Sheet, The Cryosphere Discuss., <https://doi.org/10.5194/tc-2019-58>, in review, 2019.
