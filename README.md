@@ -55,6 +55,10 @@ The figures below show example outputs from the UAV and Sentinel-2 classifiers r
 
 ![Example output plot from Sentinel classifiers code](./Sentinel_Classifier_Example_Plot.png?raw=true/width=10 "Example output plot from Sentinel classifiers code")
 
+### Notes on Classification Method ###
+
+In this project we have trained a random forest classifier on spectral reflectance measurements made on the ground using a field spectrometer. The hyperspectral data was reduced down to those wavelengths that are also measured by the remote cameras, either on our UAV or on Sentinel-2. This approach is quite novel and it has benefits and drawbacks. The main drawback is that the data is expensive and time consuming to collect, as it has to be collected in person on the ice surface, limiting the size of the available training data. However, the benefit is that the training data is of the highest quality. This is because we can be completely confident in the labels, since for each spectrum the sample area is homogenous and the ice surface has been scraped away for analysis in the laboratory. We are not vulnerable to ambiguity introduced by sub-pixel heterogeneity or uncertainty in subjective visual assessments of the surface. For the classifier itself, we tested a suite of algorithms and simply chose the one that performed best on our test set. 
+
 ### Permissions ###
 
 This code is provided without warranty or guarantee of any kind. Usage should cite the doi for v1.0 release of this repository (doi:10.5281/zenodo.2598122) and the paper:
